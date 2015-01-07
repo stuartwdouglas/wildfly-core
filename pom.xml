@@ -157,6 +157,7 @@
     </properties>
 
     <modules>
+        <module>alpn</module>
         <module>cli</module>
         <module>controller</module>
         <module>controller-client</module>
@@ -599,6 +600,11 @@
         <dependencies>
 
             <!-- Modules in this project -->
+            <dependency>
+                <groupId>org.wildfly.core</groupId>
+                <artifactId>wildfly-alpn-support</artifactId>
+                <version>${project.version}</version>
+            </dependency>
             <dependency>
                 <groupId>org.wildfly.core</groupId>
                 <artifactId>wildfly-core-feature-pack</artifactId>

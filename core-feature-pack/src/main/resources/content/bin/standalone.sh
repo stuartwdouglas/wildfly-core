@@ -25,6 +25,9 @@ do
       -secmgr)
           SECMGR="true"
           ;;
+      -alpn)
+          ALPN="true"
+          ;;
       --)
           shift
           break;;
@@ -324,6 +327,17 @@ fi
 MODULE_OPTS=""
 if [ "$SECMGR" = "true" ]; then
     MODULE_OPTS="$MODULE_OPTS -secmgr";
+fi
+
+# Resolve ALPN
+if [ "$ALPN" = "true" ]; then
+    ALPN_FILE=`eval \"$JAVA\" -jar \"$DIRNAME/wildfly-alpn-support.jar\" \"$JBOSS_HOME\"`
+    if [ "xALPN_FILE" == "x" ]; then
+        echo "ERROR: Could not resolve ALPN jar"
+        exit 1
+    else
+        JAVA_OPTS="-Xbootclasspath/p:$ALPN_FILE $JAVA_OPTS"
+    fi
 fi
 
 # Display our environment
