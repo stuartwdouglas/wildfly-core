@@ -43,9 +43,9 @@ import org.jboss.dmr.ModelType;
 /**
  * @author Stuart Douglas
  */
-class RequestControllerRootDefinition extends PersistentResourceDefinition {
+public class RequestControllerRootDefinition extends PersistentResourceDefinition {
 
-    static final String REQUEST_CONTROLLER_CAPABILITY_NAME = "org.wildfly.request-controller";
+    public static final String REQUEST_CONTROLLER_CAPABILITY_NAME = "org.wildfly.request-controller";
 
     public static final SimpleAttributeDefinition MAX_REQUESTS = SimpleAttributeDefinitionBuilder.create(Constants.MAX_REQUESTS, ModelType.INT, true)
             .setAllowExpression(true)
@@ -62,7 +62,7 @@ class RequestControllerRootDefinition extends PersistentResourceDefinition {
             .build();
     public static final RequestControllerRootDefinition INSTANCE = new RequestControllerRootDefinition(true);
 
-    static final RuntimeCapability<Void> REQUEST_CONTROLLER_CAPABILITY =
+    public static final RuntimeCapability<Void> REQUEST_CONTROLLER_CAPABILITY =
             RuntimeCapability.Builder.of(REQUEST_CONTROLLER_CAPABILITY_NAME, false, RequestController.class)
                     .build();
 
