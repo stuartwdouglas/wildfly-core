@@ -170,7 +170,7 @@ final class ConcreteResourceRegistration extends AbstractResourceRegistration {
     }
 
     @Override
-    public ManagementResourceRegistration registerSubModel(final ResourceDefinition resourceDefinition) {
+    public synchronized ManagementResourceRegistration registerSubModel(final ResourceDefinition resourceDefinition) {
         if (resourceDefinition == null) {
             throw ControllerLogger.ROOT_LOGGER.nullVar("resourceDefinition");
         }
@@ -438,7 +438,7 @@ final class ConcreteResourceRegistration extends AbstractResourceRegistration {
 
 
     @Override
-    public void registerProxyController(final PathElement address, final ProxyController controller) throws IllegalArgumentException {
+    public synchronized void registerProxyController(final PathElement address, final ProxyController controller) throws IllegalArgumentException {
         final ManagementResourceRegistration existing = getSubRegistration(PathAddress.pathAddress(address));
         if (existing != null && existing.getPathAddress().getLastElement().getValue().equals(address.getValue())) {
             throw ControllerLogger.ROOT_LOGGER.nodeAlreadyRegistered(existing.getPathAddress().toCLIStyleString());
@@ -447,7 +447,7 @@ final class ConcreteResourceRegistration extends AbstractResourceRegistration {
     }
 
     @Override
-    public void unregisterProxyController(final PathElement address) throws IllegalArgumentException {
+    public synchronized void unregisterProxyController(final PathElement address) throws IllegalArgumentException {
         final Map<String, NodeSubregistry> snapshot = childrenUpdater.get(this);
         final NodeSubregistry subregistry = snapshot.get(address.getKey());
         if (subregistry != null) {
