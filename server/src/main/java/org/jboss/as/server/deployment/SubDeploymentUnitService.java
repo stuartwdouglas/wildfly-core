@@ -66,6 +66,7 @@ public class SubDeploymentUnitService extends AbstractDeploymentUnitService {
         deploymentUnit.putAttachment(Attachments.VAULT_READER_ATTACHMENT_KEY, vaultReader);
         deploymentUnit.putAttachment(Attachments.DEPLOYMENT_OVERLAY_INDEX, parent.getAttachment(Attachments.DEPLOYMENT_OVERLAY_INDEX));
         deploymentUnit.putAttachment(Attachments.PATH_MANAGER, pathManager);
+        deploymentUnit.putAttachment(Attachments.DEPLOYMENT_COMPLETE_NOTIFIER, parent.getAttachment(Attachments.DEPLOYMENT_COMPLETE_NOTIFIER));
 
         // For compatibility only
         addSVH(deploymentUnit);

@@ -46,6 +46,7 @@ import javax.xml.stream.XMLStreamException;
 import org.jboss.as.controller.OperationFailedException;
 import org.jboss.as.controller.PathAddress;
 import org.jboss.as.process.CommandLineConstants;
+import org.jboss.as.server.deployment.DeploymentCompleteNotifier;
 import org.jboss.as.server.deployment.DeploymentUnit;
 import org.jboss.as.server.deployment.DeploymentUnitProcessingException;
 import org.jboss.as.server.deployment.DeploymentUnitProcessor;
@@ -1239,4 +1240,9 @@ public interface ServerLogger extends BasicLogger {
 
     @Message(id = 256, value = "Cannot read content from an unexploded deployment")
     OperationFailedException cannotReadContentFromUnexplodedDeployment();
+
+    @LogMessage(level = ERROR)
+    @Message(id = 257, value = "Failed to invoke deployment completion listener %s")
+    void deploymentCompleteNotificationFailed(DeploymentCompleteNotifier.DeploymentCompleteListener list, @Cause  Exception e);
+
 }

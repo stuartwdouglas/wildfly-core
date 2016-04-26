@@ -110,6 +110,8 @@ public final class Attachments {
      */
     public static final AttachmentKey<DeploymentUnitPhaseBuilder> DEPLOYMENT_UNIT_PHASE_BUILDER = AttachmentKey.create(DeploymentUnitPhaseBuilder.class);
 
+    public static final AttachmentKey<DeploymentCompleteNotifier> DEPLOYMENT_COMPLETE_NOTIFIER = AttachmentKey.create(DeploymentCompleteNotifier.class);
+
     //
     // STRUCTURE
     //

@@ -22,6 +22,7 @@
 
 package org.jboss.as.server.deployment;
 
+import org.jboss.as.controller.ModelController;
 import org.jboss.as.controller.ServiceVerificationHandler;
 import org.jboss.as.controller.capability.CapabilityServiceSupport;
 import org.jboss.as.controller.registry.ImmutableManagementResourceRegistration;
@@ -44,11 +45,13 @@ final class RootDeploymentUnitService extends AbstractDeploymentUnitService {
     private final InjectedValue<DeploymentMountProvider> serverDeploymentRepositoryInjector = new InjectedValue<DeploymentMountProvider>();
     private final InjectedValue<PathManager> pathManagerInjector = new InjectedValue<PathManager>();
     private final InjectedValue<VirtualFile> contentsInjector = new InjectedValue<VirtualFile>();
+    private final InjectedValue<ModelController> controllerInjector = new InjectedValue<ModelController>();
     private final String name;
     private final String managementName;
     private final DeploymentUnit parent;
     private final DeploymentOverlayIndex deploymentOverlays;
     private final boolean isExplodedContent;
+    private final boolean booting;
 
     /**
      * Construct a new instance.
@@ -66,7 +69,7 @@ final class RootDeploymentUnitService extends AbstractDeploymentUnitService {
     public RootDeploymentUnitService(final String name, final String managementName, final DeploymentUnit parent,
                                      final ImmutableManagementResourceRegistration registration, final ManagementResourceRegistration mutableRegistration,
                                      final Resource resource, final CapabilityServiceSupport capabilityServiceSupport,
-                                     final AbstractVaultReader vaultReader, DeploymentOverlayIndex deploymentOverlays, boolean exploded) {
+                                     final AbstractVaultReader vaultReader, DeploymentOverlayIndex deploymentOverlays, boolean exploded, final boolean booting) {
         super(registration, mutableRegistration, resource, capabilityServiceSupport, vaultReader);
         assert name != null : "name is null";
         this.name = name;
@@ -74,6 +77,7 @@ final class RootDeploymentUnitService extends AbstractDeploymentUnitService {
         this.parent = parent;
         this.deploymentOverlays = deploymentOverlays;
         this.isExplodedContent = exploded;
+        this.booting = booting;
     }
 
     protected DeploymentUnit createAndInitializeDeploymentUnit(final ServiceRegistry registry) {
@@ -95,6 +99,7 @@ final class RootDeploymentUnitService extends AbstractDeploymentUnitService {
 
         // Attach the deployment repo
         deploymentUnit.putAttachment(Attachments.SERVER_DEPLOYMENT_REPOSITORY, serverDeploymentRepositoryInjector.getValue());
+        deploymentUnit.putAttachment(Attachments.DEPLOYMENT_COMPLETE_NOTIFIER, DeploymentCompleteNotifierImpl.create(booting, controllerInjector.getValue()));
 
         // For compatibility only
         addSVH(deploymentUnit);
@@ -112,6 +117,10 @@ final class RootDeploymentUnitService extends AbstractDeploymentUnitService {
 
     InjectedValue<VirtualFile> getContentsInjector() {
         return contentsInjector;
+    }
+
+    InjectedValue<ModelController> getControllerInjector() {
+        return controllerInjector;
     }
 
     @SuppressWarnings("deprecation")

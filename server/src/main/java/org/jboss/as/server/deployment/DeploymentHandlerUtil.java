@@ -34,6 +34,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.concurrent.atomic.AtomicBoolean;
 
+import org.jboss.as.controller.ModelController;
 import org.jboss.as.controller.OperationContext;
 import org.jboss.as.controller.OperationFailedException;
 import org.jboss.as.controller.OperationStepHandler;
@@ -206,12 +207,13 @@ public class DeploymentHandlerUtil {
 
         final RootDeploymentUnitService service = new RootDeploymentUnitService(deploymentUnitName, managementName, null,
                 registration, mutableRegistration, deploymentResource, context.getCapabilityServiceSupport(), vaultReader, overlays,
-                isExplodedContent);
+                isExplodedContent, context.isBooting());
         final ServiceController<DeploymentUnit> deploymentUnitController = serviceTarget.addService(deploymentUnitServiceName, service)
                 .addDependency(Services.JBOSS_DEPLOYMENT_CHAINS, DeployerChains.class, service.getDeployerChainsInjector())
                 .addDependency(DeploymentMountProvider.SERVICE_NAME, DeploymentMountProvider.class, service.getServerDeploymentRepositoryInjector())
                 .addDependency(PathManagerService.SERVICE_NAME, PathManager.class, service.getPathManagerInjector())
                 .addDependency(contentsServiceName, VirtualFile.class, service.getContentsInjector())
+                .addDependency(org.jboss.as.server.Services.JBOSS_SERVER_CONTROLLER, ModelController.class, service.getControllerInjector())
                 .setInitialMode(ServiceController.Mode.ACTIVE)
                 .install();
 
