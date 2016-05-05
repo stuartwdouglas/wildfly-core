@@ -58,6 +58,7 @@ import io.undertow.security.impl.DigestAuthenticationMechanism;
 import io.undertow.security.impl.DigestQop;
 import io.undertow.security.impl.GSSAPIAuthenticationMechanism;
 import io.undertow.security.impl.SimpleNonceManager;
+import io.undertow.server.DefaultByteBufferPool;
 import io.undertow.server.HttpHandler;
 import io.undertow.server.HttpServerExchange;
 import io.undertow.server.handlers.CanonicalPathHandler;
@@ -144,7 +145,7 @@ public class ManagementHttpServer {
                     serverOptionsBuilder.set(SSL_CLIENT_AUTH_MODE, sslClientAuthMode);
                 }
                 OptionMap secureOptions = serverOptionsBuilder.getMap();
-                XnioSsl xnioSsl = new UndertowXnioSsl(worker.getXnio(), secureOptions, sslContext);
+                XnioSsl xnioSsl = new UndertowXnioSsl(worker.getXnio(), secureOptions,new DefaultByteBufferPool(true, 17 * 1024, -1, 0), sslContext);
                 secureServer = xnioSsl.createSslConnectionServer(worker, secureAddress, acceptListener, secureOptions);
                 secureServer.resumeAccepts();
             }
@@ -182,7 +183,7 @@ public class ManagementHttpServer {
             }
         }
 
-        HttpOpenListener openListener = new HttpOpenListener(new ByteBufferSlicePool(BufferAllocator.DIRECT_BYTE_BUFFER_ALLOCATOR, 4096, 10 * 4096));
+        HttpOpenListener openListener = new HttpOpenListener(new DefaultByteBufferPool(true, 4096, 10 * 4096, 0));
 
         int secureRedirectPort = secureBindAddress != null ? secureBindAddress.getPort() : -1;
         // WFLY-2870 -- redirect not supported if bindAddress and secureBindAddress are using different InetAddress
