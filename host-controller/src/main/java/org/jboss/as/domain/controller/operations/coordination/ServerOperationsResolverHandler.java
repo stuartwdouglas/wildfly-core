@@ -62,13 +62,7 @@ public class ServerOperationsResolverHandler implements OperationStepHandler {
     public static final String OPERATION_NAME = "server-operation-resolver";
 
     private static final HostControllerExecutionSupport.ServerOperationProvider NO_OP_PROVIDER =
-        new HostControllerExecutionSupport.ServerOperationProvider() {
-            @Override
-            public Map<Set<ServerIdentity>, ModelNode> getServerOperations(ModelNode domainOp, PathAddress address) {
-
-                return Collections.emptyMap();
-            }
-        };
+            (domainOp, address) -> Collections.emptyMap();
 
     private final ServerOperationResolver resolver;
     private final HostControllerExecutionSupport hostControllerExecutionSupport;
@@ -106,22 +100,19 @@ public class ServerOperationsResolverHandler implements OperationStepHandler {
 
             HostControllerExecutionSupport.ServerOperationProvider provider = nullDomainOp
                 ? NO_OP_PROVIDER
-                : new HostControllerExecutionSupport.ServerOperationProvider() {
-                    @Override
-                    public Map<Set<ServerIdentity>, ModelNode> getServerOperations(ModelNode domainOp, PathAddress address) {
+                : (domainOp, address) -> {
 
-                        Map<Set<ServerIdentity>, ModelNode> ops = ServerOperationsResolverHandler.this.getServerOperations(context, domainOp, address, pushToServers);
-                        for (Map.Entry<Set<ServerIdentity>, ModelNode> entry : ops.entrySet()) {
-                            ModelNode op = entry.getValue();
-                            //Remove the caller-type=user header
-                            if (op.hasDefined(OPERATION_HEADERS) && op.get(OPERATION_HEADERS).hasDefined(CALLER_TYPE) && op.get(OPERATION_HEADERS, CALLER_TYPE).asString().equals(USER)) {
-                                op.get(OPERATION_HEADERS).remove(CALLER_TYPE);
-                            }
+                    Map<Set<ServerIdentity>, ModelNode> ops = ServerOperationsResolverHandler.this.getServerOperations(context, domainOp, address, pushToServers);
+                    for (Map.Entry<Set<ServerIdentity>, ModelNode> entry : ops.entrySet()) {
+                        ModelNode op = entry.getValue();
+                        //Remove the caller-type=user header
+                        if (op.hasDefined(OPERATION_HEADERS) && op.get(OPERATION_HEADERS).hasDefined(CALLER_TYPE) && op.get(OPERATION_HEADERS, CALLER_TYPE).asString().equals(USER)) {
+                            op.get(OPERATION_HEADERS).remove(CALLER_TYPE);
                         }
-
-                        HOST_CONTROLLER_LOGGER.tracef("Server ops for %s -- %s", domainOp, ops);
-                        return ops;
                     }
+
+                    HOST_CONTROLLER_LOGGER.tracef("Server ops for %s -- %s", domainOp, ops);
+                    return ops;
                 };
             Map<ServerIdentity, ModelNode> serverOps = hostControllerExecutionSupport.getServerOps(provider);
 

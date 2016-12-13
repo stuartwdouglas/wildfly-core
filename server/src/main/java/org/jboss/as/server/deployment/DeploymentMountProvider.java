@@ -116,11 +116,7 @@ public interface DeploymentMountProvider {
             @Override
             public void start(StartContext context) throws StartException {
                 try {
-                    final JBossThreadFactory threadFactory = doPrivileged(new PrivilegedAction<JBossThreadFactory>() {
-                        public JBossThreadFactory run() {
-                            return new JBossThreadFactory(new ThreadGroup("ServerDeploymentRepository-temp-threads"), true, null, "%G - %t", null, null);
-                        }
-                    });
+                    final JBossThreadFactory threadFactory = doPrivileged((PrivilegedAction<JBossThreadFactory>) () -> new JBossThreadFactory(new ThreadGroup("ServerDeploymentRepository-temp-threads"), true, null, "%G - %t", null, null));
                     scheduledExecutorService =  Executors.newScheduledThreadPool(2, threadFactory);
                     tempFileProvider = TempFileProvider.create("temp", scheduledExecutorService, true);
                 } catch (IOException e) {
@@ -131,22 +127,19 @@ public interface DeploymentMountProvider {
 
             @Override
             public void stop(final StopContext context) {
-                Runnable r = new Runnable() {
-                    @Override
-                    public void run() {
+                Runnable r = () -> {
+                    try {
+                        VFSUtils.safeClose(tempFileProvider);
+                    } finally {
                         try {
-                            VFSUtils.safeClose(tempFileProvider);
-                        } finally {
-                            try {
-                                ScheduledExecutorService ses = scheduledExecutorService;
-                                scheduledExecutorService = null;
-                                if (ses != null) {
-                                    ses.shutdown();
-                                }
-                                ServerLogger.ROOT_LOGGER.debugf("%s stopped", DeploymentMountProvider.class.getSimpleName());
-                            } finally {
-                                context.complete();
+                            ScheduledExecutorService ses = scheduledExecutorService;
+                            scheduledExecutorService = null;
+                            if (ses != null) {
+                                ses.shutdown();
                             }
+                            ServerLogger.ROOT_LOGGER.debugf("%s stopped", DeploymentMountProvider.class.getSimpleName());
+                        } finally {
+                            context.complete();
                         }
                     }
                 };

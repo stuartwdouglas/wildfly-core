@@ -37,9 +37,6 @@ import java.util.Map;
 
 import org.jboss.as.controller.ManagementModel;
 import org.jboss.as.controller.ModelController;
-import org.jboss.as.controller.OperationContext;
-import org.jboss.as.controller.OperationFailedException;
-import org.jboss.as.controller.OperationStepHandler;
 import org.jboss.as.controller.PathAddress;
 import org.jboss.as.controller.PathElement;
 import org.jboss.as.controller.SimpleOperationDefinition;
@@ -133,24 +130,21 @@ public class WildcardReadResourceUnitTestCase extends AbstractControllerTestBase
         root.registerOperationHandler(GenericSubsystemDescribeHandler.DEFINITION, GenericSubsystemDescribeHandler.INSTANCE);
 
         root.registerOperationHandler(new SimpleOperationDefinition("setup",
-                new NonResolvingResourceDescriptionResolver()), new OperationStepHandler() {
-            @Override
-            public void execute(OperationContext context, ModelNode operation) throws OperationFailedException {
+                new NonResolvingResourceDescriptionResolver()), (context, operation) -> {
 
-                final ModelNode model = new ModelNode();
+                    final ModelNode model = new ModelNode();
 
-                model.get("host", "A", "server", "one", "subsystem", "web", "connector", "default", "1").setEmptyObject();
-                model.get("host", "A", "server", "two", "subsystem", "web", "connector", "default", "2").setEmptyObject();
-                model.get("host", "A", "server", "three", "subsystem", "web", "connector", "other", "3").setEmptyObject();
-                model.get("host", "B", "server", "one", "subsystem", "web", "connector", "default", "4").setEmptyObject();
-                model.get("host", "B", "server", "two", "subsystem", "web", "connector", "default", "5").setEmptyObject();
-                model.get("host", "B", "server", "three", "subsystem", "web", "connector", "default", "6").setEmptyObject();
-                model.get("host", "B", "server", "two", "subsystem", "web", "connector", "special", "6").setEmptyObject();
-                model.get("host", "B", "server", "two", "subsystem", "web", "connector", "special", "statistics", "test", "7").setEmptyObject();
+                    model.get("host", "A", "server", "one", "subsystem", "web", "connector", "default", "1").setEmptyObject();
+                    model.get("host", "A", "server", "two", "subsystem", "web", "connector", "default", "2").setEmptyObject();
+                    model.get("host", "A", "server", "three", "subsystem", "web", "connector", "other", "3").setEmptyObject();
+                    model.get("host", "B", "server", "one", "subsystem", "web", "connector", "default", "4").setEmptyObject();
+                    model.get("host", "B", "server", "two", "subsystem", "web", "connector", "default", "5").setEmptyObject();
+                    model.get("host", "B", "server", "three", "subsystem", "web", "connector", "default", "6").setEmptyObject();
+                    model.get("host", "B", "server", "two", "subsystem", "web", "connector", "special", "6").setEmptyObject();
+                    model.get("host", "B", "server", "two", "subsystem", "web", "connector", "special", "statistics", "test", "7").setEmptyObject();
 
-                createModel(context, model);
-            }
-        });
+                    createModel(context, model);
+                });
 
         GlobalNotifications.registerGlobalNotifications(root, processType);
 

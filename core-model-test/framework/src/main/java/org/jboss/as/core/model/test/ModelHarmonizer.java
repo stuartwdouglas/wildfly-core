@@ -47,21 +47,15 @@ public interface ModelHarmonizer {
      */
     void harmonizeModel(ModelVersion modelVersion, ModelNode source, ModelNode target);
 
-    ModelHarmonizer UNDEFINED_TO_EMPTY = new ModelHarmonizer() {
-        @Override
-        public void harmonizeModel(ModelVersion modelVersion, ModelNode source, ModelNode target) {
-            if (source.getType() == ModelType.OBJECT && source.asInt() == 0 && !target.isDefined()) {
-                target.setEmptyObject();
-            }
+    ModelHarmonizer UNDEFINED_TO_EMPTY = (modelVersion, source, target) -> {
+        if (source.getType() == ModelType.OBJECT && source.asInt() == 0 && !target.isDefined()) {
+            target.setEmptyObject();
         }
     };
 
-    ModelHarmonizer MISSING_NAME = new ModelHarmonizer() {
-        @Override
-        public void harmonizeModel(ModelVersion modelVersion, ModelNode source, ModelNode target) {
-            if (source.hasDefined(NAME) && !target.hasDefined(NAME)) {
-                target.get(NAME).set(source.get(NAME));
-            }
+    ModelHarmonizer MISSING_NAME = (modelVersion, source, target) -> {
+        if (source.hasDefined(NAME) && !target.hasDefined(NAME)) {
+            target.get(NAME).set(source.get(NAME));
         }
     };
 }

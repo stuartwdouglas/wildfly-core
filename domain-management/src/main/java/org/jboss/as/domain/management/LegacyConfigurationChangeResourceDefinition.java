@@ -42,7 +42,6 @@ import org.jboss.as.controller.ModelVersion;
 import org.jboss.as.controller.OperationContext;
 import org.jboss.as.controller.OperationDefinition;
 import org.jboss.as.controller.OperationFailedException;
-import org.jboss.as.controller.OperationStepHandler;
 import org.jboss.as.controller.PathAddress;
 import org.jboss.as.controller.PathElement;
 import org.jboss.as.controller.ProcessType;
@@ -88,14 +87,10 @@ public class LegacyConfigurationChangeResourceDefinition extends SimpleResourceD
 
     static ResourceDefinition forDomain() {
         return new SimpleResourceDefinition(new Parameters(PATH, DomainManagementResolver.getResolver(CORE, MANAGEMENT, SERVICE, CONFIGURATION_CHANGES))
-                .setAddHandler(new OperationStepHandler() {
-                    @Override
-                    public void execute(OperationContext context, ModelNode operation) throws OperationFailedException {
-                        String warning = DomainManagementLogger.ROOT_LOGGER.removedBrokenResource(context.getCurrentAddress().toCLIStyleString());
-                        DomainManagementLogger.ROOT_LOGGER.warn(warning);
-                        context.getResult().add(warning);
-                    }
-
+                .setAddHandler((context, operation) -> {
+                    String warning = DomainManagementLogger.ROOT_LOGGER.removedBrokenResource(context.getCurrentAddress().toCLIStyleString());
+                    DomainManagementLogger.ROOT_LOGGER.warn(warning);
+                    context.getResult().add(warning);
                 })
                 .setDeprecatedSince(ModelVersion.create(4, 2)));
     }

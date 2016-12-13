@@ -29,7 +29,6 @@ import java.util.function.Consumer;
 import org.jboss.as.controller.AttributeDefinition;
 import org.jboss.as.controller.OperationContext;
 import org.jboss.as.controller.OperationContext.Stage;
-import org.jboss.as.controller.OperationFailedException;
 import org.jboss.as.controller.OperationStepHandler;
 import org.jboss.as.controller.PathAddress;
 import org.jboss.as.controller.SimpleAttributeDefinition;
@@ -113,19 +112,15 @@ public class HttpManagementResourceDefinition extends BaseHttpInterfaceResourceD
     }
 
     public static void addAttributeValidator(OperationContext context) {
-        context.addStep(new OperationStepHandler() {
-
-            @Override
-            public void execute(OperationContext context, ModelNode operation) throws OperationFailedException {
-                ModelNode model = context.readResource(PathAddress.EMPTY_ADDRESS).getModel();
-                ModelNode httpsPort = HTTPS_PORT.resolveModelAttribute(context, model);
-                ModelNode secureInterface = SECURE_INTERFACE.resolveModelAttribute(context, model);
-                if (httpsPort.isDefined() || secureInterface.isDefined()) {
-                    if (SSL_CONTEXT.resolveModelAttribute(context, model).isDefined() || SECURITY_REALM.resolveModelAttribute(context, model).isDefined()) {
-                        return;
-                    }
-                    throw ROOT_LOGGER.attributeRequiresSSLContext(httpsPort.isDefined() ? HTTPS_PORT.getName() : SECURE_INTERFACE.getName());
+        context.addStep((context1, operation) -> {
+            ModelNode model = context1.readResource(PathAddress.EMPTY_ADDRESS).getModel();
+            ModelNode httpsPort = HTTPS_PORT.resolveModelAttribute(context1, model);
+            ModelNode secureInterface = SECURE_INTERFACE.resolveModelAttribute(context1, model);
+            if (httpsPort.isDefined() || secureInterface.isDefined()) {
+                if (SSL_CONTEXT.resolveModelAttribute(context1, model).isDefined() || SECURITY_REALM.resolveModelAttribute(context1, model).isDefined()) {
+                    return;
                 }
+                throw ROOT_LOGGER.attributeRequiresSSLContext(httpsPort.isDefined() ? HTTPS_PORT.getName() : SECURE_INTERFACE.getName());
             }
         }, Stage.MODEL);
     }

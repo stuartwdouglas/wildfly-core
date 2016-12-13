@@ -25,7 +25,6 @@ package org.jboss.as.test.integration.domain.suspendresume;
 import java.io.IOException;
 import java.net.HttpURLConnection;
 import java.net.URL;
-import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
@@ -103,12 +102,7 @@ public class DomainSuspendResumeTestCase {
         final String address = "http://" + TestSuiteEnvironment.getServerAddress() + ":8080/web-suspend";
         ExecutorService executorService = Executors.newSingleThreadExecutor();
         try {
-            Future<Object> result = executorService.submit(new Callable<Object>() {
-                @Override
-                public Object call() throws Exception {
-                    return HttpRequest.get(address, 60, TimeUnit.SECONDS);
-                }
-            });
+            Future<Object> result = executorService.submit(() -> HttpRequest.get(address, 60, TimeUnit.SECONDS));
 
             Thread.sleep(ADJUSTED_SECOND); //nasty, but we need to make sure the HTTP request has started
 

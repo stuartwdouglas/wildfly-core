@@ -233,11 +233,7 @@ public interface ModelControllerClientConfiguration extends Closeable {
         private static final ThreadGroup defaultThreadGroup = new ThreadGroup("management-client-thread");
 
         static ExecutorService createDefaultExecutor() {
-            final ThreadFactory threadFactory = doPrivileged(new PrivilegedAction<JBossThreadFactory>() {
-                public JBossThreadFactory run() {
-                    return new JBossThreadFactory(defaultThreadGroup, Boolean.FALSE, null, "%G " + executorCount.incrementAndGet() + "-%t", null, null);
-                }
-            });
+            final ThreadFactory threadFactory = doPrivileged((PrivilegedAction<JBossThreadFactory>) () -> new JBossThreadFactory(defaultThreadGroup, Boolean.FALSE, null, "%G " + executorCount.incrementAndGet() + "-%t", null, null));
             return new ThreadPoolExecutor(2, getSystemProperty("org.jboss.as.controller.client.max-threads", 6), 60, TimeUnit.SECONDS, new LinkedBlockingQueue<Runnable>(), threadFactory);
         }
 
@@ -251,12 +247,7 @@ public interface ModelControllerClientConfiguration extends Closeable {
         }
 
         private static String getStringProperty(final String name) {
-            return getSecurityManager() == null ? getProperty(name) : doPrivileged(new PrivilegedAction<String>() {
-                @Override
-                public String run() {
-                    return getProperty(name);
-                }
-            });
+            return getSecurityManager() == null ? getProperty(name) : doPrivileged((PrivilegedAction<String>) () -> getProperty(name));
         }
 
         public static ModelControllerClientConfiguration create(final String protocol, final String hostName, final int port) throws UnknownHostException {

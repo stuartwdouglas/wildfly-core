@@ -23,7 +23,6 @@
 package org.jboss.as.protocol;
 
 import org.jboss.as.protocol.logging.ProtocolLogger;
-import org.jboss.remoting3.CloseHandler;
 import org.jboss.remoting3.Connection;
 import org.wildfly.common.Assert;
 
@@ -78,12 +77,7 @@ public final class ProtocolConnectionManager {
                     openHandler.connectionOpened(connection);
                     ok = true;
                     this.connection = connection;
-                    connection.addCloseHandler(new CloseHandler<Connection>() {
-                        @Override
-                        public void handleClose(Connection closed, IOException exception) {
-                            onConnectionClose(closed);
-                        }
-                    });
+                    connection.addCloseHandler((closed, exception) -> onConnectionClose(closed));
                 } finally {
                     if(!ok) {
                         StreamUtils.safeClose(connection);
@@ -308,11 +302,8 @@ public final class ProtocolConnectionManager {
 
         @Override
         public ConnectionOpenHandler getConnectionOpenedHandler() {
-            return new ConnectionOpenHandler() {
-                @Override
-                public void connectionOpened(final Connection connection) throws IOException {
-                    //
-                }
+            return connection -> {
+                //
             };
         }
 

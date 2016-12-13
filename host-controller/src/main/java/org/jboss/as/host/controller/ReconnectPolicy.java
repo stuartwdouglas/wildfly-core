@@ -38,22 +38,18 @@ interface ReconnectPolicy {
      */
     void wait(int count) throws InterruptedException;
 
-    ReconnectPolicy CONNECT = new ReconnectPolicy() {
-
-        @Override
-        public void wait(int count) throws InterruptedException {
-            final int waitPeriod;
-            if (count < 5) {
-                waitPeriod = 1;
-            } else if (count >= 5 && count < 10) {
-                waitPeriod = 3;
-            } else if (count >= 10 && count < 15) {
-                waitPeriod = 10;
-            } else {
-                waitPeriod = 20;
-            }
-            TimeUnit.SECONDS.sleep(waitPeriod);
+    ReconnectPolicy CONNECT = count -> {
+        final int waitPeriod;
+        if (count < 5) {
+            waitPeriod = 1;
+        } else if (count >= 5 && count < 10) {
+            waitPeriod = 3;
+        } else if (count >= 10 && count < 15) {
+            waitPeriod = 10;
+        } else {
+            waitPeriod = 20;
         }
+        TimeUnit.SECONDS.sleep(waitPeriod);
     };
 
     ReconnectPolicy RECONNECT = new ReconnectPolicy() {

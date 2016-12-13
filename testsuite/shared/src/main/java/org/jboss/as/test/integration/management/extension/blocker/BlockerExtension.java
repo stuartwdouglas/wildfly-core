@@ -193,31 +193,22 @@ public class BlockerExtension implements Extension {
                         break;
                     }
                     case SERVICE_START: {
-                        context.addStep(new OperationStepHandler() {
-                            @Override
-                            public void execute(OperationContext context, ModelNode operation) throws OperationFailedException {
-                                BlockingService service = new BlockingService(blockTime, true);
-                                context.getServiceTarget().addService(BlockingService.SERVICE_NAME, service).install();
-                                context.completeStep(new OperationContext.ResultHandler() {
-                                    @Override
-                                    public void handleResult(OperationContext.ResultAction resultAction, OperationContext context, ModelNode operation) {
-                                        log.info("BlockingService step completed: result = " + resultAction);
-                                        context.removeService(BlockingService.SERVICE_NAME);
-                                    }
-                                });
-                            }
+                        context.addStep((context15, operation15) -> {
+                            BlockingService service = new BlockingService(blockTime, true);
+                            context15.getServiceTarget().addService(BlockingService.SERVICE_NAME, service).install();
+                            context15.completeStep((resultAction, context14, operation14) -> {
+                                log.info("BlockingService step completed: result = " + resultAction);
+                                context14.removeService(BlockingService.SERVICE_NAME);
+                            });
                         }, OperationContext.Stage.RUNTIME);
                         break;
                     }
                     //This is used by PreparedResponseTestCase where we only add the service which will be stopped by stopping/reloading the server in the test.
                     //This might not be the original intent of the BLockerExtension so be careful if you want to change it.
                     case SERVICE_STOP: {
-                        context.addStep(new OperationStepHandler() {
-                            @Override
-                            public void execute(OperationContext context, ModelNode operation) throws OperationFailedException {
-                                BlockingService service = new BlockingService(blockTime, false);
-                                context.getServiceTarget().addService(BlockingService.SERVICE_NAME, service).install();
-                            }
+                        context.addStep((context13, operation13) -> {
+                            BlockingService service = new BlockingService(blockTime, false);
+                            context13.getServiceTarget().addService(BlockingService.SERVICE_NAME, service).install();
                         }, OperationContext.Stage.RUNTIME);
                         break;
                     }
@@ -226,12 +217,9 @@ public class BlockerExtension implements Extension {
                         break;
                     }
                     case ROLLBACK:
-                        context.addStep(new OperationStepHandler() {
-                            @Override
-                            public void execute(OperationContext context, ModelNode operation) throws OperationFailedException {
-                                context.getFailureDescription().set("rollback");
-                                context.setRollbackOnly();
-                            }
+                        context.addStep((context12, operation12) -> {
+                            context12.getFailureDescription().set("rollback");
+                            context12.setRollbackOnly();
                         }, OperationContext.Stage.MODEL);
                         break;
                     case COMMIT:
@@ -239,13 +227,10 @@ public class BlockerExtension implements Extension {
                     default:
                         throw new IllegalStateException(blockPoint.toString());
                 }
-                context.completeStep(new OperationContext.ResultHandler() {
-                    @Override
-                    public void handleResult(OperationContext.ResultAction resultAction, OperationContext context, ModelNode operation) {
-                        if ((blockPoint == BlockPoint.COMMIT && resultAction == OperationContext.ResultAction.KEEP)
-                            || (blockPoint == BlockPoint.ROLLBACK && resultAction == OperationContext.ResultAction.ROLLBACK)) {
-                            block(blockTime);
-                        }
+                context.completeStep((resultAction, context1, operation1) -> {
+                    if ((blockPoint == BlockPoint.COMMIT && resultAction == OperationContext.ResultAction.KEEP)
+                        || (blockPoint == BlockPoint.ROLLBACK && resultAction == OperationContext.ResultAction.ROLLBACK)) {
+                        block(blockTime);
                     }
                 });
             }

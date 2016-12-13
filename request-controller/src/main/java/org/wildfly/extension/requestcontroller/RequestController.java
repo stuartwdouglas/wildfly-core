@@ -489,15 +489,12 @@ public class RequestController implements Service<RequestController>, ServerActi
         public boolean runRequest() {
             if(state.compareAndSet(0, 1)) {
                 cancel();
-                executor.execute(new Runnable() {
-                    @Override
-                    public void run() {
-                        try {
-                            controlPoint.beginExistingRequest();
-                            task.run();
-                        } finally {
-                            controlPoint.requestComplete();
-                        }
+                executor.execute(() -> {
+                    try {
+                        controlPoint.beginExistingRequest();
+                        task.run();
+                    } finally {
+                        controlPoint.requestComplete();
                     }
                 });
                 return true;

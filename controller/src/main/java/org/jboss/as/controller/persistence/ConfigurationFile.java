@@ -19,7 +19,6 @@
 package org.jboss.as.controller.persistence;
 
 import java.io.File;
-import java.io.FilenameFilter;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -349,13 +348,7 @@ public class ConfigurationFile {
         final String suffix = "." + backupType + ".xml";
         File[] files = null;
         if (searchDir.exists() && searchDir.isDirectory()) {
-            files = searchDir.listFiles(new FilenameFilter() {
-                @Override
-                public boolean accept(File dir, String name) {
-                    return name.endsWith(suffix);
-                }
-
-            });
+            files = searchDir.listFiles((dir, name) -> name.endsWith(suffix));
         }
 
         if (files == null || files.length == 0) {
@@ -384,13 +377,7 @@ public class ConfigurationFile {
 
         File[] files = null;
         if (snapshotsDirectory.exists() && snapshotsDirectory.isDirectory()) {
-            files = snapshotsDirectory.listFiles(new FilenameFilter() {
-                @Override
-                public boolean accept(File dir, String name) {
-                    return name.startsWith(prefix);
-                }
-
-            });
+            files = snapshotsDirectory.listFiles((dir, name) -> name.startsWith(prefix));
         }
 
         if (files == null || files.length == 0) {
@@ -777,12 +764,7 @@ public class ConfigurationFile {
         final ArrayList<String> names = new ArrayList<String>();
 
         public BackupSnapshotInfo() {
-            for (String name : snapshotsDirectory.list(new FilenameFilter() {
-                @Override
-                public boolean accept(File dir, String name) {
-                    return SNAPSHOT_XML.matcher(name).matches();
-                }
-            })) {
+            for (String name : snapshotsDirectory.list((dir, name) -> SNAPSHOT_XML.matcher(name).matches())) {
                 names.add(name);
             }
         }

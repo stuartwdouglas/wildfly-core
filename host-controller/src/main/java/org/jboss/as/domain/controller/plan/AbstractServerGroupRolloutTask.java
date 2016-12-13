@@ -68,14 +68,9 @@ abstract class AbstractServerGroupRolloutTask implements Runnable {
     public void run() {
         try {
             // TODO Elytron Revisit and use the Elytron SecurityIdentity instead.
-            AccessAuditContext.doAs(null, null, new PrivilegedAction<Void>() {
-
-                @Override
-                public Void run() {
-                    execute();
-                    return null;
-                }
-
+            AccessAuditContext.doAs(null, null, (PrivilegedAction<Void>) () -> {
+                execute();
+                return null;
             });
         } catch (Throwable t) {
             DomainControllerLogger.HOST_CONTROLLER_LOGGER.debugf(t, "failed to process task %s", tasks.iterator().next().getOperation());

@@ -32,7 +32,6 @@ import java.util.Map;
 import java.util.Properties;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutionException;
-import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 
@@ -122,20 +121,17 @@ public final class SelfContainedContainer {
         final Bootstrap.Configuration configuration = new Bootstrap.Configuration(serverEnvironment);
 
         configuration.setConfigurationPersisterFactory(
-                new Bootstrap.ConfigurationPersisterFactory() {
-                    @Override
-                    public ExtensibleConfigurationPersister createConfigurationPersister(ServerEnvironment serverEnvironment, ExecutorService executorService) {
+                (serverEnvironment1, executorService) -> {
 
-                        ExtensibleConfigurationPersister delegate;
-                        if(persisterFactory!=null) {
-                            delegate = persisterFactory.createConfigurationPersister(serverEnvironment, executorService);
-                        } else {
-                            delegate = new SelfContainedConfigurationPersister(containerDefinition);
-                        }
-
-                        configuration.getExtensionRegistry().setWriterRegistry(delegate);
-                        return delegate;
+                    ExtensibleConfigurationPersister delegate;
+                    if(persisterFactory!=null) {
+                        delegate = persisterFactory.createConfigurationPersister(serverEnvironment1, executorService);
+                    } else {
+                        delegate = new SelfContainedConfigurationPersister(containerDefinition);
                     }
+
+                    configuration.getExtensionRegistry().setWriterRegistry(delegate);
+                    return delegate;
                 });
 
 
@@ -162,12 +158,7 @@ public final class SelfContainedContainer {
 
         latch.await();
 
-        executor.submit(new Runnable() {
-            @Override
-            public void run() {
-                deleteRecursively(tmpDir);
-            }
-        });
+        executor.submit((Runnable) () -> deleteRecursively(tmpDir));
         executor.shutdown();
     }
 

@@ -117,12 +117,7 @@ public class PatchBundleXml_1_0 implements XMLStreamConstants, XMLElementReader<
                     throw unexpectedElement(reader);
             }
         }
-        result.setResult(new BundledPatch() {
-            @Override
-            public List<BundledPatchEntry> getPatches() {
-                return patches;
-            }
-        });
+        result.setResult(() -> patches);
     }
 
     private void parseElement(XMLExtendedStreamReader reader, List<BundledPatch.BundledPatchEntry> patches) throws XMLStreamException {

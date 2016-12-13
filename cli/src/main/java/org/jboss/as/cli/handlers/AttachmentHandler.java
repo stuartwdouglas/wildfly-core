@@ -27,13 +27,11 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.StandardCopyOption;
 import java.util.HashSet;
-import java.util.List;
 import java.util.Set;
 import java.util.TreeSet;
 import org.jboss.as.cli.Attachments;
 import org.jboss.as.cli.CommandContext;
 import org.jboss.as.cli.CommandFormatException;
-import org.jboss.as.cli.CommandLineCompleter;
 import org.jboss.as.cli.CommandLineException;
 import org.jboss.as.cli.Util;
 import org.jboss.as.cli.impl.ArgumentWithValue;
@@ -59,99 +57,91 @@ public class AttachmentHandler extends BatchModeCommandHandler {
     public AttachmentHandler(CommandContext ctx) {
         super(ctx, "attachment", true);
 
-        action = new ArgumentWithValue(this, new CommandLineCompleter() {
-            @Override
-            public int complete(CommandContext ctx, String buffer, int cursor,
-                    List<String> candidates) {
-                if (buffer == null || buffer.isEmpty()) {
-                    candidates.add(DISPLAY);
-                    candidates.add(SAVE);
-                    return cursor;
-                }
-                if (buffer.equals(DISPLAY) || buffer.equals(SAVE)) {
-                    candidates.add(" ");
-                    return cursor;
-                }
-                if (DISPLAY.startsWith(buffer)) {
-                    candidates.add(DISPLAY + " ");
-                    return 0;
-                }
-                if (SAVE.startsWith(buffer)) {
-                    candidates.add(SAVE + " ");
-                    return 0;
-                }
-                return -1;
+        action = new ArgumentWithValue(this, (ctx12, buffer, cursor, candidates) -> {
+            if (buffer == null || buffer.isEmpty()) {
+                candidates.add(DISPLAY);
+                candidates.add(SAVE);
+                return cursor;
             }
+            if (buffer.equals(DISPLAY) || buffer.equals(SAVE)) {
+                candidates.add(" ");
+                return cursor;
+            }
+            if (DISPLAY.startsWith(buffer)) {
+                candidates.add(DISPLAY + " ");
+                return 0;
+            }
+            if (SAVE.startsWith(buffer)) {
+                candidates.add(SAVE + " ");
+                return 0;
+            }
+            return -1;
         }, 0, "--action");
 
-        operation = new ArgumentWithValue(this, new CommandLineCompleter() {
-            @Override
-            public int complete(CommandContext ctx, String buffer, int cursor,
-                    List<String> candidates) {
+        operation = new ArgumentWithValue(this, (ctx1, buffer, cursor, candidates) -> {
 
-                final String originalLine = ctx.getParsedCommandLine().getOriginalLine();
-                boolean skipWS;
-                int wordCount;
-                if (Character.isWhitespace(originalLine.charAt(0))) {
-                    skipWS = true;
-                    wordCount = 0;
-                } else {
-                    skipWS = false;
-                    wordCount = 1;
-                }
-                int cmdStart = 1;
-                while (cmdStart < originalLine.length()) {
-                    if (skipWS) {
-                        if (!Character.isWhitespace(originalLine.charAt(cmdStart))) {
-                            skipWS = false;
-                            ++wordCount;
-                            if (wordCount == 3) {
-                                break;
-                            }
-                        }
-                    } else if (Character.isWhitespace(originalLine.charAt(cmdStart))) {
-                        skipWS = true;
-                    }
-                    ++cmdStart;
-                }
-
-                String cmd;
-                if (wordCount == 1) {
-                    cmd = "";
-                } else if (wordCount != 3) {
-                    return -1;
-                } else {
-                    cmd = originalLine.substring(cmdStart);
-                    // remove --operation=
-                    int i = cmd.indexOf("=");
-                    if (i > 0) {
-                        if (i == cmd.length() - 1) {
-                            cmd = "";
-                        } else {
-                            cmd = cmd.substring(i + 1);
-                        }
-                    }
-                }
-
-                int cmdResult = ctx.getDefaultCommandCompleter().complete(ctx,
-                        cmd, cmd.length(), candidates);
-                if (cmdResult < 0) {
-                    return cmdResult;
-                }
-
-                // escaping index correction
-                int escapeCorrection = 0;
-                int start = originalLine.length() - 1 - buffer.length();
-                while (start - escapeCorrection >= 0) {
-                    final char ch = originalLine.charAt(start - escapeCorrection);
-                    if (Character.isWhitespace(ch) || ch == '=') {
-                        break;
-                    }
-                    ++escapeCorrection;
-                }
-
-                return buffer.length() + escapeCorrection - (cmd.length() - cmdResult);
+            final String originalLine = ctx1.getParsedCommandLine().getOriginalLine();
+            boolean skipWS;
+            int wordCount;
+            if (Character.isWhitespace(originalLine.charAt(0))) {
+                skipWS = true;
+                wordCount = 0;
+            } else {
+                skipWS = false;
+                wordCount = 1;
             }
+            int cmdStart = 1;
+            while (cmdStart < originalLine.length()) {
+                if (skipWS) {
+                    if (!Character.isWhitespace(originalLine.charAt(cmdStart))) {
+                        skipWS = false;
+                        ++wordCount;
+                        if (wordCount == 3) {
+                            break;
+                        }
+                    }
+                } else if (Character.isWhitespace(originalLine.charAt(cmdStart))) {
+                    skipWS = true;
+                }
+                ++cmdStart;
+            }
+
+            String cmd;
+            if (wordCount == 1) {
+                cmd = "";
+            } else if (wordCount != 3) {
+                return -1;
+            } else {
+                cmd = originalLine.substring(cmdStart);
+                // remove --operation=
+                int i = cmd.indexOf("=");
+                if (i > 0) {
+                    if (i == cmd.length() - 1) {
+                        cmd = "";
+                    } else {
+                        cmd = cmd.substring(i + 1);
+                    }
+                }
+            }
+
+            int cmdResult = ctx1.getDefaultCommandCompleter().complete(ctx1,
+                    cmd, cmd.length(), candidates);
+            if (cmdResult < 0) {
+                return cmdResult;
+            }
+
+            // escaping index correction
+            int escapeCorrection = 0;
+            int start = originalLine.length() - 1 - buffer.length();
+            while (start - escapeCorrection >= 0) {
+                final char ch = originalLine.charAt(start - escapeCorrection);
+                if (Character.isWhitespace(ch) || ch == '=') {
+                    break;
+                }
+                ++escapeCorrection;
+            }
+
+            return buffer.length() + escapeCorrection - (cmd.length() - cmdResult);
         }, "--operation") {
 
             @Override

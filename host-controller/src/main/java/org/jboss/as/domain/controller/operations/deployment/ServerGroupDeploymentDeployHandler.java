@@ -23,7 +23,6 @@ import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.OP_
 import static org.jboss.as.server.controller.resources.DeploymentAttributes.ENABLED;
 
 import org.jboss.as.controller.OperationContext;
-import org.jboss.as.controller.OperationFailedException;
 import org.jboss.as.controller.OperationStepHandler;
 import org.jboss.as.controller.PathAddress;
 import org.jboss.dmr.ModelNode;
@@ -47,12 +46,7 @@ public class ServerGroupDeploymentDeployHandler implements OperationStepHandler 
         final ModelNode opAddr = operation.get(OP_ADDR);
         final PathAddress address = PathAddress.pathAddress(opAddr);
         final String name = address.getLastElement().getValue();
-        context.addStep(new OperationStepHandler() {
-            @Override
-            public void execute(OperationContext context, ModelNode operation) throws OperationFailedException {
-                ServerGroupDeploymentAddHandler.validateRuntimeNames(name, context, address);
-            }
-        }, OperationContext.Stage.MODEL);
+        context.addStep((context1, operation1) -> ServerGroupDeploymentAddHandler.validateRuntimeNames(name, context1, address), OperationContext.Stage.MODEL);
         context.readResourceForUpdate(PathAddress.EMPTY_ADDRESS).getModel().get(ENABLED.getName()).set(true);
     }
 }

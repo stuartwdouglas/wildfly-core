@@ -189,35 +189,29 @@ public class DomainDeploymentOverlayTransformersTestCase extends AbstractCoreMod
         checkCoreModelTransformation(
                 mainServices,
                 modelVersion,
-                new ModelFixer() {
-                    @Override
-                    public ModelNode fixModel(ModelNode modelNode) {
-                        //This one is just noise due to a different format
-                        //Perhaps this should go into the model comparison itself?
-                        ModelNode socketBindingGroup = modelNode.get(SOCKET_BINDING_GROUP, "test-sockets");
-                        if (socketBindingGroup.isDefined()) {
-                            Set<String> names = new HashSet<String>();
-                            for (String key : socketBindingGroup.keys()) {
-                                if (!socketBindingGroup.get(key).isDefined()) {
-                                    names.add(key);
-                                }
-                            }
-                            for(String name : names) {
-                                socketBindingGroup.remove(name);
-                            }
-                            if (socketBindingGroup.keys().size() == 0) {
-                                socketBindingGroup.clear();
+                modelNode -> {
+                    //This one is just noise due to a different format
+                    //Perhaps this should go into the model comparison itself?
+                    ModelNode socketBindingGroup = modelNode.get(SOCKET_BINDING_GROUP, "test-sockets");
+                    if (socketBindingGroup.isDefined()) {
+                        Set<String> names = new HashSet<String>();
+                        for (String key : socketBindingGroup.keys()) {
+                            if (!socketBindingGroup.get(key).isDefined()) {
+                                names.add(key);
                             }
                         }
-                        return modelNode;
+                        for(String name : names) {
+                            socketBindingGroup.remove(name);
+                        }
+                        if (socketBindingGroup.keys().size() == 0) {
+                            socketBindingGroup.clear();
+                        }
                     }
+                    return modelNode;
                 },
-                new ModelFixer() {
-                    @Override
-                    public ModelNode fixModel(ModelNode modelNode) {
-                        modelNode.remove(ModelDescriptionConstants.DEPLOYMENT_OVERLAY);
-                        return modelNode;
-                    }
+                modelNode -> {
+                    modelNode.remove(ModelDescriptionConstants.DEPLOYMENT_OVERLAY);
+                    return modelNode;
                 });
     }
     private void testDeploymentOverlaysTransformer_7_1_x(ModelVersion modelVersion, KernelServicesBuilder builder, LegacyKernelServicesInitializer legacyInitializer) throws Exception {
@@ -243,14 +237,10 @@ public class DomainDeploymentOverlayTransformersTestCase extends AbstractCoreMod
 
     }
 
-    private final ModelFixer MODEL_FIXER = new ModelFixer() {
-
-        @Override
-        public ModelNode fixModel(ModelNode modelNode) {
-            modelNode.remove(SOCKET_BINDING_GROUP);
-            modelNode.remove(PROFILE);
-            return modelNode;
-        }
+    private final ModelFixer MODEL_FIXER = modelNode -> {
+        modelNode.remove(SOCKET_BINDING_GROUP);
+        modelNode.remove(PROFILE);
+        return modelNode;
     };
 
 }

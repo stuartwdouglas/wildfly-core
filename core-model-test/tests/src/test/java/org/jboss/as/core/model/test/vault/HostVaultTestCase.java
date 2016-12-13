@@ -61,12 +61,9 @@ public class HostVaultTestCase extends AbstractVaultTest {
         return "vault-host.xml";
     }
 
-    private ModelInitializer bootOpModelInitializer = new ModelInitializer() {
-        @Override
-        public void populateModel(Resource rootResource) {
-            Resource host = Resource.Factory.create();
-            rootResource.registerChild(PathElement.pathElement(HOST, "master"), host);
-        }
+    private ModelInitializer bootOpModelInitializer = rootResource -> {
+        Resource host = Resource.Factory.create();
+        rootResource.registerChild(PathElement.pathElement(HOST, "master"), host);
     };
 
 }

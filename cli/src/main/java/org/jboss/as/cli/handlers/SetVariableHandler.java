@@ -30,7 +30,6 @@ import java.util.Set;
 
 import org.jboss.as.cli.CommandContext;
 import org.jboss.as.cli.CommandFormatException;
-import org.jboss.as.cli.CommandLineCompleter;
 import org.jboss.as.cli.CommandLineException;
 import org.jboss.as.cli.Util;
 import org.jboss.as.cli.impl.ArgumentWithValue;
@@ -45,21 +44,19 @@ public class SetVariableHandler extends CommandHandlerWithHelp {
 
     public SetVariableHandler() {
         super("set");
-        new ArgumentWithValue(this, new CommandLineCompleter(){
-            @Override
-            public int complete(CommandContext ctx, String buffer, int cursor, List<String> candidates) {
-                int equals = buffer.indexOf('=');
-                if(equals < 1 || equals + 1 == buffer.length()) {
-                    return -1;
-                }
-                // the problem is splitting values with whitespaces, e.g. for command substitution
-                final String value = buffer.substring(equals + 1);
-                final int valueIndex = ctx.getDefaultCommandCompleter().complete(ctx, value, cursor, candidates);
-                if(valueIndex < 0) {
-                    return -1;
-                }
-                return equals + 1 + valueIndex;
-            }}, Integer.MAX_VALUE, "--variable") {
+        new ArgumentWithValue(this, (ctx, buffer, cursor, candidates) -> {
+            int equals = buffer.indexOf('=');
+            if(equals < 1 || equals + 1 == buffer.length()) {
+                return -1;
+            }
+            // the problem is splitting values with whitespaces, e.g. for command substitution
+            final String value = buffer.substring(equals + 1);
+            final int valueIndex = ctx.getDefaultCommandCompleter().complete(ctx, value, cursor, candidates);
+            if(valueIndex < 0) {
+                return -1;
+            }
+            return equals + 1 + valueIndex;
+        }, Integer.MAX_VALUE, "--variable") {
             @Override
             public boolean canAppearNext(CommandContext ctx) throws CommandFormatException {
                 return !helpArg.isPresent(ctx.getParsedCommandLine());

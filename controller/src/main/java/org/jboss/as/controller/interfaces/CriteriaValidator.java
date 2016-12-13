@@ -73,14 +73,11 @@ class CriteriaValidator {
         String validate(InterfaceCriteria current, InterfaceCriteria candidate);
     }
 
-    static Validation LOOPBACK_INTERFACE = new Validation() {
-        @Override
-        public String validate(InterfaceCriteria current, InterfaceCriteria candidate) {
-            if (candidate instanceof InetAddressMatchInterfaceCriteria) {
-                return ControllerLogger.ROOT_LOGGER.cantHaveBothLoopbackAndInetAddressCriteria();
-            }
-            return null;
+    static Validation LOOPBACK_INTERFACE = (current, candidate) -> {
+        if (candidate instanceof InetAddressMatchInterfaceCriteria) {
+            return ControllerLogger.ROOT_LOGGER.cantHaveBothLoopbackAndInetAddressCriteria();
         }
+        return null;
     };
 
     //TODO This needs to check the inet address match interface criteria is not link local
@@ -95,15 +92,12 @@ class CriteriaValidator {
 //        }
 //    };
 
-    static Validation NOT_INTERFACE = new Validation() {
-        @Override
-        public String validate(InterfaceCriteria current, InterfaceCriteria candidate) {
-            for (InterfaceCriteria curr : ((NotInterfaceCriteria)current).getAllCriteria()) {
-                if (curr.equals(candidate)) {
-                    return ControllerLogger.ROOT_LOGGER.cantHaveSameCriteriaForBothNotAndInclusion(candidate);
-                }
+    static Validation NOT_INTERFACE = (current, candidate) -> {
+        for (InterfaceCriteria curr : ((NotInterfaceCriteria)current).getAllCriteria()) {
+            if (curr.equals(candidate)) {
+                return ControllerLogger.ROOT_LOGGER.cantHaveSameCriteriaForBothNotAndInclusion(candidate);
             }
-            return null;
         }
+        return null;
     };
 }

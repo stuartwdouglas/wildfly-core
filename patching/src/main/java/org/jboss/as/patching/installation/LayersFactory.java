@@ -113,29 +113,23 @@ class LayersFactory {
     static ProcessedLayers process(final InstalledConfiguration conf, final List<File> moduleRoots, final List<File> bundleRoots) throws IOException {
         final ProcessedLayers layers = new ProcessedLayers(conf);
         // Process module roots
-        final LayerPathSetter moduleSetter = new LayerPathSetter() {
-            @Override
-            public boolean setPath(final LayerPathConfig pending, final File root) {
-                if (pending.modulePath == null) {
-                    pending.modulePath = root;
-                    return true;
-                }
-                return false;
+        final LayerPathSetter moduleSetter = (pending, root) -> {
+            if (pending.modulePath == null) {
+                pending.modulePath = root;
+                return true;
             }
+            return false;
         };
         for (final File moduleRoot : moduleRoots) {
             processRoot(moduleRoot, layers, moduleSetter);
         }
         // Process bundle root
-        final LayerPathSetter bundleSetter = new LayerPathSetter() {
-            @Override
-            public boolean setPath(LayerPathConfig pending, File root) {
-                if (pending.bundlePath == null) {
-                    pending.bundlePath = root;
-                    return true;
-                }
-                return false;
+        final LayerPathSetter bundleSetter = (pending, root) -> {
+            if (pending.bundlePath == null) {
+                pending.bundlePath = root;
+                return true;
             }
+            return false;
         };
         for (final File bundleRoot : bundleRoots) {
             processRoot(bundleRoot, layers, bundleSetter);

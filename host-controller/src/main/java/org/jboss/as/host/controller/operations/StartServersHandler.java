@@ -88,23 +88,20 @@ public class StartServersHandler implements OperationStepHandler {
         }
 
         final ModelNode domainModel = Resource.Tools.readModel(context.readResourceFromRoot(PathAddress.EMPTY_ADDRESS, true));
-        context.addStep(new OperationStepHandler() {
-            @Override
-            public void execute(OperationContext context, ModelNode operation) throws OperationFailedException {
-                // start servers
-                final Resource resource =  context.readResource(PathAddress.EMPTY_ADDRESS);
-                final ModelNode hostModel = Resource.Tools.readModel(resource);
-                if(hostModel.hasDefined(SERVER_CONFIG)) {
-                    final ModelNode servers = hostModel.get(SERVER_CONFIG).clone();
-                    if (hostControllerEnvironment.isRestart() || runningModeControl.getRestartMode() == RestartMode.HC_ONLY){
-                        restartedHcStartOrReconnectServers(servers, domainModel, context);
-                        runningModeControl.setRestartMode(RestartMode.SERVERS);
-                    } else {
-                        cleanStartServers(servers, domainModel, context);
-                    }
+        context.addStep((context1, operation1) -> {
+            // start servers
+            final Resource resource =  context1.readResource(PathAddress.EMPTY_ADDRESS);
+            final ModelNode hostModel = Resource.Tools.readModel(resource);
+            if(hostModel.hasDefined(SERVER_CONFIG)) {
+                final ModelNode servers = hostModel.get(SERVER_CONFIG).clone();
+                if (hostControllerEnvironment.isRestart() || runningModeControl.getRestartMode() == RestartMode.HC_ONLY){
+                    restartedHcStartOrReconnectServers(servers, domainModel, context1);
+                    runningModeControl.setRestartMode(RestartMode.SERVERS);
+                } else {
+                    cleanStartServers(servers, domainModel, context1);
                 }
-                context.completeStep(OperationContext.RollbackHandler.NOOP_ROLLBACK_HANDLER);
             }
+            context1.completeStep(OperationContext.RollbackHandler.NOOP_ROLLBACK_HANDLER);
         }, OperationContext.Stage.RUNTIME);
     }
 

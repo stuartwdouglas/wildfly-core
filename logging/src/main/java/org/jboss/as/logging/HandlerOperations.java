@@ -931,13 +931,10 @@ final class HandlerOperations {
 
     private static void addOrderPropertiesStep(final OperationContext context, final PropertySorter propertySorter, final PropertyConfigurable configuration) {
         if (propertySorter.isReorderRequired(configuration)) {
-            context.addStep(new OperationStepHandler() {
-                @Override
-                public void execute(final OperationContext context, final ModelNode operation) throws OperationFailedException {
-                    propertySorter.sort(configuration);
-                    // Nothing to really rollback, properties are only reordered
-                    context.completeStep(ResultHandler.NOOP_RESULT_HANDLER);
-                }
+            context.addStep((context1, operation) -> {
+                propertySorter.sort(configuration);
+                // Nothing to really rollback, properties are only reordered
+                context1.completeStep(ResultHandler.NOOP_RESULT_HANDLER);
             }, Stage.RUNTIME);
         }
     }

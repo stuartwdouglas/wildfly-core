@@ -24,7 +24,6 @@ package org.jboss.as.cli.util;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
-import java.util.Comparator;
 import java.util.Formatter;
 import java.util.List;
 
@@ -114,11 +113,7 @@ public class SimpleTable {
         }
 
         if(order) {
-            Collections.sort(lines, new Comparator<String[]>(){
-                @Override
-                public int compare(String[] o1, String[] o2) {
-                    return o1[0].compareTo(o2[0]);
-                }});
+            Collections.sort(lines, (o1, o2) -> o1[0].compareTo(o2[0]));
         }
 
         int i = 0;

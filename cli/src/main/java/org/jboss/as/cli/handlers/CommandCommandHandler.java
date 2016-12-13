@@ -29,7 +29,6 @@ import java.util.List;
 import org.jboss.as.cli.CommandContext;
 import org.jboss.as.cli.CommandFormatException;
 import org.jboss.as.cli.CommandHandler;
-import org.jboss.as.cli.CommandLineCompleter;
 import org.jboss.as.cli.CommandLineException;
 import org.jboss.as.cli.CommandRegistry;
 import org.jboss.as.cli.Util;
@@ -65,41 +64,37 @@ public class CommandCommandHandler extends CommandHandlerWithHelp {
 
         action.addCantAppearAfter(helpArg);
 
-        nodePath = new ArgumentWithValue(this, new CommandLineCompleter(){
-            @Override
-            public int complete(CommandContext ctx, String buffer, int cursor, List<String> candidates) {
-                int offset = 0;
-                int result = OperationRequestCompleter.ARG_VALUE_COMPLETER.complete(ctx, buffer, cursor + offset, candidates) - offset;
-                if(result < 0) {
-                    return result;
-                }
+        nodePath = new ArgumentWithValue(this, (ctx, buffer, cursor, candidates) -> {
+            int offset = 0;
+            int result = OperationRequestCompleter.ARG_VALUE_COMPLETER.complete(ctx, buffer, cursor + offset, candidates) - offset;
+            if(result < 0) {
                 return result;
-            }}, "--node-type") {
+            }
+            return result;
+        }, "--node-type") {
             @Override
             public boolean canAppearNext(CommandContext ctx) throws CommandFormatException {
                 return "add".equals(action.getValue(ctx.getParsedCommandLine())) && super.canAppearNext(ctx);
             }
         };
 
-        idProperty = new ArgumentWithValue(this, new DefaultCompleter(new CandidatesProvider(){
-            @Override
-            public List<String> getAllCandidates(CommandContext ctx) {
-                List<Property> props;
-                try {
-                    props = getNodeProperties(ctx);
-                } catch (CommandFormatException e) {
-                    return Collections.emptyList();
-                }
+        idProperty = new ArgumentWithValue(this, new DefaultCompleter(ctx -> {
+            List<Property> props;
+            try {
+                props = getNodeProperties(ctx);
+            } catch (CommandFormatException e) {
+                return Collections.emptyList();
+            }
 
-                final List<String> candidates = new ArrayList<String>();
-                for(Property prop : props) {
-                    final ModelNode value = prop.getValue();
-                    if(value.has("access-type") && "read-only".equals(value.get("access-type").asString())) {
-                        candidates.add(prop.getName());
-                    }
+            final List<String> candidates = new ArrayList<String>();
+            for(Property prop : props) {
+                final ModelNode value = prop.getValue();
+                if(value.has("access-type") && "read-only".equals(value.get("access-type").asString())) {
+                    candidates.add(prop.getName());
                 }
-                return candidates;
-            }}), "--property-id");
+            }
+            return candidates;
+        }), "--property-id");
         idProperty.addRequiredPreceding(nodePath);
 
         commandName = new ArgumentWithValue(this, new DefaultCompleter(new CandidatesProvider(){

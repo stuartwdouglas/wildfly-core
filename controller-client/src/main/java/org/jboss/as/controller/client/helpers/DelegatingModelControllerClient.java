@@ -46,12 +46,7 @@ public class DelegatingModelControllerClient implements ModelControllerClient {
     private final DelegateProvider provider;
 
     public DelegatingModelControllerClient(final ModelControllerClient delegate) {
-        this(new DelegateProvider() {
-            @Override
-            public ModelControllerClient getDelegate() {
-                return delegate;
-            }
-        });
+        this(() -> delegate);
     }
 
     public DelegatingModelControllerClient(DelegateProvider provider) {

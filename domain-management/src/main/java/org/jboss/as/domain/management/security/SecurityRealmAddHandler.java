@@ -111,15 +111,12 @@ public class SecurityRealmAddHandler implements OperationStepHandler {
         validationOp = AuthorizationValidatingHandler.createOperation(operation);
         context.addStep(validationOp, AuthorizationValidatingHandler.INSTANCE, OperationContext.Stage.MODEL);
 
-        context.addStep(new OperationStepHandler() {
-            @Override
-            public void execute(OperationContext context, ModelNode operation) throws OperationFailedException {
-                // Install another RUNTIME handler to actually install the services. This will run after the
-                // RUNTIME handler for any child resources. Doing this will ensure that child resource handlers don't
-                // see the installed services and can just ignore doing any RUNTIME stage work
-                context.addStep(ServiceInstallStepHandler.INSTANCE, OperationContext.Stage.RUNTIME);
-                context.completeStep(OperationContext.RollbackHandler.NOOP_ROLLBACK_HANDLER);
-            }
+        context.addStep((context1, operation1) -> {
+            // Install another RUNTIME handler to actually install the services. This will run after the
+            // RUNTIME handler for any child resources. Doing this will ensure that child resource handlers don't
+            // see the installed services and can just ignore doing any RUNTIME stage work
+            context1.addStep(ServiceInstallStepHandler.INSTANCE, OperationContext.Stage.RUNTIME);
+            context1.completeStep(OperationContext.RollbackHandler.NOOP_ROLLBACK_HANDLER);
         }, OperationContext.Stage.RUNTIME);
 
         context.completeStep(OperationContext.RollbackHandler.NOOP_ROLLBACK_HANDLER);
@@ -824,12 +821,9 @@ public class SecurityRealmAddHandler implements OperationStepHandler {
             final String realmName = ManagementUtil.getSecurityRealmName(operation);
             final ModelNode model = Resource.Tools.readModel(context.readResource(PathAddress.EMPTY_ADDRESS));
             SecurityRealmAddHandler.INSTANCE.installServices(context, realmName, model);
-            context.completeStep(new OperationContext.RollbackHandler() {
-                @Override
-                public void handleRollback(OperationContext context, ModelNode operation) {
-                    for (ServiceController<?> sc : newControllers) {
-                        context.removeService(sc);
-                    }
+            context.completeStep((context1, operation1) -> {
+                for (ServiceController<?> sc : newControllers) {
+                    context1.removeService(sc);
                 }
             });
         }

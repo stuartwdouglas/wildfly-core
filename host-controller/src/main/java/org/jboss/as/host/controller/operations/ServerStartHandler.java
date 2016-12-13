@@ -117,13 +117,10 @@ public class ServerStartHandler implements OperationStepHandler {
                 } else {
                     context.getResult().set(origStatus.toString());
                 }
-                context.completeStep(new OperationContext.RollbackHandler() {
-                    @Override
-                    public void handleRollback(OperationContext context, ModelNode operation) {
-                        if (origStatus != ServerStatus.STARTED && origStatus != ServerStatus.STARTING) {
-                            serverInventory.stopServer(serverName, -1);
-                            persistAutoStart(context);
-                        }
+                context.completeStep((context1, operation1) -> {
+                    if (origStatus != ServerStatus.STARTED && origStatus != ServerStatus.STARTING) {
+                        serverInventory.stopServer(serverName, -1);
+                        persistAutoStart(context1);
                     }
                 });
             }

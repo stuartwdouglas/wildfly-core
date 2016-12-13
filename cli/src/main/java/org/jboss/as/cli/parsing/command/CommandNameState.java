@@ -22,10 +22,7 @@
 package org.jboss.as.cli.parsing.command;
 
 
-import org.jboss.as.cli.CommandFormatException;
-import org.jboss.as.cli.parsing.CharacterHandler;
 import org.jboss.as.cli.parsing.ExpressionBaseState;
-import org.jboss.as.cli.parsing.ParsingContext;
 import org.jboss.as.cli.parsing.WordCharacterHandler;
 
 
@@ -41,11 +38,7 @@ public class CommandNameState extends ExpressionBaseState {
     CommandNameState() {
         super(ID);
         setLeaveOnWhitespace(true);
-        setEnterHandler(new CharacterHandler(){
-            @Override
-            public void handle(ParsingContext ctx) throws CommandFormatException {
-                WordCharacterHandler.IGNORE_LB_ESCAPE_ON.handle(ctx);
-            }});
+        setEnterHandler(ctx -> WordCharacterHandler.IGNORE_LB_ESCAPE_ON.handle(ctx));
         setDefaultHandler(WordCharacterHandler.LB_LEAVE_ESCAPE_ON);
     }
 }

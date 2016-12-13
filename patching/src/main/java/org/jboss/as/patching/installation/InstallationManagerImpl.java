@@ -1,7 +1,6 @@
 package org.jboss.as.patching.installation;
 
 import java.io.File;
-import java.io.FileFilter;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.util.ArrayList;
@@ -155,14 +154,9 @@ public class InstallationManagerImpl extends InstallationManager {
             installedIdentities = Collections.singletonList(defaultIdentity);
         } else {
             final String defaultConf = defaultIdentity.getIdentity().getName() + Constants.DOT_CONF;
-            final File[] identityConfs = metadataDir.listFiles(new FileFilter() {
-                @Override
-                public boolean accept(File pathname) {
-                    return pathname.isFile() &&
-                            pathname.getName().endsWith(Constants.DOT_CONF) &&
-                            !pathname.getName().equals(defaultConf);
-                }
-            });
+            final File[] identityConfs = metadataDir.listFiles(pathname -> pathname.isFile() &&
+                    pathname.getName().endsWith(Constants.DOT_CONF) &&
+                    !pathname.getName().equals(defaultConf));
             if(identityConfs == null || identityConfs.length == 0) {
                 installedIdentities = Collections.singletonList(defaultIdentity);
             } else {

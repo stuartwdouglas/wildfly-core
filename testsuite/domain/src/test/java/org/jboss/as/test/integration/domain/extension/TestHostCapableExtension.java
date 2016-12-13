@@ -125,12 +125,9 @@ public class TestHostCapableExtension implements Extension {
         public void registerOperations(ManagementResourceRegistration resourceRegistration) {
             super.registerOperations(resourceRegistration);
             resourceRegistration.registerOperationHandler(GenericSubsystemDescribeHandler.DEFINITION, GenericSubsystemDescribeHandler.INSTANCE);
-            resourceRegistration.registerOperationHandler(TEST_OP, new OperationStepHandler() {
-                @Override
-                public void execute(OperationContext context, ModelNode operation) throws OperationFailedException {
-                    ServiceController<?> sc = context.getServiceRegistry(false).getService(createServiceName(context.getCurrentAddress()));
-                    context.getResult().set(sc != null);
-                }
+            resourceRegistration.registerOperationHandler(TEST_OP, (context, operation) -> {
+                ServiceController<?> sc = context.getServiceRegistry(false).getService(createServiceName(context.getCurrentAddress()));
+                context.getResult().set(sc != null);
             });
         }
 

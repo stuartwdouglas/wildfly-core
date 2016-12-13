@@ -1751,18 +1751,15 @@ public class FileSystemDeploymentServiceUnitTestCase {
         ts.testee.setAutoDeployZippedContent(true);
         sc.addCompositeSuccessResponse(1);
         testSupport.createZip(deployment, 0, false, false, true, true);
-        Future<Boolean> lockDone = Executors.newSingleThreadExecutor().submit(new Callable<Boolean>() {
-            @Override
-            public Boolean call() throws Exception {
-                try {
-                    while (!ops.ready) {//Waiting for deployment to start.
-                        Thread.sleep(100);
-                    }
-                    ts.testee.stopScanner();
-                    return true;
-                } catch (InterruptedException ex) {
-                    throw new RuntimeException(ex);
+        Future<Boolean> lockDone = Executors.newSingleThreadExecutor().submit(() -> {
+            try {
+                while (!ops.ready) {//Waiting for deployment to start.
+                    Thread.sleep(100);
                 }
+                ts.testee.stopScanner();
+                return true;
+            } catch (InterruptedException ex) {
+                throw new RuntimeException(ex);
             }
         });
         ts.testee.setScanInterval(10000);
@@ -2051,12 +2048,7 @@ public class FileSystemDeploymentServiceUnitTestCase {
 
         @Override
         public AsyncFuture<ModelNode> executeAsync(final ModelNode operation, OperationMessageHandler messageHandler) {
-            return executorService.submit(new Callable<ModelNode>() {
-                @Override
-                public ModelNode call() throws Exception {
-                    return execute(operation);
-                }
-            });
+            return executorService.submit(() -> execute(operation));
         }
 
         @Override

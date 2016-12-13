@@ -78,11 +78,9 @@ import org.jboss.aesh.console.AeshConsoleCallback;
 import org.jboss.aesh.console.ConsoleCallback;
 import org.jboss.aesh.console.ConsoleOperation;
 import org.jboss.aesh.console.Process;
-import org.jboss.aesh.console.helper.InterruptHook;
 import org.jboss.aesh.console.settings.FileAccessPermission;
 import org.jboss.aesh.console.settings.Settings;
 import org.jboss.aesh.console.settings.SettingsBuilder;
-import org.jboss.aesh.edit.actions.Action;
 import org.jboss.as.cli.Attachments;
 import org.jboss.as.cli.CliConfig;
 import org.jboss.as.cli.CliEvent;
@@ -397,14 +395,12 @@ class CommandContextImpl implements CommandContext, ModelControllerClientFactory
     }
 
     protected void addShutdownHook() {
-        shutdownHook = new CliShutdownHook.Handler() {
-            @Override
-            public void shutdown() {
-                if (CommandContextImpl.this.console != null) {
-                    CommandContextImpl.this.console.interrupt();
-                }
-                terminateSession();
-            }};
+        shutdownHook = () -> {
+            if (CommandContextImpl.this.console != null) {
+                CommandContextImpl.this.console.interrupt();
+            }
+            terminateSession();
+        };
         CliShutdownHook.add(shutdownHook);
     }
 
@@ -500,16 +496,13 @@ class CommandContextImpl implements CommandContext, ModelControllerClientFactory
         settings.parseOperators(false);
 
         settings.interruptHook(
-                new InterruptHook() {
-                    @Override
-                    public void handleInterrupt(org.jboss.aesh.console.Console console, Action action) {
-                        if(shutdownHook != null ){
-                            shutdownHook.shutdown();
-                        }else {
-                            terminateSession();
-                        }
-                        Thread.currentThread().interrupt();
+                (console, action) -> {
+                    if(shutdownHook != null ){
+                        shutdownHook.shutdown();
+                    }else {
+                        terminateSession();
                     }
+                    Thread.currentThread().interrupt();
                 }
         );
 
@@ -1777,29 +1770,25 @@ class CommandContextImpl implements CommandContext, ModelControllerClientFactory
         @Override
         public void handle(final Callback[] callbacks) throws IOException, UnsupportedCallbackException {
             try {
-                timeoutHandler.suspendAndExecute(new Runnable() {
-
-                    @Override
-                    public void run() {
-                        try {
-                            if (username == null || password == null) {
-                                // Only control the console if not already interacting.
-                                if (!INTERACT) {
-                                    if (console == null) {
-                                        initBasicConsole(null, false);
-                                    }
-                                    // That is required to stop the console from executing any command
-                                    // before to be done with credentials.
-                                    console.controlled();
-                                    if (!console.running()) {
-                                        console.start();
-                                    }
+                timeoutHandler.suspendAndExecute(() -> {
+                    try {
+                        if (username == null || password == null) {
+                            // Only control the console if not already interacting.
+                            if (!INTERACT) {
+                                if (console == null) {
+                                    initBasicConsole(null, false);
+                                }
+                                // That is required to stop the console from executing any command
+                                // before to be done with credentials.
+                                console.controlled();
+                                if (!console.running()) {
+                                    console.start();
                                 }
                             }
-                            dohandle(callbacks);
-                        } catch (IOException | UnsupportedCallbackException | CliInitializationException e) {
-                            throw new RuntimeException(e);
                         }
+                        dohandle(callbacks);
+                    } catch (IOException | UnsupportedCallbackException | CliInitializationException e) {
+                        throw new RuntimeException(e);
                     }
                 });
             } catch (RuntimeException e) {
@@ -2070,15 +2059,11 @@ class CommandContextImpl implements CommandContext, ModelControllerClientFactory
                     connInfoBean.setServerCertificates(chain);
                 } catch (CertificateException ce) {
                     if (retry == false) {
-                        timeoutHandler.suspendAndExecute(new Runnable() {
-
-                            @Override
-                            public void run() {
-                                try {
-                                    handleSSLFailure(chain);
-                                } catch (CommandLineException e) {
-                                    throw new RuntimeException(e);
-                                }
+                        timeoutHandler.suspendAndExecute(() -> {
+                            try {
+                                handleSSLFailure(chain);
+                            } catch (CommandLineException e) {
+                                throw new RuntimeException(e);
                             }
                         });
 

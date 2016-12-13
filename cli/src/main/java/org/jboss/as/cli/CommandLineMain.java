@@ -99,24 +99,16 @@ public class CommandLineMain {
         if (System.getSecurityManager() == null) {
             return System.getProperty(key);
         }
-        return AccessController.doPrivileged(new PrivilegedAction<String>() {
-            @Override
-            public String run() {
-                return System.getProperty(key);
-            }
-        });
+        return AccessController.doPrivileged((PrivilegedAction<String>) () -> System.getProperty(key));
     }
 
     private static void setSystemProperty(final String key, final String value) {
         if (System.getSecurityManager() == null) {
             System.setProperty(key, value);
         } else {
-            AccessController.doPrivileged(new PrivilegedAction<Object>() {
-                @Override
-                public Object run() {
-                    System.setProperty(key, value);
-                    return null;
-                }
+            AccessController.doPrivileged((PrivilegedAction<Object>) () -> {
+                System.setProperty(key, value);
+                return null;
             });
         }
     }

@@ -73,21 +73,18 @@ public class CancelActiveOperationHandler implements OperationStepHandler {
             throw ControllerLogger.ACCESS_LOGGER.unauthorized(operation.get(OP).asString(),
                     PathAddress.pathAddress(operation.get(OP_ADDR)), authorizationResult.getExplanation());
         }
-        context.addStep(new OperationStepHandler() {
-            @Override
-            public void execute(OperationContext context, ModelNode operation) throws OperationFailedException {
-                boolean cancelled = false;
-                try {
-                    Cancellable cancellable = Cancellable.class.cast(context.readResource(PathAddress.EMPTY_ADDRESS));
-                    DomainManagementLogger.ROOT_LOGGER.debugf("Cancelling %s", cancellable);
-                    cancelled = cancellable.cancel();
-                } catch (Resource.NoSuchResourceException nsre) {
-                    // resource is gone; return 'false'
-                }
-                context.getResult().set(cancelled);
-
-                context.completeStep(OperationContext.RollbackHandler.NOOP_ROLLBACK_HANDLER);
+        context.addStep((context1, operation1) -> {
+            boolean cancelled = false;
+            try {
+                Cancellable cancellable = Cancellable.class.cast(context1.readResource(PathAddress.EMPTY_ADDRESS));
+                DomainManagementLogger.ROOT_LOGGER.debugf("Cancelling %s", cancellable);
+                cancelled = cancellable.cancel();
+            } catch (Resource.NoSuchResourceException nsre) {
+                // resource is gone; return 'false'
             }
+            context1.getResult().set(cancelled);
+
+            context1.completeStep(OperationContext.RollbackHandler.NOOP_ROLLBACK_HANDLER);
         }, OperationContext.Stage.RUNTIME);
     }
 }

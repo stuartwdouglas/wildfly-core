@@ -120,19 +120,13 @@ public class GlobalOperationHandlers {
         root.registerOperationHandler(ListOperations.LIST_GET_DEFINITION, ListOperations.LIST_GET_HANDLER, true);
         root.registerOperationHandler(ListOperations.LIST_CLEAR_DEFINITION, ListOperations.LIST_CLEAR_HANDLER, true);
 
-        root.registerOperationHandler(ReadResourceDescriptionHandler.CheckResourceAccessHandler.DEFINITION, new OperationStepHandler() {
-            @Override
-            public void execute(OperationContext context, ModelNode operation) throws OperationFailedException {
-                //Just use an empty operation handler here, this is a private operation and people who want to call it need to instantiate the step handler
-                throw new OperationFailedException("This should never be called");
-            }
+        root.registerOperationHandler(ReadResourceDescriptionHandler.CheckResourceAccessHandler.DEFINITION, (context, operation) -> {
+            //Just use an empty operation handler here, this is a private operation and people who want to call it need to instantiate the step handler
+            throw new OperationFailedException("This should never be called");
         }, true);
-        root.registerOperationHandler(ReadResourceDescriptionHandler.CheckResourceAccessHandler.DEFAULT_DEFINITION, new OperationStepHandler() {
-            @Override
-            public void execute(OperationContext context, ModelNode operation) throws OperationFailedException {
-                //Just use an empty operation handler here, this is a private operation and people who want to call it need to instantiate the step handler
-                throw new OperationFailedException("This should never be called");
-            }
+        root.registerOperationHandler(ReadResourceDescriptionHandler.CheckResourceAccessHandler.DEFAULT_DEFINITION, (context, operation) -> {
+            //Just use an empty operation handler here, this is a private operation and people who want to call it need to instantiate the step handler
+            throw new OperationFailedException("This should never be called");
         }, true);
 
         root.registerOperationHandler(org.jboss.as.controller.operations.global.WriteAttributeHandler.DEFINITION,
@@ -212,12 +206,7 @@ public class GlobalOperationHandlers {
                 final ModelNode result = context.getResult().setEmptyList();
 
                 // Trick the context to give us the model-root
-                final OperationStepHandler delegateStepHandler = new OperationStepHandler() {
-                    @Override
-                    public void execute(final OperationContext context, final ModelNode operation) throws OperationFailedException {
-                        doExecute(context, operation, localFilteredData, true);
-                    }
-                };
+                final OperationStepHandler delegateStepHandler = (context1, operation1) -> doExecute(context1, operation1, localFilteredData, true);
                 final ModelNode fakeOperationResponse = new ModelNode();
                 context.addStep(fakeOperationResponse, FAKE_OPERATION.clone(),
                         registryOnly ?
@@ -336,23 +325,20 @@ public class GlobalOperationHandlers {
             final PathAddress address = aliasAddr == null ? addr : aliasAddr;
 
             execute(PathAddress.EMPTY_ADDRESS, address, context, context.getRootResourceRegistration(), true);
-            context.completeStep(new OperationContext.ResultHandler() {
-                @Override
-                public void handleResult(OperationContext.ResultAction resultAction, OperationContext context, ModelNode operation) {
-                    if (result.getType() == ModelType.LIST) {
-                        boolean replace = false;
-                        ModelNode replacement = new ModelNode().setEmptyList();
-                        for (ModelNode item : result.asList()) {
-                            if (predicate.test(item)) {
-                                // item will be skipped and the result amended
-                                replace = true;
-                            } else {
-                                replacement.add(item);
-                            }
+            context.completeStep((resultAction, context1, operation) -> {
+                if (result.getType() == ModelType.LIST) {
+                    boolean replace = false;
+                    ModelNode replacement = new ModelNode().setEmptyList();
+                    for (ModelNode item : result.asList()) {
+                        if (predicate.test(item)) {
+                            // item will be skipped and the result amended
+                            replace = true;
+                        } else {
+                            replacement.add(item);
                         }
-                        if (replace) {
-                            result.set(replacement);
-                        }
+                    }
+                    if (replace) {
+                        result.set(replacement);
                     }
                 }
             });
@@ -450,33 +436,27 @@ public class GlobalOperationHandlers {
                 ControllerLogger.MGMT_OP_LOGGER.tracef("Added ModelAddressResolver result item for %s", base);
                 final ModelNode resultAddress = resultItem.get(OP_ADDR);
 
-                final OperationStepHandler wrapper = new OperationStepHandler() {
-                    @Override
-                    public void execute(OperationContext context, ModelNode operation) throws OperationFailedException {
-                        try {
-                            handler.execute(context, operation);
-                            context.completeStep(new OperationContext.ResultHandler() {
-                                @Override
-                                public void handleResult(OperationContext.ResultAction resultAction, OperationContext context, ModelNode operation) {
-                                    ControllerLogger.MGMT_OP_LOGGER.tracef("ModelAddressResolver result for %s is %s", base, resultItem);
-                                    if (resultItem.hasDefined(RESULT)) {
-                                        resultAddress.set(base.toModelNode());
-                                        if (resultItem.hasDefined(RESPONSE_HEADERS, ACCESS_CONTROL)) {
-                                            ModelNode headers = resultItem.get(RESPONSE_HEADERS);
-                                            ModelNode acc = headers.remove(ACCESS_CONTROL);
-                                            if (headers.asInt() == 0) {
-                                                resultItem.remove(RESPONSE_HEADERS);
-                                            }
-                                            filteredData.populate(acc, PathAddress.EMPTY_ADDRESS);
-                                        }
-                                    } else {
-                                        resultItem.clear();
+                final OperationStepHandler wrapper = (context12, operation) -> {
+                    try {
+                        handler.execute(context12, operation);
+                        context12.completeStep((resultAction, context1, operation1) -> {
+                            ControllerLogger.MGMT_OP_LOGGER.tracef("ModelAddressResolver result for %s is %s", base, resultItem);
+                            if (resultItem.hasDefined(RESULT)) {
+                                resultAddress.set(base.toModelNode());
+                                if (resultItem.hasDefined(RESPONSE_HEADERS, ACCESS_CONTROL)) {
+                                    ModelNode headers = resultItem.get(RESPONSE_HEADERS);
+                                    ModelNode acc = headers.remove(ACCESS_CONTROL);
+                                    if (headers.asInt() == 0) {
+                                        resultItem.remove(RESPONSE_HEADERS);
                                     }
+                                    filteredData.populate(acc, PathAddress.EMPTY_ADDRESS);
                                 }
-                            });
-                        } catch (Resource.NoSuchResourceException e) {
-                            // just discard the result to avoid leaking the inaccessible address
-                        }
+                            } else {
+                                resultItem.clear();
+                            }
+                        });
+                    } catch (Resource.NoSuchResourceException e) {
+                        // just discard the result to avoid leaking the inaccessible address
                     }
                 };
                 context.addStep(resultItem, newOp, wrapper, OperationContext.Stage.MODEL, true);
@@ -534,24 +514,21 @@ public class GlobalOperationHandlers {
             final AtomicBoolean filtered = new AtomicBoolean(false);
 
             // We're adding steps to the top of the queue, so add the one that will use the server names first
-            context.addStep(new OperationStepHandler() {
-                @Override
-                public void execute(OperationContext context, ModelNode operation) throws OperationFailedException {
+            context.addStep((context1, operation) -> {
 
-                    ControllerLogger.MGMT_OP_LOGGER.tracef("Executing WFCORE-621 2nd step for base %s and remaining %s; filtered? %s serverNames=%s", base, remaining, filtered, serverNameResponse);
+                ControllerLogger.MGMT_OP_LOGGER.tracef("Executing WFCORE-621 2nd step for base %s and remaining %s; filtered? %s serverNames=%s", base, remaining, filtered, serverNameResponse);
 
-                    // If the read of server names was filtered or for some other reason we didn't get them, we are done.
-                    if (filtered.get() || !serverNameResponse.hasDefined(RESULT)) {
-                        return;
-                    }
+                // If the read of server names was filtered or for some other reason we didn't get them, we are done.
+                if (filtered.get() || !serverNameResponse.hasDefined(RESULT)) {
+                    return;
+                }
 
-                    Set<String> targetServers = extractServerNames(serverNameResponse.get(RESULT), operation, remaining, wildfly8);
+                Set<String> targetServers = extractServerNames(serverNameResponse.get(RESULT), operation, remaining, wildfly8);
 
-                    PathAddress afterServer = remaining.size() > 1 ? remaining.subAddress(1) : PathAddress.EMPTY_ADDRESS;
-                    for (String targetServer : targetServers) {
-                        PathAddress newBase = base.append(PathElement.pathElement(RUNNING_SERVER, targetServer));
-                        safeExecute(newBase, afterServer, context, registration, ignoreMissing);
-                    }
+                PathAddress afterServer = remaining.size() > 1 ? remaining.subAddress(1) : PathAddress.EMPTY_ADDRESS;
+                for (String targetServer : targetServers) {
+                    PathAddress newBase = base.append(PathElement.pathElement(RUNNING_SERVER, targetServer));
+                    safeExecute(newBase, afterServer, context1, registration, ignoreMissing);
                 }
             }, OperationContext.Stage.MODEL, true);
 
@@ -628,104 +605,97 @@ public class GlobalOperationHandlers {
             final ModelNode resultItem = new ModelNode();
 
             final OperationStepHandler proxyHandler = registration.getOperationHandler(PathAddress.EMPTY_ADDRESS, operation.require(OP).asString());
-            context.addStep(resultItem, remoteOp, new OperationStepHandler() {
-                @Override
-                public void execute(OperationContext context, ModelNode operation) throws OperationFailedException {
-                    try {
-                        // Execute the proxy step handler in a separate step
-                        // so we have the final response available to our ResultHandler
-                        ControllerLogger.MGMT_OP_LOGGER.tracef("sending ModelAddressResolver request %s to remote process using %s",
-                                operation, proxyHandler);
+            context.addStep(resultItem, remoteOp, (context12, operation) -> {
+                try {
+                    // Execute the proxy step handler in a separate step
+                    // so we have the final response available to our ResultHandler
+                    ControllerLogger.MGMT_OP_LOGGER.tracef("sending ModelAddressResolver request %s to remote process using %s",
+                            operation, proxyHandler);
 
-                        final AtomicBoolean filtered = new AtomicBoolean(false);
+                    final AtomicBoolean filtered = new AtomicBoolean(false);
 
-                        context.addStep(new FilterableRemoteOperationStepHandler(proxyHandler, base, filtered, filteredData, ignoreMissing), OperationContext.Stage.MODEL, true);
+                    context12.addStep(new FilterableRemoteOperationStepHandler(proxyHandler, base, filtered, filteredData, ignoreMissing), OperationContext.Stage.MODEL, true);
 
-                        context.completeStep(new OperationContext.ResultHandler() {
+                    context12.completeStep((resultAction, context1, operation1) -> {
+                        ControllerLogger.MGMT_OP_LOGGER.tracef("ModelAddressResolver response from remote process is %s",
+                                resultItem);
 
-                            @Override
-                            public void handleResult(OperationContext.ResultAction resultAction, OperationContext context, ModelNode operation) {
-                                ControllerLogger.MGMT_OP_LOGGER.tracef("ModelAddressResolver response from remote process is %s",
-                                        resultItem);
+                        if (filtered.get()) {
+                            ControllerLogger.MGMT_OP_LOGGER.trace("Response was filtered");
+                            return;
+                        }
 
-                                if (filtered.get()) {
-                                    ControllerLogger.MGMT_OP_LOGGER.trace("Response was filtered");
-                                    return;
-                                }
+                        // Determine the address prefix to prepend to RBAC responses from servers
+                        PathAddress rbacPrefix = base.size() > 1 && base.getElement(1).getKey().equals(RUNNING_SERVER)
+                                ? base : PathAddress.EMPTY_ADDRESS;
 
-                                // Determine the address prefix to prepend to RBAC responses from servers
-                                PathAddress rbacPrefix = base.size() > 1 && base.getElement(1).getKey().equals(RUNNING_SERVER)
-                                        ? base : PathAddress.EMPTY_ADDRESS;
-
-                                // If there are multiple targets remaining, the result should be a list
-                                if (remaining.isMultiTarget()) {
-                                    if (resultItem.has(RESULT) && resultItem.get(RESULT).getType() == ModelType.LIST) {
-                                        for (final ModelNode rr : resultItem.get(RESULT).asList()) {
-                                            // Create a new result entry
-                                            final ModelNode nr = result.add();
-                                            final PathAddress address = PathAddress.pathAddress(rr.get(OP_ADDR));
-                                            // Check whether the result of the remote target contains part of the base address
-                                            // this might happen for hosts
-                                            int max = Math.min(base.size(), address.size());
-                                            int match = 0;
-                                            for (int i = 0; i < max; i++) {
-                                                final PathElement eb = base.getElement(i);
-                                                final PathElement ea = address.getElement(i);
-                                                if (eb.getKey().equals(ea.getKey())) {
-                                                    match = i + 1;
-                                                }
-                                            }
-                                            final PathAddress resolvedAddress = base.append(address.subAddress(match));
-                                            ControllerLogger.MGMT_OP_LOGGER.tracef("recording multi-target ModelAddressResolver response " +
-                                                    "to %s at %s", fullAddress, resolvedAddress);
-                                            nr.get(OP_ADDR).set(resolvedAddress.toModelNode());
-                                            nr.get(OUTCOME).set(rr.get(OUTCOME));
-                                            nr.get(RESULT).set(rr.get(RESULT));
-
-                                            if (rr.hasDefined(RESPONSE_HEADERS)) {
-                                                ModelNode headers = rr.get(RESPONSE_HEADERS);
-                                                ModelNode acc = headers.remove(ACCESS_CONTROL);
-                                                if (headers.asInt() > 0) {
-                                                    nr.get(RESPONSE_HEADERS).set(headers);
-                                                }
-                                                if (acc != null && acc.isDefined()) {
-                                                    filteredData.populate(acc, rbacPrefix);
-                                                    ControllerLogger.MGMT_OP_LOGGER.tracef("Populated local filtered data " +
-                                                            "with remote access control headers %s from result item %s", acc, rr);
-                                                }
-                                            }
-                                        }
-                                        if (resultItem.hasDefined(RESPONSE_HEADERS, ACCESS_CONTROL)) {
-                                            ModelNode acc = resultItem.get(RESPONSE_HEADERS, ACCESS_CONTROL);
-                                            filteredData.populate(acc, PathAddress.EMPTY_ADDRESS);
+                        // If there are multiple targets remaining, the result should be a list
+                        if (remaining.isMultiTarget()) {
+                            if (resultItem.has(RESULT) && resultItem.get(RESULT).getType() == ModelType.LIST) {
+                                for (final ModelNode rr : resultItem.get(RESULT).asList()) {
+                                    // Create a new result entry
+                                    final ModelNode nr = result.add();
+                                    final PathAddress address = PathAddress.pathAddress(rr.get(OP_ADDR));
+                                    // Check whether the result of the remote target contains part of the base address
+                                    // this might happen for hosts
+                                    int max = Math.min(base.size(), address.size());
+                                    int match = 0;
+                                    for (int i = 0; i < max; i++) {
+                                        final PathElement eb = base.getElement(i);
+                                        final PathElement ea = address.getElement(i);
+                                        if (eb.getKey().equals(ea.getKey())) {
+                                            match = i + 1;
                                         }
                                     }
-                                } else {
-                                    ControllerLogger.MGMT_OP_LOGGER.tracef("recording non-multi-target ModelAddressResolver response " +
-                                            "to %s", fullAddress);
-                                    final ModelNode nr = result.add();
-                                    nr.get(OP_ADDR).set(fullAddress.toModelNode());
-                                    nr.get(OUTCOME).set(resultItem.get(OUTCOME));
-                                    nr.get(RESULT).set(resultItem.get(RESULT));
+                                    final PathAddress resolvedAddress = base.append(address.subAddress(match));
+                                    ControllerLogger.MGMT_OP_LOGGER.tracef("recording multi-target ModelAddressResolver response " +
+                                            "to %s at %s", fullAddress, resolvedAddress);
+                                    nr.get(OP_ADDR).set(resolvedAddress.toModelNode());
+                                    nr.get(OUTCOME).set(rr.get(OUTCOME));
+                                    nr.get(RESULT).set(rr.get(RESULT));
 
-                                    if (resultItem.hasDefined(RESPONSE_HEADERS)) {
-                                        ModelNode headers = resultItem.get(RESPONSE_HEADERS);
+                                    if (rr.hasDefined(RESPONSE_HEADERS)) {
+                                        ModelNode headers = rr.get(RESPONSE_HEADERS);
                                         ModelNode acc = headers.remove(ACCESS_CONTROL);
                                         if (headers.asInt() > 0) {
                                             nr.get(RESPONSE_HEADERS).set(headers);
                                         }
                                         if (acc != null && acc.isDefined()) {
-                                            filteredData.populate(acc, PathAddress.EMPTY_ADDRESS);
+                                            filteredData.populate(acc, rbacPrefix);
                                             ControllerLogger.MGMT_OP_LOGGER.tracef("Populated local filtered data " +
-                                                    "with remote access control headers %s from result item %s", acc, resultItem);
+                                                    "with remote access control headers %s from result item %s", acc, rr);
                                         }
                                     }
                                 }
+                                if (resultItem.hasDefined(RESPONSE_HEADERS, ACCESS_CONTROL)) {
+                                    ModelNode acc = resultItem.get(RESPONSE_HEADERS, ACCESS_CONTROL);
+                                    filteredData.populate(acc, PathAddress.EMPTY_ADDRESS);
+                                }
                             }
-                        });
-                    } catch (Resource.NoSuchResourceException e) {
-                        // just discard the result to avoid leaking the inaccessible address
-                    }
+                        } else {
+                            ControllerLogger.MGMT_OP_LOGGER.tracef("recording non-multi-target ModelAddressResolver response " +
+                                    "to %s", fullAddress);
+                            final ModelNode nr = result.add();
+                            nr.get(OP_ADDR).set(fullAddress.toModelNode());
+                            nr.get(OUTCOME).set(resultItem.get(OUTCOME));
+                            nr.get(RESULT).set(resultItem.get(RESULT));
+
+                            if (resultItem.hasDefined(RESPONSE_HEADERS)) {
+                                ModelNode headers = resultItem.get(RESPONSE_HEADERS);
+                                ModelNode acc = headers.remove(ACCESS_CONTROL);
+                                if (headers.asInt() > 0) {
+                                    nr.get(RESPONSE_HEADERS).set(headers);
+                                }
+                                if (acc != null && acc.isDefined()) {
+                                    filteredData.populate(acc, PathAddress.EMPTY_ADDRESS);
+                                    ControllerLogger.MGMT_OP_LOGGER.tracef("Populated local filtered data " +
+                                            "with remote access control headers %s from result item %s", acc, resultItem);
+                                }
+                            }
+                        }
+                    });
+                } catch (Resource.NoSuchResourceException e) {
+                    // just discard the result to avoid leaking the inaccessible address
                 }
             }, OperationContext.Stage.MODEL, true);
         }

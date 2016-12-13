@@ -121,12 +121,7 @@ public class ExtensionXml {
 
             if (loadFutures != null) {
                 // Load the module asynchronously
-                Callable<XMLStreamException> callable = new Callable<XMLStreamException>() {
-                    @Override
-                    public XMLStreamException call() throws Exception {
-                        return loadModule(moduleName, xmlMapper);
-                    }
-                };
+                Callable<XMLStreamException> callable = () -> loadModule(moduleName, xmlMapper);
                 Future<XMLStreamException> future = bootExecutor.submit(callable);
                 loadFutures.put(moduleName, future);
             } else {

@@ -41,12 +41,10 @@ public interface ModelInitializer {
 
     void populateModel(Resource rootResource);
 
+    // the lambda for this just looked too funky for my tastes
     /** An initializer that does nothing. */
-    ModelInitializer NO_OP = new ModelInitializer() { // the lambda for this just looked too funky for my tastes
-        @Override
-        public void populateModel(Resource rootResource) {
-            // no-op
-        }
+    ModelInitializer NO_OP = rootResource -> {
+        // no-op
     };
 
 }

@@ -72,14 +72,11 @@ public class HostControllerClient implements AbstractControllerService.Controlle
         // Create and cache the objects that will send any controller instability requests
         // in order to increase the potential that it will execute in low memory situations
         final ControllerInstabilityNotificationRequest request = new ControllerInstabilityNotificationRequest();
-        this.unstableNotificationRunnable = new Runnable() {
-            @Override
-            public void run() {
-                try {
-                    channelHandler.executeRequest(request, null);
-                } catch (Throwable t) {
-                    // not much we can do. Likely an OOME
-                }
+        this.unstableNotificationRunnable = () -> {
+            try {
+                channelHandler.executeRequest(request, null);
+            } catch (Throwable t) {
+                // not much we can do. Likely an OOME
             }
         };
     }
@@ -109,18 +106,13 @@ public class HostControllerClient implements AbstractControllerService.Controlle
     public void reconnect(final URI uri, final String authKey, final boolean mgmtSubsystemEndpoint) throws IOException, URISyntaxException {
         // In case the server is out of sync after the reconnect, set reload required
         final boolean mgmtEndpointChanged = this.managementSubsystemEndpoint != mgmtSubsystemEndpoint;
-        connection.asyncReconnect(uri, authKey, new HostControllerConnection.ReconnectCallback() {
-
-            @Override
-            public void reconnected(boolean inSync) {
-                if (!inSync || mgmtEndpointChanged) {
-                    final ModelNode operation = new ModelNode();
-                    operation.get(ModelDescriptionConstants.OP).set(ServerProcessStateHandler.REQUIRE_RELOAD_OPERATION);
-                    operation.get(ModelDescriptionConstants.OP_ADDR).setEmptyList();
-                    controller.execute(operation, OperationMessageHandler.DISCARD, ModelController.OperationTransactionControl.COMMIT, OperationAttachments.EMPTY);
-                }
+        connection.asyncReconnect(uri, authKey, inSync -> {
+            if (!inSync || mgmtEndpointChanged) {
+                final ModelNode operation = new ModelNode();
+                operation.get(ModelDescriptionConstants.OP).set(ServerProcessStateHandler.REQUIRE_RELOAD_OPERATION);
+                operation.get(ModelDescriptionConstants.OP_ADDR).setEmptyList();
+                controller.execute(operation, OperationMessageHandler.DISCARD, ModelController.OperationTransactionControl.COMMIT, OperationAttachments.EMPTY);
             }
-
         });
     }
     /**

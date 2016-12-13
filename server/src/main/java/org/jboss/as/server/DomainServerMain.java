@@ -50,7 +50,6 @@ import org.jboss.marshalling.Unmarshaller;
 import org.jboss.modules.Module;
 import org.jboss.modules.ModuleIdentifier;
 import org.jboss.msc.service.ServiceActivator;
-import org.jboss.msc.service.ServiceActivatorContext;
 import org.jboss.msc.service.ServiceContainer;
 import org.jboss.msc.service.ServiceController;
 import org.jboss.msc.service.ServiceName;
@@ -118,11 +117,8 @@ public final class DomainServerMain {
             unmarshaller.start(byteInput);
             final ServerTask task = unmarshaller.readObject(ServerTask.class);
             unmarshaller.finish();
-            containerFuture = task.run(Arrays.<ServiceActivator>asList(new ServiceActivator() {
-                @Override
-                public void activate(final ServiceActivatorContext serviceActivatorContext) {
-                    // TODO activate host controller client service
-                }
+            containerFuture = task.run(Arrays.<ServiceActivator>asList((ServiceActivator) serviceActivatorContext -> {
+                // TODO activate host controller client service
             }));
         } catch (Throwable t) {
             t.printStackTrace(initialError);

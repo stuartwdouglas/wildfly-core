@@ -151,17 +151,14 @@ public class SocketBindingGroupIncludesHandlerTestCase extends AbstractOperation
         PathAddress addr = getSocketBindingGroupAddress("binding-four");
         ModelNode list = new ModelNode().add("binding-three");
         ModelNode op = Util.getWriteAttributeOperation(addr, INCLUDES, list);
-        MockOperationContext operationContext = getOperationContextForSocketBindingIncludes(addr, new RootResourceInitializer() {
-            @Override
-            public void addAdditionalResources(Resource root) {
-                Resource subsystemA = Resource.Factory.create();
-                root.getChild(PathElement.pathElement(SOCKET_BINDING_GROUP, "binding-three"))
-                        .registerChild(PathElement.pathElement(SUBSYSTEM, "a"), subsystemA);
+        MockOperationContext operationContext = getOperationContextForSocketBindingIncludes(addr, root -> {
+            Resource subsystemA = Resource.Factory.create();
+            root.getChild(PathElement.pathElement(SOCKET_BINDING_GROUP, "binding-three"))
+                    .registerChild(PathElement.pathElement(SUBSYSTEM, "a"), subsystemA);
 
-                Resource subsystemB = Resource.Factory.create();
-                Resource SocketBindingGroup4 = root.getChild(PathElement.pathElement(SOCKET_BINDING_GROUP, "binding-four"));
-                SocketBindingGroup4.registerChild(PathElement.pathElement(SUBSYSTEM, "b"), subsystemB);
-            }
+            Resource subsystemB = Resource.Factory.create();
+            Resource SocketBindingGroup4 = root.getChild(PathElement.pathElement(SOCKET_BINDING_GROUP, "binding-four"));
+            SocketBindingGroup4.registerChild(PathElement.pathElement(SUBSYSTEM, "b"), subsystemB);
         });
         SocketBindingGroupResourceDefinition.createIncludesValidationHandler().execute(operationContext, op);
         operationContext.executeNextStep();
@@ -176,17 +173,14 @@ public class SocketBindingGroupIncludesHandlerTestCase extends AbstractOperation
             PathAddress addr = getSocketBindingGroupAddress("binding-four");
             ModelNode list = new ModelNode().add("binding-three");
             ModelNode op = Util.getWriteAttributeOperation(addr, INCLUDES, list);
-            MockOperationContext operationContext = getOperationContextForSocketBindingIncludes(addr, new RootResourceInitializer() {
-                @Override
-                public void addAdditionalResources(Resource root) {
-                    Resource subsystemA = Resource.Factory.create();
-                    root.getChild(PathElement.pathElement(SOCKET_BINDING_GROUP, "binding-three"))
-                            .registerChild(PathElement.pathElement(SOCKET_BINDING, "a"), subsystemA);
+            MockOperationContext operationContext = getOperationContextForSocketBindingIncludes(addr, root -> {
+                Resource subsystemA = Resource.Factory.create();
+                root.getChild(PathElement.pathElement(SOCKET_BINDING_GROUP, "binding-three"))
+                        .registerChild(PathElement.pathElement(SOCKET_BINDING, "a"), subsystemA);
 
-                    Resource subsystemB = Resource.Factory.create();
-                    Resource SocketBindingGroup4 = root.getChild(PathElement.pathElement(SOCKET_BINDING_GROUP, "binding-four"));
-                    SocketBindingGroup4.registerChild(PathElement.pathElement(SOCKET_BINDING, "a"), subsystemB);
-                }
+                Resource subsystemB = Resource.Factory.create();
+                Resource SocketBindingGroup4 = root.getChild(PathElement.pathElement(SOCKET_BINDING_GROUP, "binding-four"));
+                SocketBindingGroup4.registerChild(PathElement.pathElement(SOCKET_BINDING, "a"), subsystemB);
             });
             SocketBindingGroupResourceDefinition.createIncludesValidationHandler().execute(operationContext, op);
             operationContext.executeNextStep();
@@ -209,21 +203,18 @@ public class SocketBindingGroupIncludesHandlerTestCase extends AbstractOperation
             PathAddress addr = getSocketBindingGroupAddress("binding-five");
             ModelNode list = new ModelNode().add("binding-three").add("binding-four");
             ModelNode op = Util.getWriteAttributeOperation(addr, INCLUDES, list);
-            MockOperationContext operationContext = getOperationContextForSocketBindingIncludes(addr, new RootResourceInitializer() {
-                @Override
-                public void addAdditionalResources(Resource root) {
-                    Resource bindingA = Resource.Factory.create();
-                    root.getChild(PathElement.pathElement(SOCKET_BINDING_GROUP, "binding-three"))
-                            .registerChild(PathElement.pathElement(SOCKET_BINDING, "a"), bindingA);
+            MockOperationContext operationContext = getOperationContextForSocketBindingIncludes(addr, root -> {
+                Resource bindingA = Resource.Factory.create();
+                root.getChild(PathElement.pathElement(SOCKET_BINDING_GROUP, "binding-three"))
+                        .registerChild(PathElement.pathElement(SOCKET_BINDING, "a"), bindingA);
 
-                    Resource bindingB = Resource.Factory.create();
-                    Resource group4 = root.getChild(PathElement.pathElement(SOCKET_BINDING_GROUP, "binding-four"));
-                    group4.registerChild(PathElement.pathElement(SOCKET_BINDING, "a"), bindingB);
+                Resource bindingB = Resource.Factory.create();
+                Resource group4 = root.getChild(PathElement.pathElement(SOCKET_BINDING_GROUP, "binding-four"));
+                group4.registerChild(PathElement.pathElement(SOCKET_BINDING, "a"), bindingB);
 
-                    Resource bindingC = Resource.Factory.create();
-                    Resource group5 = root.getChild(PathElement.pathElement(SOCKET_BINDING_GROUP, "binding-five"));
-                    group5.registerChild(PathElement.pathElement(SOCKET_BINDING, "x"), bindingC);
-                }
+                Resource bindingC = Resource.Factory.create();
+                Resource group5 = root.getChild(PathElement.pathElement(SOCKET_BINDING_GROUP, "binding-five"));
+                group5.registerChild(PathElement.pathElement(SOCKET_BINDING, "x"), bindingC);
             });
             ProfileResourceDefinition.createIncludesValidationHandler().execute(operationContext, op);
             operationContext.executeNextStep();
@@ -246,19 +237,16 @@ public class SocketBindingGroupIncludesHandlerTestCase extends AbstractOperation
             PathAddress addr = getSocketBindingGroupAddress("binding-five");
             ModelNode list = new ModelNode().add("binding-three").add("binding-four");
             ModelNode op = Util.getWriteAttributeOperation(addr, INCLUDES, list);
-            MockOperationContext operationContext = getOperationContextForSocketBindingIncludes(addr, new RootResourceInitializer() {
-                @Override
-                public void addAdditionalResources(Resource root) {
-                    Resource bindingA = Resource.Factory.create();
-                    root.getChild(PathElement.pathElement(SOCKET_BINDING_GROUP, "binding-three"))
-                            .registerChild(PathElement.pathElement(SOCKET_BINDING, "a"), bindingA);
+            MockOperationContext operationContext = getOperationContextForSocketBindingIncludes(addr, root -> {
+                Resource bindingA = Resource.Factory.create();
+                root.getChild(PathElement.pathElement(SOCKET_BINDING_GROUP, "binding-three"))
+                        .registerChild(PathElement.pathElement(SOCKET_BINDING, "a"), bindingA);
 
-                    Resource bindingB = Resource.Factory.create();
-                    Resource group4 = root.getChild(PathElement.pathElement(SOCKET_BINDING_GROUP, "binding-four"));
-                    group4.registerChild(PathElement.pathElement(SOCKET_BINDING, "a"), bindingB);
+                Resource bindingB = Resource.Factory.create();
+                Resource group4 = root.getChild(PathElement.pathElement(SOCKET_BINDING_GROUP, "binding-four"));
+                group4.registerChild(PathElement.pathElement(SOCKET_BINDING, "a"), bindingB);
 
-                    //binding-five is empty
-                }
+                //binding-five is empty
             });
             ProfileResourceDefinition.createIncludesValidationHandler().execute(operationContext, op);
             operationContext.executeNextStep();

@@ -49,27 +49,9 @@ class SecurityActions {
     private interface GetSubjectAction {
         Subject getSubject(AccessControlContext acc);
 
-        GetSubjectAction NON_PRIVILEGED = new GetSubjectAction() {
+        GetSubjectAction NON_PRIVILEGED = acc -> Subject.getSubject(acc);
 
-            @Override
-            public Subject getSubject(AccessControlContext acc) {
-                return Subject.getSubject(acc);
-            }
-        };
-
-        GetSubjectAction PRIVILEGED = new GetSubjectAction() {
-
-            @Override
-            public Subject getSubject(final AccessControlContext acc) {
-                return AccessController.doPrivileged(new PrivilegedAction<Subject>() {
-
-                    @Override
-                    public Subject run() {
-                        return NON_PRIVILEGED.getSubject(acc);
-                    }
-                });
-            }
-        };
+        GetSubjectAction PRIVILEGED = acc -> AccessController.doPrivileged((PrivilegedAction<Subject>) () -> NON_PRIVILEGED.getSubject(acc));
 
     }
 

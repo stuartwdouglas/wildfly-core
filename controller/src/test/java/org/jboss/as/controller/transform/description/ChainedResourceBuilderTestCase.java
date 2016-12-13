@@ -824,31 +824,27 @@ public class ChainedResourceBuilderTestCase {
         childBuilder.getAttributeBuilder().setValueConverter(new SimpleAttributeConverter("test2", "test21"), "attr2");
         childBuilder.addChildResource(PathElement.pathElement("grand", "A")).getAttributeBuilder().setValueConverter(new SimpleAttributeConverter("testA", "testA1"), "attrA");
         childBuilder.addChildResource(PathElement.pathElement("grand", "B")).getAttributeBuilder().setValueConverter(new SimpleAttributeConverter("testB", "testB1"), "attrB");
-        builder.setCustomResourceTransformer(new ResourceTransformer() {
-            @Override
-            public void transformResource(ResourceTransformationContext context, PathAddress address, Resource resource)
-                    throws OperationFailedException {
+        builder.setCustomResourceTransformer((context, address, resource) -> {
 
-                Assert.assertEquals("test11", resource.getModel().get("attr1").asString());
-                //The children have not been processed yet, so the child builder rules have not kicked in yet
-                Resource child = resource.getChild(PathElement.pathElement("child", "one"));
-                Assert.assertNotNull(child);
-                Assert.assertEquals("test2", child.getModel().get("attr2").asString());
-                Resource grand = child.getChild(PathElement.pathElement("grand", "A"));
-                Assert.assertNotNull(grand);
-                Assert.assertEquals("testA", grand.getModel().get("attrA").asString());
-                grand = child.getChild(PathElement.pathElement("grand", "B"));
-                Assert.assertNotNull(grand);
-                Assert.assertEquals("testB", grand.getModel().get("attrB").asString());
+            Assert.assertEquals("test11", resource.getModel().get("attr1").asString());
+            //The children have not been processed yet, so the child builder rules have not kicked in yet
+            Resource child = resource.getChild(PathElement.pathElement("child", "one"));
+            Assert.assertNotNull(child);
+            Assert.assertEquals("test2", child.getModel().get("attr2").asString());
+            Resource grand = child.getChild(PathElement.pathElement("grand", "A"));
+            Assert.assertNotNull(grand);
+            Assert.assertEquals("testA", grand.getModel().get("attrA").asString());
+            grand = child.getChild(PathElement.pathElement("grand", "B"));
+            Assert.assertNotNull(grand);
+            Assert.assertEquals("testB", grand.getModel().get("attrB").asString());
 
-                //Now change the value in the current resource
-                Resource copy = Resource.Factory.create();
-                copy.getModel().get("first-attr").set(resource.getModel().get("attr1"));
+            //Now change the value in the current resource
+            Resource copy = Resource.Factory.create();
+            copy.getModel().get("first-attr").set(resource.getModel().get("attr1"));
 
-                //Process the children, this will cause the rules from the child builders to work
-                final ResourceTransformationContext childContext = context.addTransformedResource(PathAddress.EMPTY_ADDRESS, copy);
-                childContext.processChildren(resource);
-            }
+            //Process the children, this will cause the rules from the child builders to work
+            final ResourceTransformationContext childContext = context.addTransformedResource(PathAddress.EMPTY_ADDRESS, copy);
+            childContext.processChildren(resource);
         });
 
         builder = chainedBuilder.createBuilder(V3_0_0, V2_0_0);
@@ -865,48 +861,44 @@ public class ChainedResourceBuilderTestCase {
         childBuilder.getAttributeBuilder().setValueConverter(new SimpleAttributeConverter("not-called", "doesn't matter"), "whatever");
         childBuilder.addChildResource(PathElement.pathElement("grandie", "A")).getAttributeBuilder().setValueConverter(new SimpleAttributeConverter("not-called", "doesn't matter"), "whatever");
         childBuilder.addChildResource(PathElement.pathElement("grandie", "B")).getAttributeBuilder().setValueConverter(new SimpleAttributeConverter("not-called", "doesn't matter"), "whatever");
-        builder.setCustomResourceTransformer(new ResourceTransformer() {
-            @Override
-            public void transformResource(ResourceTransformationContext context, PathAddress address, Resource resource)
-                    throws OperationFailedException {
-                Assert.assertEquals("testone", resource.getModel().get("first-attr").asString());
-                //Again the children have not been processed yet, so the child builder rules have not kicked in yet
-                Resource child = resource.getChild(PathElement.pathElement("child", "one"));
-                Assert.assertNotNull(child);
-                Assert.assertEquals("test21", child.getModel().get("attr2").asString());
-                Resource grand = child.getChild(PathElement.pathElement("grand", "A"));
-                Assert.assertNotNull(grand);
-                Assert.assertEquals("testA1", grand.getModel().get("attrA").asString());
-                grand = child.getChild(PathElement.pathElement("grand", "B"));
-                Assert.assertNotNull(grand);
-                Assert.assertEquals("testB1", grand.getModel().get("attrB").asString());
+        builder.setCustomResourceTransformer((context, address, resource) -> {
+            Assert.assertEquals("testone", resource.getModel().get("first-attr").asString());
+            //Again the children have not been processed yet, so the child builder rules have not kicked in yet
+            Resource child = resource.getChild(PathElement.pathElement("child", "one"));
+            Assert.assertNotNull(child);
+            Assert.assertEquals("test21", child.getModel().get("attr2").asString());
+            Resource grand = child.getChild(PathElement.pathElement("grand", "A"));
+            Assert.assertNotNull(grand);
+            Assert.assertEquals("testA1", grand.getModel().get("attrA").asString());
+            grand = child.getChild(PathElement.pathElement("grand", "B"));
+            Assert.assertNotNull(grand);
+            Assert.assertEquals("testB1", grand.getModel().get("attrB").asString());
 
-                //Just copy across the resource and add a value
-                Resource copy = Resource.Factory.create();
-                copy.getModel().set(resource.getModel());
-                copy.getModel().get("first-attr").set(resource.getModel().get("first-attr"));
+            //Just copy across the resource and add a value
+            Resource copy = Resource.Factory.create();
+            copy.getModel().set(resource.getModel());
+            copy.getModel().get("first-attr").set(resource.getModel().get("first-attr"));
 
-                //Process the children, renaming them
-                //NOTE that this will rename the children in the active model, but we don't end up processing the child resources,
-                //meaning that the description transformers for the child resources do not get called.
-                //ResourceTransformers are a bit confusing, in that they look like they can handle everything underneath them,
-                //In reality a PathAddressTransformer should be used for renaming, and there should be a ResourceTranformer at each level
-                //where needed. In short what I am doing below is BAD :-)
-                ResourceTransformationContext childContext = context.addTransformedResource(PathAddress.EMPTY_ADDRESS, copy);
+            //Process the children, renaming them
+            //NOTE that this will rename the children in the active model, but we don't end up processing the child resources,
+            //meaning that the description transformers for the child resources do not get called.
+            //ResourceTransformers are a bit confusing, in that they look like they can handle everything underneath them,
+            //In reality a PathAddressTransformer should be used for renaming, and there should be a ResourceTranformer at each level
+            //where needed. In short what I am doing below is BAD :-)
+            ResourceTransformationContext childContext = context.addTransformedResource(PathAddress.EMPTY_ADDRESS, copy);
 
-                copy = Resource.Factory.create();
-                copy.getModel().get("attrTwo").set("resource2");
-                childContext = childContext.addTransformedResource(PathAddress.pathAddress(PathElement.pathElement("childie", "1")), copy);
+            copy = Resource.Factory.create();
+            copy.getModel().get("attrTwo").set("resource2");
+            childContext = childContext.addTransformedResource(PathAddress.pathAddress(PathElement.pathElement("childie", "1")), copy);
 
-                copy = Resource.Factory.create();
-                copy.getModel().get("attrAy").set("resourceA");
-                childContext.addTransformedResource(PathAddress.pathAddress(PathElement.pathElement("grandie", "A")), copy);
+            copy = Resource.Factory.create();
+            copy.getModel().get("attrAy").set("resourceA");
+            childContext.addTransformedResource(PathAddress.pathAddress(PathElement.pathElement("grandie", "A")), copy);
 
-                copy = Resource.Factory.create();
-                copy.getModel().get("attrBee").set("resourceB");
-                childContext.addTransformedResource(PathAddress.pathAddress(PathElement.pathElement("grandie", "B")), copy);
+            copy = Resource.Factory.create();
+            copy.getModel().get("attrBee").set("resourceB");
+            childContext.addTransformedResource(PathAddress.pathAddress(PathElement.pathElement("grandie", "B")), copy);
 
-            }
         });
 
 
@@ -916,29 +908,21 @@ public class ChainedResourceBuilderTestCase {
         childBuilder.getAttributeBuilder().setValueConverter(new SimpleAttributeConverter("resource2", "value-2"), "attrTwo");
         ResourceTransformationDescriptionBuilder grandBuilder = childBuilder.addChildRedirection(PathElement.pathElement("grandie", "A"), PathElement.pathElement("grandchild", "A"));
         grandBuilder.getAttributeBuilder().setValueConverter(new SimpleAttributeConverter("resourceA", "valueA"), "attrAy");
-        grandBuilder.setCustomResourceTransformer(new ResourceTransformer() {
-            @Override
-            public void transformResource(ResourceTransformationContext context, PathAddress address, Resource resource)
-                    throws OperationFailedException {
-                Assert.assertEquals("valueA", resource.getModel().get("attrAy").asString());
-                Resource copy = Resource.Factory.create();
-                copy.getModel().get("attributeA").set("value-A");
-                ResourceTransformationContext childContext = context.addTransformedResource(PathAddress.EMPTY_ADDRESS, copy);
-                childContext.processChildren(resource);
-            }
+        grandBuilder.setCustomResourceTransformer((context, address, resource) -> {
+            Assert.assertEquals("valueA", resource.getModel().get("attrAy").asString());
+            Resource copy = Resource.Factory.create();
+            copy.getModel().get("attributeA").set("value-A");
+            ResourceTransformationContext childContext = context.addTransformedResource(PathAddress.EMPTY_ADDRESS, copy);
+            childContext.processChildren(resource);
         });
         grandBuilder = childBuilder.addChildResource(PathElement.pathElement("grandie", "B"));
         grandBuilder.getAttributeBuilder().setValueConverter(new SimpleAttributeConverter("resourceB", "valueB"), "attrBee");
-        grandBuilder.setCustomResourceTransformer(new ResourceTransformer() {
-            @Override
-            public void transformResource(ResourceTransformationContext context, PathAddress address, Resource resource)
-                    throws OperationFailedException {
-                Assert.assertEquals("valueB", resource.getModel().get("attrBee").asString());
-                Resource copy = Resource.Factory.create();
-                copy.getModel().get("attributeB").set("value-B");
-                ResourceTransformationContext childContext = context.addTransformedResource(PathAddress.EMPTY_ADDRESS, copy);
-                childContext.processChildren(resource);
-            }
+        grandBuilder.setCustomResourceTransformer((context, address, resource) -> {
+            Assert.assertEquals("valueB", resource.getModel().get("attrBee").asString());
+            Resource copy = Resource.Factory.create();
+            copy.getModel().get("attributeB").set("value-B");
+            ResourceTransformationContext childContext = context.addTransformedResource(PathAddress.EMPTY_ADDRESS, copy);
+            childContext.processChildren(resource);
         });
 
         TransformationDescription.Tools.register(chainedBuilder.build(V3_0_0, V2_0_0, V1_0_0).get(V1_0_0), transformersSubRegistration);

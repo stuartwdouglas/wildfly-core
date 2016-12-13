@@ -142,24 +142,16 @@ public class WriteAttributeHandler implements OperationStepHandler {
                 // in reverse order of how they will execute
 
                 // 4th OSH is to emit the notification
-                context.addStep(new OperationStepHandler() {
-                    @Override
-                    public void execute(OperationContext context, ModelNode operation) throws OperationFailedException {
-                        // aggregate data from the 2 read-attribute operations
-                        emitAttributeValueWrittenNotification(context, address, attributeName, oldValue.get(RESULT), newValue.get(RESULT));
-                    }
+                context.addStep((context12, operation12) -> {
+                    // aggregate data from the 2 read-attribute operations
+                    emitAttributeValueWrittenNotification(context12, address, attributeName, oldValue.get(RESULT), newValue.get(RESULT));
                 }, currentStage, true);
 
                 // 3rd OSH is to read the new value
                 context.addStep(newValue, readAttributeOperation, readAttributeHandler, currentStage, true);
 
                 // 2nd OSH is to write the value
-                context.addStep(new OperationStepHandler() {
-                    @Override
-                    public void execute(OperationContext context, ModelNode operation) throws OperationFailedException {
-                        doExecuteInternal(context, operation, attributeAccess, attributeName, oldValue.get(RESULT), useEnhancedSyntax, attributeExpression);
-                    }
-                }, currentStage, true);
+                context.addStep((context1, operation1) -> doExecuteInternal(context1, operation1, attributeAccess, attributeName, oldValue.get(RESULT), useEnhancedSyntax, attributeExpression), currentStage, true);
 
                 // 1st OSH is to read the old value
                 context.addStep(oldValue, readAttributeOperation, readAttributeHandler, currentStage, true);

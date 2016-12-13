@@ -195,26 +195,23 @@ public class DomainServerLifecycleHandlers {
             final String group = getServerGroupName(operation);
             final boolean blocking = BLOCKING.resolveModelAttribute(context, operation).asBoolean();
             final int timeout = TIMEOUT.resolveModelAttribute(context, operation).asInt();
-            context.addStep(new OperationStepHandler() {
-                @Override
-                public void execute(OperationContext context, ModelNode operation) throws OperationFailedException {
-                    // Even though we don't read from the service registry, we are modifying a service
-                    context.getServiceRegistry(true);
-                    if (group != null) {
-                        final Set<String> waitForServers = new HashSet<String>();
-                        final ModelNode model = Resource.Tools.readModel(context.readResourceFromRoot(PathAddress.EMPTY_ADDRESS, true));
-                        for (String server : getServersForGroup(model, group)) {
-                            serverInventory.stopServer(server, timeout);
-                            waitForServers.add(server);
-                        }
-                        if (blocking) {
-                            serverInventory.awaitServersState(waitForServers, false);
-                        }
-                    } else {
-                        serverInventory.stopServers(timeout, blocking);
+            context.addStep((context1, operation1) -> {
+                // Even though we don't read from the service registry, we are modifying a service
+                context1.getServiceRegistry(true);
+                if (group != null) {
+                    final Set<String> waitForServers = new HashSet<String>();
+                    final ModelNode model = Resource.Tools.readModel(context1.readResourceFromRoot(PathAddress.EMPTY_ADDRESS, true));
+                    for (String server : getServersForGroup(model, group)) {
+                        serverInventory.stopServer(server, timeout);
+                        waitForServers.add(server);
                     }
-                    context.completeStep(OperationContext.RollbackHandler.NOOP_ROLLBACK_HANDLER);
+                    if (blocking) {
+                        serverInventory.awaitServersState(waitForServers, false);
+                    }
+                } else {
+                    serverInventory.stopServers(timeout, blocking);
                 }
+                context1.completeStep(OperationContext.RollbackHandler.NOOP_ROLLBACK_HANDLER);
             }, Stage.RUNTIME);
         }
     }
@@ -231,34 +228,31 @@ public class DomainServerLifecycleHandlers {
             final String group = getServerGroupName(operation);
             final boolean blocking = BLOCKING.resolveModelAttribute(context, operation).asBoolean();
             final boolean suspend = SUSPEND.resolveModelAttribute(context, operation).asBoolean();
-            context.addStep(new OperationStepHandler() {
-                @Override
-                public void execute(OperationContext context, ModelNode operation) throws OperationFailedException {
-                    final String hostName = model.get(HOST).keys().iterator().next();
-                    final ModelNode serverConfig = model.get(HOST, hostName).get(SERVER_CONFIG);
-                    final Set<String> serversInGroup = getServersForGroup(model, group);
-                    final Set<String> waitForServers = new HashSet<String>();
-                    if (serverConfig.isDefined()) {
-                        // Even though we don't read from the service registry, we are modifying a service
-                        context.getServiceRegistry(true);
-                        for (Property config : serverConfig.asPropertyList()) {
-                            final ServerStatus status = serverInventory.determineServerStatus(config.getName());
-                            if (status != ServerStatus.STARTING && status != ServerStatus.STARTED) {
-                                if (group == null || serversInGroup.contains(config.getName())) {
-                                    if (status != ServerStatus.STOPPED) {
-                                        serverInventory.stopServer(config.getName(), 0);
-                                    }
-                                    serverInventory.startServer(config.getName(), model, false, suspend);
-                                    waitForServers.add(config.getName());
+            context.addStep((context1, operation1) -> {
+                final String hostName = model.get(HOST).keys().iterator().next();
+                final ModelNode serverConfig = model.get(HOST, hostName).get(SERVER_CONFIG);
+                final Set<String> serversInGroup = getServersForGroup(model, group);
+                final Set<String> waitForServers = new HashSet<String>();
+                if (serverConfig.isDefined()) {
+                    // Even though we don't read from the service registry, we are modifying a service
+                    context1.getServiceRegistry(true);
+                    for (Property config : serverConfig.asPropertyList()) {
+                        final ServerStatus status = serverInventory.determineServerStatus(config.getName());
+                        if (status != ServerStatus.STARTING && status != ServerStatus.STARTED) {
+                            if (group == null || serversInGroup.contains(config.getName())) {
+                                if (status != ServerStatus.STOPPED) {
+                                    serverInventory.stopServer(config.getName(), 0);
                                 }
+                                serverInventory.startServer(config.getName(), model, false, suspend);
+                                waitForServers.add(config.getName());
                             }
                         }
-                        if (blocking) {
-                            serverInventory.awaitServersState(waitForServers, true);
-                        }
                     }
-                    context.completeStep(OperationContext.RollbackHandler.NOOP_ROLLBACK_HANDLER);
+                    if (blocking) {
+                        serverInventory.awaitServersState(waitForServers, true);
+                    }
                 }
+                context1.completeStep(OperationContext.RollbackHandler.NOOP_ROLLBACK_HANDLER);
             }, Stage.RUNTIME);
         }
     }
@@ -276,26 +270,23 @@ public class DomainServerLifecycleHandlers {
             final boolean blocking = BLOCKING.resolveModelAttribute(context, operation).asBoolean();
             final int timeout = TIMEOUT.resolveModelAttribute(context, operation).asInt();
             final boolean suspend = SUSPEND.resolveModelAttribute(context, operation).asBoolean();
-            context.addStep(new OperationStepHandler() {
-                @Override
-                public void execute(OperationContext context, ModelNode operation) throws OperationFailedException {
-                    // Even though we don't read from the service registry, we are modifying a service
-                    context.getServiceRegistry(true);
-                    Map<String, ProcessInfo> processes = serverInventory.determineRunningProcesses(true);
-                    final Set<String> serversInGroup = getServersForGroup(model, group);
-                    final Set<String> waitForServers = new HashSet<String>();
-                    for (String serverName : processes.keySet()) {
-                        final String serverModelName = serverInventory.getProcessServerName(serverName);
-                        if (group == null || serversInGroup.contains(serverModelName)) {
-                            serverInventory.restartServer(serverModelName, timeout > 0 ? timeout * 1000 : timeout, model, false, suspend);
-                            waitForServers.add(serverModelName);
-                        }
+            context.addStep((context1, operation1) -> {
+                // Even though we don't read from the service registry, we are modifying a service
+                context1.getServiceRegistry(true);
+                Map<String, ProcessInfo> processes = serverInventory.determineRunningProcesses(true);
+                final Set<String> serversInGroup = getServersForGroup(model, group);
+                final Set<String> waitForServers = new HashSet<String>();
+                for (String serverName : processes.keySet()) {
+                    final String serverModelName = serverInventory.getProcessServerName(serverName);
+                    if (group == null || serversInGroup.contains(serverModelName)) {
+                        serverInventory.restartServer(serverModelName, timeout > 0 ? timeout * 1000 : timeout, model, false, suspend);
+                        waitForServers.add(serverModelName);
                     }
-                    if (blocking) {
-                        serverInventory.awaitServersState(waitForServers, true);
-                    }
-                    context.completeStep(OperationContext.RollbackHandler.NOOP_ROLLBACK_HANDLER);
                 }
+                if (blocking) {
+                    serverInventory.awaitServersState(waitForServers, true);
+                }
+                context1.completeStep(OperationContext.RollbackHandler.NOOP_ROLLBACK_HANDLER);
             }, Stage.RUNTIME);
         }
 
@@ -313,26 +304,23 @@ public class DomainServerLifecycleHandlers {
             final String group = getServerGroupName(operation);
             final boolean blocking = BLOCKING.resolveModelAttribute(context, operation).asBoolean();
             final boolean suspend = SUSPEND.resolveModelAttribute(context, operation).asBoolean();
-            context.addStep(new OperationStepHandler() {
-                @Override
-                public void execute(OperationContext context, ModelNode operation) throws OperationFailedException {
-                    // Even though we don't read from the service registry, we are modifying a service
-                    context.getServiceRegistry(true);
-                    Map<String, ProcessInfo> processes = serverInventory.determineRunningProcesses(true);
-                    final Set<String> serversInGroup = getServersForGroup(model, group);
-                    final Set<String> waitForServers = new HashSet<String>();
-                    for (String serverName : processes.keySet()) {
-                        final String serverModelName = serverInventory.getProcessServerName(serverName);
-                        if (group == null || serversInGroup.contains(serverModelName)) {
-                            serverInventory.reloadServer(serverModelName, false, suspend);
-                            waitForServers.add(serverModelName);
-                        }
+            context.addStep((context1, operation1) -> {
+                // Even though we don't read from the service registry, we are modifying a service
+                context1.getServiceRegistry(true);
+                Map<String, ProcessInfo> processes = serverInventory.determineRunningProcesses(true);
+                final Set<String> serversInGroup = getServersForGroup(model, group);
+                final Set<String> waitForServers = new HashSet<String>();
+                for (String serverName : processes.keySet()) {
+                    final String serverModelName = serverInventory.getProcessServerName(serverName);
+                    if (group == null || serversInGroup.contains(serverModelName)) {
+                        serverInventory.reloadServer(serverModelName, false, suspend);
+                        waitForServers.add(serverModelName);
                     }
-                    if (blocking) {
-                        serverInventory.awaitServersState(waitForServers, true);
-                    }
-                    context.completeStep(OperationContext.RollbackHandler.NOOP_ROLLBACK_HANDLER);
                 }
+                if (blocking) {
+                    serverInventory.awaitServersState(waitForServers, true);
+                }
+                context1.completeStep(OperationContext.RollbackHandler.NOOP_ROLLBACK_HANDLER);
             }, Stage.RUNTIME);
         }
 
@@ -352,26 +340,23 @@ public class DomainServerLifecycleHandlers {
             final BlockingTimeout blockingTimeout = BlockingTimeout.Factory.getProxyBlockingTimeout(context);
 
 
-            context.addStep(new OperationStepHandler() {
-                @Override
-                public void execute(OperationContext context, ModelNode operation) throws OperationFailedException {
-                    // Even though we don't read from the service registry, we are modifying a service
-                    context.getServiceRegistry(true);
-                    Map<String, ProcessInfo> processes = serverInventory.determineRunningProcesses(true);
-                    final Set<String> serversInGroup = getServersForGroup(model, group);
-                    final Set<String> waitForServers = new HashSet<>();
-                    for (String serverName : processes.keySet()) {
-                        final String serverModelName = serverInventory.getProcessServerName(serverName);
-                        if (group == null || serversInGroup.contains(serverModelName)) {
-                            waitForServers.add(serverModelName);
-                        }
+            context.addStep((context1, operation1) -> {
+                // Even though we don't read from the service registry, we are modifying a service
+                context1.getServiceRegistry(true);
+                Map<String, ProcessInfo> processes = serverInventory.determineRunningProcesses(true);
+                final Set<String> serversInGroup = getServersForGroup(model, group);
+                final Set<String> waitForServers = new HashSet<>();
+                for (String serverName : processes.keySet()) {
+                    final String serverModelName = serverInventory.getProcessServerName(serverName);
+                    if (group == null || serversInGroup.contains(serverModelName)) {
+                        waitForServers.add(serverModelName);
                     }
-                    final List<ModelNode> errorResponses  = serverInventory.suspendServers(waitForServers, suspendTimeout, blockingTimeout);
-                    if ( !errorResponses.isEmpty() ){
-                        context.getFailureDescription().set(errorResponses);
-                    }
-                    context.completeStep(OperationContext.RollbackHandler.NOOP_ROLLBACK_HANDLER);
                 }
+                final List<ModelNode> errorResponses  = serverInventory.suspendServers(waitForServers, suspendTimeout, blockingTimeout);
+                if ( !errorResponses.isEmpty() ){
+                    context1.getFailureDescription().set(errorResponses);
+                }
+                context1.completeStep(OperationContext.RollbackHandler.NOOP_ROLLBACK_HANDLER);
             }, Stage.RUNTIME);
         }
     }
@@ -388,26 +373,23 @@ public class DomainServerLifecycleHandlers {
             final String group = getServerGroupName(operation);
             final BlockingTimeout blockingTimeout = BlockingTimeout.Factory.getProxyBlockingTimeout(context);
 
-            context.addStep(new OperationStepHandler() {
-                @Override
-                public void execute(OperationContext context, ModelNode operation) throws OperationFailedException {
-                    // Even though we don't read from the service registry, we are modifying a service
-                    context.getServiceRegistry(true);
-                    Map<String, ProcessInfo> processes = serverInventory.determineRunningProcesses(true);
-                    final Set<String> serversInGroup = getServersForGroup(model, group);
-                    final Set<String> waitForServers = new HashSet<String>();
-                    for (String serverName : processes.keySet()) {
-                        final String serverModelName = serverInventory.getProcessServerName(serverName);
-                        if (group == null || serversInGroup.contains(serverModelName)) {
-                            waitForServers.add(serverModelName);
-                        }
+            context.addStep((context1, operation1) -> {
+                // Even though we don't read from the service registry, we are modifying a service
+                context1.getServiceRegistry(true);
+                Map<String, ProcessInfo> processes = serverInventory.determineRunningProcesses(true);
+                final Set<String> serversInGroup = getServersForGroup(model, group);
+                final Set<String> waitForServers = new HashSet<String>();
+                for (String serverName : processes.keySet()) {
+                    final String serverModelName = serverInventory.getProcessServerName(serverName);
+                    if (group == null || serversInGroup.contains(serverModelName)) {
+                        waitForServers.add(serverModelName);
                     }
-                    final List<ModelNode> errorResponses = serverInventory.resumeServers(waitForServers, blockingTimeout);
-                    if ( !errorResponses.isEmpty() ){
-                        context.getFailureDescription().set(errorResponses);
-                    }
-                    context.completeStep(OperationContext.RollbackHandler.NOOP_ROLLBACK_HANDLER);
                 }
+                final List<ModelNode> errorResponses = serverInventory.resumeServers(waitForServers, blockingTimeout);
+                if ( !errorResponses.isEmpty() ){
+                    context1.getFailureDescription().set(errorResponses);
+                }
+                context1.completeStep(OperationContext.RollbackHandler.NOOP_ROLLBACK_HANDLER);
             }, Stage.RUNTIME);
         }
     }

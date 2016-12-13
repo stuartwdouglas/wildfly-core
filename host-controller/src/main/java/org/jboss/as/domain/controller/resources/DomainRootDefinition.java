@@ -39,9 +39,7 @@ import java.util.Set;
 
 import org.jboss.as.controller.AttributeDefinition;
 import org.jboss.as.controller.ModelOnlyWriteAttributeHandler;
-import org.jboss.as.controller.OperationContext;
 import org.jboss.as.controller.OperationFailedException;
-import org.jboss.as.controller.OperationStepHandler;
 import org.jboss.as.controller.PathElement;
 import org.jboss.as.controller.ProcessType;
 import org.jboss.as.controller.PropertiesAttributeDefinition;
@@ -230,17 +228,14 @@ public class DomainRootDefinition extends SimpleResourceDefinition {
         resourceRegistration.registerReadWriteAttribute(NAME, null, new ModelOnlyWriteAttributeHandler(NAME));
         resourceRegistration.registerReadWriteAttribute(ORGANIZATION_IDENTIFIER, null, new ModelOnlyWriteAttributeHandler(ORGANIZATION_IDENTIFIER));
         resourceRegistration.registerReadOnlyAttribute(PROCESS_TYPE, isMaster ? ProcessTypeHandler.MASTER : ProcessTypeHandler.SLAVE);
-        resourceRegistration.registerReadOnlyAttribute(LAUNCH_TYPE, new OperationStepHandler() {
-            @Override
-            public void execute(final OperationContext context, final ModelNode operation) throws OperationFailedException {
-                final String launchType;
-                if (environment.getProcessType() == ProcessType.EMBEDDED_HOST_CONTROLLER) {
-                    launchType = "EMBEDDED";
-                } else {
-                    launchType = LaunchType.DOMAIN.toString();
-                }
-                context.getResult().set(launchType);
+        resourceRegistration.registerReadOnlyAttribute(LAUNCH_TYPE, (context, operation) -> {
+            final String launchType;
+            if (environment.getProcessType() == ProcessType.EMBEDDED_HOST_CONTROLLER) {
+                launchType = "EMBEDDED";
+            } else {
+                launchType = LaunchType.DOMAIN.toString();
             }
+            context.getResult().set(launchType);
         });
         resourceRegistration.registerReadOnlyAttribute(LOCAL_HOST_NAME, new LocalHostNameOperationHandler(hostControllerInfo));
 

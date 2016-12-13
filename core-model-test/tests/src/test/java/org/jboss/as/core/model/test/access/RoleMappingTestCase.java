@@ -509,13 +509,9 @@ public class RoleMappingTestCase extends AbstractCoreModelTest {
             throw new IllegalStateException(e);
         }
 
-        AccessAuditContext.doAs(securityIdentity, null, new PrivilegedAction<Void>() {
-
-            @Override
-            public Void run() {
-                assertIsCallerInRole(roleName, runAsRole, expectedOutcome);
-                return null;
-            }
+        AccessAuditContext.doAs(securityIdentity, null, (PrivilegedAction<Void>) () -> {
+            assertIsCallerInRole(roleName, runAsRole, expectedOutcome);
+            return null;
         });
     }
 

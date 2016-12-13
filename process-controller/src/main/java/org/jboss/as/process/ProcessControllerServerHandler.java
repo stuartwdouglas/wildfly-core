@@ -235,11 +235,9 @@ public final class ProcessControllerServerHandler implements ConnectionHandler {
                         } case Protocol.SHUTDOWN: {
                             if (isPrivileged) {
                                 final int exitCode = readInt(dataStream);
-                                new Thread(new Runnable() {
-                                    public void run() {
-                                        processController.shutdown();
-                                        System.exit(exitCode);
-                                    }
+                                new Thread(() -> {
+                                    processController.shutdown();
+                                    System.exit(exitCode);
                                 }).start();
                             } else {
                                 ProcessLogger.SERVER_LOGGER.tracef("Ignoring shutdown message from untrusted source");

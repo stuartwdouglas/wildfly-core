@@ -158,34 +158,24 @@ public class ConditionArgument extends ArgumentWithValue {
         exprState.setDefaultHandler(defaultHandler);
         exprState.enterState('"', QuotesState.QUOTES_INCLUDED);
         exprState.enterState('\\', EscapeCharacterState.INSTANCE);
-        exprState.putHandler(')', new CharacterHandler() {
-            @Override
-            public void handle(ParsingContext ctx) throws CommandFormatException {
+        exprState.putHandler(')', ctx -> {
+            ctx.leaveState();
+            if(ctx.getState() == parenthesisState) {
                 ctx.leaveState();
-                if(ctx.getState() == parenthesisState) {
-                    ctx.leaveState();
-                }
-            }});
+            }
+        });
 
         parenthesisState = new DefaultStateWithEndCharacter("PARENTHESIS", ')', true, true);
         parenthesisState.enterState('\\', EscapeCharacterState.INSTANCE);
         parenthesisState.enterState('"', QuotesState.QUOTES_INCLUDED);
         parenthesisState.enterState('(', parenthesisState);
         exprState.enterState('(', parenthesisState);
-        parenthesisState.setDefaultHandler(new CharacterHandler() {
-            @Override
-            public void handle(ParsingContext ctx) throws CommandFormatException {
-                ctx.enterState(exprState);
-            }});
+        parenthesisState.setDefaultHandler(ctx -> ctx.enterState(exprState));
         //parenthesisState.setReturnHandler(GlobalCharacterHandlers.LEAVE_STATE_HANDLER);
 
         DefaultParsingState initial = new DefaultParsingState("EXPR_INITIAL");
         initial.enterState('(', parenthesisState);
-        initial.setDefaultHandler(new CharacterHandler(){
-            @Override
-            public void handle(ParsingContext ctx) throws CommandFormatException {
-                ctx.enterState(exprState);
-            }});
+        initial.setDefaultHandler(ctx -> ctx.enterState(exprState));
         return initial;
     }
 

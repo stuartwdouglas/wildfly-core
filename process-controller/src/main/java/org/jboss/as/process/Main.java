@@ -209,11 +209,7 @@ public final class Main {
         InetSocketAddress pcInetSocketAddress = new InetSocketAddress(pcInetAddress, pcSocketConfig.getBindPort());
         configuration.setBindAddress(pcInetSocketAddress);
         configuration.setSocketFactory(ServerSocketFactory.getDefault());
-        final ThreadFactory threadFactory = doPrivileged(new PrivilegedAction<JBossThreadFactory>() {
-            public JBossThreadFactory run() {
-                return new JBossThreadFactory(new ThreadGroup("ProcessController-threads"), Boolean.FALSE, null, "%G - %t", null, null);
-            }
-        });
+        final ThreadFactory threadFactory = doPrivileged((PrivilegedAction<JBossThreadFactory>) () -> new JBossThreadFactory(new ThreadGroup("ProcessController-threads"), Boolean.FALSE, null, "%G - %t", null, null));
         configuration.setThreadFactory(threadFactory);
         configuration.setReadExecutor(Executors.newCachedThreadPool(threadFactory));
 
@@ -249,11 +245,7 @@ public final class Main {
         processController.addProcess(HOST_CONTROLLER_PROCESS_NAME, initialCommand, Collections.<String, String>emptyMap(), currentWorkingDir, true, true);
         processController.startProcess(HOST_CONTROLLER_PROCESS_NAME);
 
-        final Thread shutdownThread = new Thread(new Runnable() {
-            public void run() {
-                processController.shutdown();
-            }
-        }, "Shutdown thread");
+        final Thread shutdownThread = new Thread(() -> processController.shutdown(), "Shutdown thread");
         shutdownThread.setDaemon(false);
         Runtime.getRuntime().addShutdownHook(shutdownThread);
 

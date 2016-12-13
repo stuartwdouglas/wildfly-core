@@ -31,10 +31,5 @@ public interface NotificationFilter {
 
     boolean isNotificationEnabled(Notification notification);
 
-    NotificationFilter ALL = new NotificationFilter() {
-        @Override
-        public boolean isNotificationEnabled(Notification notification) {
-            return true;
-        }
-    };
+    NotificationFilter ALL = notification -> true;
 }

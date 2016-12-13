@@ -41,21 +41,18 @@ public interface OperationMessageHandler {
     /**
      * An operation message handler which logs to the current system log.
      */
-    OperationMessageHandler logging = new OperationMessageHandler() {
-
-        public void handleReport(final MessageSeverity severity, final String message) {
-            switch (severity) {
-                case ERROR:
-                    ROOT_LOGGER.error(message);
-                    break;
-                case WARN:
-                    ROOT_LOGGER.warn(message);
-                    break;
-                case INFO:
-                default:
-                    ROOT_LOGGER.trace(message);
-                    break;
-            }
+    OperationMessageHandler logging = (severity, message) -> {
+        switch (severity) {
+            case ERROR:
+                ROOT_LOGGER.error(message);
+                break;
+            case WARN:
+                ROOT_LOGGER.warn(message);
+                break;
+            case INFO:
+            default:
+                ROOT_LOGGER.trace(message);
+                break;
         }
     };
 
@@ -63,12 +60,8 @@ public interface OperationMessageHandler {
     /**
      * A noop operation message handler, which discards all received messages.
      */
-    OperationMessageHandler DISCARD = new OperationMessageHandler() {
-
-        @Override
-        public void handleReport(MessageSeverity severity, String message) {
-            //
-        }
+    OperationMessageHandler DISCARD = (severity, message) -> {
+        //
     };
 
 }

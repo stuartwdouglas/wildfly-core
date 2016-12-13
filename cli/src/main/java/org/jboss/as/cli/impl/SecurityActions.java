@@ -57,12 +57,7 @@ class SecurityActions {
             return internalLoadAndInstantiateFromClassClassLoader(base, iface, name);
         } else {
             try {
-                return doPrivileged(new PrivilegedExceptionAction<T>() {
-                    @Override
-                    public T run() throws Exception {
-                        return internalLoadAndInstantiateFromClassClassLoader(base, iface, name);
-                    }
-                });
+                return doPrivileged((PrivilegedExceptionAction<T>) () -> internalLoadAndInstantiateFromClassClassLoader(base, iface, name));
             } catch (PrivilegedActionException e) {
                 Throwable t = e.getCause();
                 if (t instanceof RuntimeException){
@@ -87,12 +82,7 @@ class SecurityActions {
             return internalLoadAndInstantiateFromModule(moduleId, iface, name);
         } else {
             try {
-                return doPrivileged(new PrivilegedExceptionAction<T>() {
-                    @Override
-                    public T run() throws Exception {
-                        return internalLoadAndInstantiateFromModule(moduleId, iface, name);
-                    }
-                });
+                return doPrivileged((PrivilegedExceptionAction<T>) () -> internalLoadAndInstantiateFromModule(moduleId, iface, name));
             } catch (PrivilegedActionException e) {
                 Throwable t = e.getCause();
                 if (t instanceof RuntimeException){
@@ -117,14 +107,7 @@ class SecurityActions {
         } else {
 
             try {
-                return doPrivileged(new PrivilegedExceptionAction<Configuration>() {
-
-                    @Override
-                    public Configuration run() throws Exception {
-                        return internalGetGlobalJaasConfiguration();
-                    }
-
-                });
+                return doPrivileged((PrivilegedExceptionAction<Configuration>) () -> internalGetGlobalJaasConfiguration());
             } catch (PrivilegedActionException e) {
                 throw (SecurityException) e.getCause();
             }
@@ -142,15 +125,10 @@ class SecurityActions {
         } else {
 
             try {
-                doPrivileged(new PrivilegedExceptionAction<Void>() {
+                doPrivileged((PrivilegedExceptionAction<Void>) () -> {
+                    internalSetGlobalJaasConfiguration(configuration);
 
-                    @Override
-                    public Void run() throws Exception {
-                        internalSetGlobalJaasConfiguration(configuration);
-
-                        return null;
-                    }
-
+                    return null;
                 });
             } catch (PrivilegedActionException e) {
                 throw (SecurityException) e.getCause();

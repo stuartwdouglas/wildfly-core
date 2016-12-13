@@ -75,22 +75,20 @@ public final class PipeTest {
                     InputStream in = pipe.getIn();
 
                     // fire up the write thread
-                    thread = new Thread(new Runnable() {
-                        public void run() {
-                            final Random rng = new Random(SEED);
-                            final byte[] piece = new byte[pieceSize];
-                            try {
-                                OutputStream out = pipe.getOut();
-                                for (int i = 0; i < pieceCnt; i++) {
-                                    rng.nextBytes(piece);
-                                    out.write(piece);
-                                }
-                                out.close();
-                                pipe.await();
-                            } catch (IOException e) {
-                                e.printStackTrace(System.err);
-                                System.err.flush();
+                    thread = new Thread(() -> {
+                        final Random rng = new Random(SEED);
+                        final byte[] piece = new byte[pieceSize];
+                        try {
+                            OutputStream out = pipe.getOut();
+                            for (int i = 0; i < pieceCnt; i++) {
+                                rng.nextBytes(piece);
+                                out.write(piece);
                             }
+                            out.close();
+                            pipe.await();
+                        } catch (IOException e) {
+                            e.printStackTrace(System.err);
+                            System.err.flush();
                         }
                     }, "Test write thread");
                     thread.setDaemon(true);

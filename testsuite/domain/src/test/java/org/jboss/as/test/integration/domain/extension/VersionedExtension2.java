@@ -24,9 +24,6 @@ package org.jboss.as.test.integration.domain.extension;
 
 import org.jboss.as.controller.ExtensionContext;
 import org.jboss.as.controller.ModelVersion;
-import org.jboss.as.controller.OperationContext;
-import org.jboss.as.controller.OperationFailedException;
-import org.jboss.as.controller.OperationStepHandler;
 import org.jboss.as.controller.PathAddress;
 import org.jboss.as.controller.PathElement;
 import org.jboss.as.controller.SubsystemRegistration;
@@ -42,7 +39,6 @@ import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.WRI
 import org.jboss.as.controller.parsing.ExtensionParsingContext;
 import org.jboss.as.controller.registry.ManagementResourceRegistration;
 import org.jboss.as.controller.registry.Resource;
-import org.jboss.as.controller.transform.OperationResultTransformer;
 import org.jboss.as.controller.transform.OperationTransformer;
 import org.jboss.as.controller.transform.RejectExpressionValuesTransformer;
 import org.jboss.as.controller.transform.ResourceTransformationContext;
@@ -74,14 +70,11 @@ public class VersionedExtension2 extends VersionedExtensionCommon {
     void processTestSubsystem(final SubsystemRegistration subsystem, final ManagementResourceRegistration registration) {
 
         // Register an update operation, which requires the transformer to create composite operation
-        registration.registerOperationHandler(getOperationDefinition("update"), new OperationStepHandler() {
-            @Override
-            public void execute(final OperationContext context, final ModelNode operation) throws OperationFailedException {
-                final Resource resource = context.readResourceForUpdate(PathAddress.EMPTY_ADDRESS);
-                final ModelNode model = resource.getModel();
-                model.get("test-attribute").set("test");
-                context.getResult().set(model);
-            }
+        registration.registerOperationHandler(getOperationDefinition("update"), (context, operation) -> {
+            final Resource resource = context.readResourceForUpdate(PathAddress.EMPTY_ADDRESS);
+            final ModelNode model = resource.getModel();
+            model.get("test-attribute").set("test");
+            context.getResult().set(model);
         });
 
         // Add a new model, which does not exist in the old model
@@ -89,12 +82,7 @@ public class VersionedExtension2 extends VersionedExtensionCommon {
         registration.registerSubModel(createResourceDefinition(OTHER_NEW_ELEMENT));
         // Add the renamed model
         registration.registerSubModel(createResourceDefinition(RENAMED));
-        registration.registerOperationHandler(getOperationDefinition("test"), new OperationStepHandler() {
-            @Override
-            public void execute(OperationContext context, ModelNode operation) throws OperationFailedException {
-                context.getResult().set(true);
-            }
-        });
+        registration.registerOperationHandler(getOperationDefinition("test"), (context, operation) -> context.getResult().set(true));
 
         //
         // Transformation rules
@@ -107,18 +95,10 @@ public class VersionedExtension2 extends VersionedExtensionCommon {
                 .addRawOperationTransformationOverride("update", new UpdateTransformer())
                 .addOperationTransformationOverride("test")
                     .inheritResourceAttributeDefinitions()
-                    .setCustomOperationTransformer(new OperationTransformer() {
-                        @Override
-                        public TransformedOperation transformOperation(TransformationContext context, PathAddress address, ModelNode operation) throws OperationFailedException {
-                            return new TransformedOperation(operation, new OperationResultTransformer() {
-                                @Override
-                                public ModelNode transformResult(ModelNode result) {
-                                    result.get(RESULT).set(false);
-                                    return result;
-                                }
-                            });
-                        }
-                    })
+                    .setCustomOperationTransformer((context, address, operation) -> new OperationTransformer.TransformedOperation(operation, result -> {
+                        result.get(RESULT).set(false);
+                        return result;
+                    }))
         ;
 
         final ModelVersion version = ModelVersion.create(1, 0, 0);
@@ -144,15 +124,11 @@ public class VersionedExtension2 extends VersionedExtensionCommon {
         TEST_SUBSYSTEM.initializeParsers(context);
     }
 
-    static ResourceTransformer RESOURCE_TRANSFORMER = new ResourceTransformer() {
-        @Override
-        public void transformResource(ResourceTransformationContext context, PathAddress address, Resource resource) throws OperationFailedException {
-            final ResourceTransformationContext childContext = context.addTransformedResource(PathAddress.EMPTY_ADDRESS, resource);
-            for(final Resource.ResourceEntry entry : resource.getChildren("renamed")) {
-                childContext.processChild(PathElement.pathElement("element", "renamed"), entry);
-            }
+    static ResourceTransformer RESOURCE_TRANSFORMER = (context, address, resource) -> {
+        final ResourceTransformationContext childContext = context.addTransformedResource(PathAddress.EMPTY_ADDRESS, resource);
+        for(final Resource.ResourceEntry entry : resource.getChildren("renamed")) {
+            childContext.processChild(PathElement.pathElement("element", "renamed"), entry);
         }
-
     };
 
     static class UpdateTransformer implements OperationTransformer {
@@ -180,13 +156,10 @@ public class VersionedExtension2 extends VersionedExtensionCommon {
             composite.get(STEPS).add(write);
             composite.get(STEPS).add(read);
 
-            return new TransformedOperation(composite, new OperationResultTransformer() {
-                @Override
-                public ModelNode transformResult(final ModelNode result) {
-                    final ModelNode transformed = result.clone();
-                    transformed.get(RESULT).set(result.get(RESULT, "step-2", RESULT));
-                    return transformed;
-                }
+            return new TransformedOperation(composite, result -> {
+                final ModelNode transformed = result.clone();
+                transformed.get(RESULT).set(result.get(RESULT, "step-2", RESULT));
+                return transformed;
             });
         }
     }

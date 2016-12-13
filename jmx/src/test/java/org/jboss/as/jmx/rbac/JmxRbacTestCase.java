@@ -51,9 +51,6 @@ import org.jboss.as.controller.AccessAuditContext;
 import org.jboss.as.controller.AttributeDefinition;
 import org.jboss.as.controller.CompositeOperationHandler;
 import org.jboss.as.controller.ManagementModel;
-import org.jboss.as.controller.OperationContext;
-import org.jboss.as.controller.OperationFailedException;
-import org.jboss.as.controller.OperationStepHandler;
 import org.jboss.as.controller.PathAddress;
 import org.jboss.as.controller.PathElement;
 import org.jboss.as.controller.ProcessType;
@@ -294,234 +291,231 @@ public abstract class JmxRbacTestCase extends AbstractControllerTestBase {
         final boolean canAccessSpecial = standardRole == null ? true : canAccessSpecial(standardRole);
 
         try {
-            AccessAuditContext.doAs(roleToSecurityIdentity(standardRole), null, new PrivilegedExceptionAction<Void>() {
-                @Override
-                public Void run() throws Exception {
-                    Set<ObjectInstance> instances = server.queryMBeans(null, null);
-                    Set<ObjectName> names = server.queryNames(null, null);
-                    int count = server.getMBeanCount();
-                    Assert.assertEquals(count, names.size());
-                    Assert.assertEquals(count, instances.size());
+            AccessAuditContext.doAs(roleToSecurityIdentity(standardRole), null, (PrivilegedExceptionAction<Void>) () -> {
+                Set<ObjectInstance> instances = server.queryMBeans(null, null);
+                Set<ObjectName> names = server.queryNames(null, null);
+                int count = server.getMBeanCount();
+                Assert.assertEquals(count, names.size());
+                Assert.assertEquals(count, instances.size());
 
-                    Assert.assertNotNull(server.getDefaultDomain());
-                    Assert.assertTrue(server.getDomains().length > 0);
+                Assert.assertNotNull(server.getDefaultDomain());
+                Assert.assertTrue(server.getDomains().length > 0);
 
-                    //mbean count, queryMBeans/-Names, getObjectInstance(), isRegistered()
-                    if (canRead) {
-                        Assert.assertTrue(names.contains(OBJECT_NAME));
+                //mbean count, queryMBeans/-Names, getObjectInstance(), isRegistered()
+                if (canRead) {
+                    Assert.assertTrue(names.contains(OBJECT_NAME));
 
-                        Assert.assertNotNull(server.getObjectInstance(OBJECT_NAME));
-                        Assert.assertTrue(server.isRegistered(OBJECT_NAME));
-                        Assert.assertNotNull(server.getMBeanInfo(OBJECT_NAME));
-                        Assert.assertTrue(server.isInstanceOf(OBJECT_NAME,BeanMBean.class.getName()));
-                    } else {
-                        Assert.assertFalse(names.contains(OBJECT_NAME));
+                    Assert.assertNotNull(server.getObjectInstance(OBJECT_NAME));
+                    Assert.assertTrue(server.isRegistered(OBJECT_NAME));
+                    Assert.assertNotNull(server.getMBeanInfo(OBJECT_NAME));
+                    Assert.assertTrue(server.isInstanceOf(OBJECT_NAME,BeanMBean.class.getName()));
+                } else {
+                    Assert.assertFalse(names.contains(OBJECT_NAME));
 
-                        try {
-                            server.getObjectInstance(OBJECT_NAME);
-                            Assert.fail();
-                        } catch (JMRuntimeException expected) {
-                        }
-                        try {
-                            server.isRegistered(OBJECT_NAME);
-                            Assert.fail();
-                        } catch (JMRuntimeException expected) {
-                        }
-                        try {
-                            server.getMBeanInfo(OBJECT_NAME);
-                            Assert.fail();
-                        } catch (JMRuntimeException expected) {
-                        }
-                        try {
-                            server.isInstanceOf(OBJECT_NAME,BeanMBean.class.getName());
-                            Assert.fail();
-                        } catch (JMRuntimeException expected) {
-                        }
-                    }
-
-                    //Attributes
-                    if (canRead) {
-                        Assert.assertEquals(5, server.getAttribute(OBJECT_NAME, "Attr"));
-                        server.getAttributes(OBJECT_NAME, new String[] {"Attr"});
-
-                    } else {
-                        try {
-                            server.getAttribute(OBJECT_NAME, "Attr");
-                            Assert.fail();
-                        } catch (JMRuntimeException expected) {
-                        }
-                        try {
-                            server.getAttributes(OBJECT_NAME, new String[] {"Attr"});
-                            Assert.fail();
-                        } catch (JMRuntimeException expected) {
-                        }
-                    }
-                    if (canWrite) {
-                        server.setAttribute(OBJECT_NAME, new Attribute("Attr", new Integer(10)));
-                        server.setAttributes(OBJECT_NAME, new AttributeList(Collections.singletonList(new Attribute("Attr", new Integer(10)))));
-                    } else {
-                        try {
-                            server.setAttribute(OBJECT_NAME, new Attribute("Attr", new Integer(10)));
-                            Assert.fail();
-                        } catch (JMRuntimeException expected) {
-                        }
-                        try {
-                            server.setAttributes(OBJECT_NAME, new AttributeList(Collections.singletonList(new Attribute("Attr", new Integer(10)))));
-                            Assert.fail();
-                        } catch (JMRuntimeException expected) {
-                        }
-                    }
-
-                    //createMBean, registerMBean and unregisterMBean
-                    if (canWrite) {
-                        server.createMBean(Bean.class.getName(), OBJECT_NAME2);
-                        server.unregisterMBean(OBJECT_NAME2);
-                        server.createMBean(Bean.class.getName(), OBJECT_NAME2, new Object[0], new String[0]);
-                        server.unregisterMBean(OBJECT_NAME2);
-                        server.registerMBean(new Bean(), OBJECT_NAME2);
-                        server.unregisterMBean(OBJECT_NAME2);
-
-                    } else {
-                        try {
-                            server.createMBean(Bean.class.getName(), OBJECT_NAME2);
-                            Assert.fail();
-                        } catch (JMRuntimeException expected) {
-                        }
-                        try {
-                            server.createMBean(Bean.class.getName(), OBJECT_NAME2, new Object[0], new String[0]);
-                            Assert.fail();
-                        } catch (JMRuntimeException expected) {
-                        }
-                        try {
-                            server.registerMBean(new Bean(), OBJECT_NAME2);
-                            Assert.fail();
-                        } catch (JMRuntimeException expected) {
-                        }
-                        try {
-                            server.unregisterMBean(OBJECT_NAME);
-                            Assert.fail();
-                        } catch (JMRuntimeException expected) {
-                        }
-                    }
-
-                    //Notification listeners
-                    final TestNotificationListener listener = new TestNotificationListener();
-                    if (canRead) {
-                        server.addNotificationListener(OBJECT_NAME, listener, listener, new Object());
-                        server.removeNotificationListener(OBJECT_NAME, listener);
-                    } else {
-                        try {
-                            server.addNotificationListener(OBJECT_NAME, listener, listener, new Object());
-                            Assert.fail();
-                        } catch (JMRuntimeException expected) {
-                        }
-                        try {
-                            server.removeNotificationListener(OBJECT_NAME, listener);
-                            Assert.fail();
-                        } catch (JMRuntimeException expected) {
-                        }
-                    }
-
-                    //Special methods, which only superuser or administrator can call
-                    ByteArrayOutputStream bout = new ByteArrayOutputStream();
-                    ObjectOutputStream out = new ObjectOutputStream(bout);
                     try {
-                        out.writeObject(new Bean());
-                    } finally {
-                        IoUtils.safeClose(out);
+                        server.getObjectInstance(OBJECT_NAME);
+                        Assert.fail();
+                    } catch (JMRuntimeException expected) {
                     }
-                    byte[] bytes = bout.toByteArray();
-
-                    if (canAccessSpecial) {
-                        Assert.assertNotNull(server.deserialize(OBJECT_NAME, bytes));
-                        Assert.assertNotNull(server.deserialize(Bean.class.getName(), bytes));
-                        try {
-                            server.getClassLoader(OBJECT_NAME);
-                        } catch (InstanceNotFoundException expected) {
-                        }
-                        Assert.assertNotNull(server.getClassLoaderRepository());
-                        Assert.assertNotNull(server.getClassLoaderFor(OBJECT_NAME));
-                        Assert.assertNotNull(server.instantiate(Bean.class.getName()));
-                        Assert.assertNotNull(server.instantiate(Bean.class.getName(), new Object[0], new String[0]));
-
-                    } else {
-                        try {
-                            Assert.assertNotNull(server.deserialize(OBJECT_NAME, bytes));
-                            Assert.fail();
-                        } catch (JMRuntimeException expected) {
-                        }
-                        try {
-                            Assert.assertNotNull(server.deserialize(Bean.class.getName(), bytes));
-                            Assert.fail();
-                        } catch (JMRuntimeException expected) {
-                        }
-                        try {
-                            server.getClassLoader(OBJECT_NAME);
-                            Assert.fail();
-                        } catch (JMRuntimeException expected) {
-                        }
-                        try {
-                            server.getClassLoaderRepository();
-                            Assert.fail();
-                        } catch (JMRuntimeException expected) {
-                        }
-                        try {
-                            server.getClassLoaderFor(OBJECT_NAME);
-                            Assert.fail();
-                        } catch (JMRuntimeException expected) {
-                        }
-                        try {
-                            server.instantiate(Bean.class.getName());
-                            Assert.fail();
-                        } catch (JMRuntimeException expected) {
-                        }
-                        try {
-                            server.instantiate(Bean.class.getName(), new Object[0], new String[0]);
-                            Assert.fail();
-                        } catch (JMRuntimeException expected) {
-                        }
+                    try {
+                        server.isRegistered(OBJECT_NAME);
+                        Assert.fail();
+                    } catch (JMRuntimeException expected) {
                     }
-
-                    //invoke
-                    if (canRead) {
-                        server.invoke(OBJECT_NAME_MODEL, "info", new Object[0], new String[0]);
-                    } else {
-                        try {
-                            server.invoke(OBJECT_NAME_MODEL, "info", new Object[0], new String[0]);
-                            Assert.fail();
-                        } catch (JMRuntimeException expected) {
-                        }
+                    try {
+                        server.getMBeanInfo(OBJECT_NAME);
+                        Assert.fail();
+                    } catch (JMRuntimeException expected) {
                     }
-                    if (canWrite) {
-                        server.invoke(OBJECT_NAME, "method", new Object[0], new String[0]);
-                        server.invoke(OBJECT_NAME_MODEL, "action", new Object[0], new String[0]);
-                        server.invoke(OBJECT_NAME_MODEL, "actionInfo", new Object[0], new String[0]);
-                        server.invoke(OBJECT_NAME_MODEL, "unknown", new Object[0], new String[0]);
-                    } else {
-                        try {
-                            server.invoke(OBJECT_NAME, "method", new Object[0], new String[0]);
-                            Assert.fail();
-                        } catch (JMRuntimeException expected) {
-                        }
-                        try {
-                            server.invoke(OBJECT_NAME_MODEL, "action", new Object[0], new String[0]);
-                            Assert.fail();
-                        } catch (JMRuntimeException expected) {
-                        }
-                        try {
-                            server.invoke(OBJECT_NAME_MODEL, "actionInfo", new Object[0], new String[0]);
-                            Assert.fail();
-                        } catch (JMRuntimeException expected) {
-                        }
-                        try {
-                            server.invoke(OBJECT_NAME_MODEL, "unknown", new Object[0], new String[0]);
-                            Assert.fail();
-                        } catch (JMRuntimeException expected) {
-                        }
+                    try {
+                        server.isInstanceOf(OBJECT_NAME,BeanMBean.class.getName());
+                        Assert.fail();
+                    } catch (JMRuntimeException expected) {
                     }
-
-                    return null;
                 }
+
+                //Attributes
+                if (canRead) {
+                    Assert.assertEquals(5, server.getAttribute(OBJECT_NAME, "Attr"));
+                    server.getAttributes(OBJECT_NAME, new String[] {"Attr"});
+
+                } else {
+                    try {
+                        server.getAttribute(OBJECT_NAME, "Attr");
+                        Assert.fail();
+                    } catch (JMRuntimeException expected) {
+                    }
+                    try {
+                        server.getAttributes(OBJECT_NAME, new String[] {"Attr"});
+                        Assert.fail();
+                    } catch (JMRuntimeException expected) {
+                    }
+                }
+                if (canWrite) {
+                    server.setAttribute(OBJECT_NAME, new Attribute("Attr", new Integer(10)));
+                    server.setAttributes(OBJECT_NAME, new AttributeList(Collections.singletonList(new Attribute("Attr", new Integer(10)))));
+                } else {
+                    try {
+                        server.setAttribute(OBJECT_NAME, new Attribute("Attr", new Integer(10)));
+                        Assert.fail();
+                    } catch (JMRuntimeException expected) {
+                    }
+                    try {
+                        server.setAttributes(OBJECT_NAME, new AttributeList(Collections.singletonList(new Attribute("Attr", new Integer(10)))));
+                        Assert.fail();
+                    } catch (JMRuntimeException expected) {
+                    }
+                }
+
+                //createMBean, registerMBean and unregisterMBean
+                if (canWrite) {
+                    server.createMBean(Bean.class.getName(), OBJECT_NAME2);
+                    server.unregisterMBean(OBJECT_NAME2);
+                    server.createMBean(Bean.class.getName(), OBJECT_NAME2, new Object[0], new String[0]);
+                    server.unregisterMBean(OBJECT_NAME2);
+                    server.registerMBean(new Bean(), OBJECT_NAME2);
+                    server.unregisterMBean(OBJECT_NAME2);
+
+                } else {
+                    try {
+                        server.createMBean(Bean.class.getName(), OBJECT_NAME2);
+                        Assert.fail();
+                    } catch (JMRuntimeException expected) {
+                    }
+                    try {
+                        server.createMBean(Bean.class.getName(), OBJECT_NAME2, new Object[0], new String[0]);
+                        Assert.fail();
+                    } catch (JMRuntimeException expected) {
+                    }
+                    try {
+                        server.registerMBean(new Bean(), OBJECT_NAME2);
+                        Assert.fail();
+                    } catch (JMRuntimeException expected) {
+                    }
+                    try {
+                        server.unregisterMBean(OBJECT_NAME);
+                        Assert.fail();
+                    } catch (JMRuntimeException expected) {
+                    }
+                }
+
+                //Notification listeners
+                final TestNotificationListener listener = new TestNotificationListener();
+                if (canRead) {
+                    server.addNotificationListener(OBJECT_NAME, listener, listener, new Object());
+                    server.removeNotificationListener(OBJECT_NAME, listener);
+                } else {
+                    try {
+                        server.addNotificationListener(OBJECT_NAME, listener, listener, new Object());
+                        Assert.fail();
+                    } catch (JMRuntimeException expected) {
+                    }
+                    try {
+                        server.removeNotificationListener(OBJECT_NAME, listener);
+                        Assert.fail();
+                    } catch (JMRuntimeException expected) {
+                    }
+                }
+
+                //Special methods, which only superuser or administrator can call
+                ByteArrayOutputStream bout = new ByteArrayOutputStream();
+                ObjectOutputStream out = new ObjectOutputStream(bout);
+                try {
+                    out.writeObject(new Bean());
+                } finally {
+                    IoUtils.safeClose(out);
+                }
+                byte[] bytes = bout.toByteArray();
+
+                if (canAccessSpecial) {
+                    Assert.assertNotNull(server.deserialize(OBJECT_NAME, bytes));
+                    Assert.assertNotNull(server.deserialize(Bean.class.getName(), bytes));
+                    try {
+                        server.getClassLoader(OBJECT_NAME);
+                    } catch (InstanceNotFoundException expected) {
+                    }
+                    Assert.assertNotNull(server.getClassLoaderRepository());
+                    Assert.assertNotNull(server.getClassLoaderFor(OBJECT_NAME));
+                    Assert.assertNotNull(server.instantiate(Bean.class.getName()));
+                    Assert.assertNotNull(server.instantiate(Bean.class.getName(), new Object[0], new String[0]));
+
+                } else {
+                    try {
+                        Assert.assertNotNull(server.deserialize(OBJECT_NAME, bytes));
+                        Assert.fail();
+                    } catch (JMRuntimeException expected) {
+                    }
+                    try {
+                        Assert.assertNotNull(server.deserialize(Bean.class.getName(), bytes));
+                        Assert.fail();
+                    } catch (JMRuntimeException expected) {
+                    }
+                    try {
+                        server.getClassLoader(OBJECT_NAME);
+                        Assert.fail();
+                    } catch (JMRuntimeException expected) {
+                    }
+                    try {
+                        server.getClassLoaderRepository();
+                        Assert.fail();
+                    } catch (JMRuntimeException expected) {
+                    }
+                    try {
+                        server.getClassLoaderFor(OBJECT_NAME);
+                        Assert.fail();
+                    } catch (JMRuntimeException expected) {
+                    }
+                    try {
+                        server.instantiate(Bean.class.getName());
+                        Assert.fail();
+                    } catch (JMRuntimeException expected) {
+                    }
+                    try {
+                        server.instantiate(Bean.class.getName(), new Object[0], new String[0]);
+                        Assert.fail();
+                    } catch (JMRuntimeException expected) {
+                    }
+                }
+
+                //invoke
+                if (canRead) {
+                    server.invoke(OBJECT_NAME_MODEL, "info", new Object[0], new String[0]);
+                } else {
+                    try {
+                        server.invoke(OBJECT_NAME_MODEL, "info", new Object[0], new String[0]);
+                        Assert.fail();
+                    } catch (JMRuntimeException expected) {
+                    }
+                }
+                if (canWrite) {
+                    server.invoke(OBJECT_NAME, "method", new Object[0], new String[0]);
+                    server.invoke(OBJECT_NAME_MODEL, "action", new Object[0], new String[0]);
+                    server.invoke(OBJECT_NAME_MODEL, "actionInfo", new Object[0], new String[0]);
+                    server.invoke(OBJECT_NAME_MODEL, "unknown", new Object[0], new String[0]);
+                } else {
+                    try {
+                        server.invoke(OBJECT_NAME, "method", new Object[0], new String[0]);
+                        Assert.fail();
+                    } catch (JMRuntimeException expected) {
+                    }
+                    try {
+                        server.invoke(OBJECT_NAME_MODEL, "action", new Object[0], new String[0]);
+                        Assert.fail();
+                    } catch (JMRuntimeException expected) {
+                    }
+                    try {
+                        server.invoke(OBJECT_NAME_MODEL, "actionInfo", new Object[0], new String[0]);
+                        Assert.fail();
+                    } catch (JMRuntimeException expected) {
+                    }
+                    try {
+                        server.invoke(OBJECT_NAME_MODEL, "unknown", new Object[0], new String[0]);
+                        Assert.fail();
+                    } catch (JMRuntimeException expected) {
+                    }
+                }
+
+                return null;
             });
         } catch (Exception e) {
             throw new RuntimeException(e);
@@ -613,13 +607,7 @@ public abstract class JmxRbacTestCase extends AbstractControllerTestBase {
 
         GlobalNotifications.registerGlobalNotifications(registration, processType);
 
-        registration.registerReadOnlyAttribute(LAUNCH_TYPE, new OperationStepHandler() {
-
-            @Override
-            public void execute(OperationContext context, ModelNode operation) throws OperationFailedException {
-                context.getResult().set(TYPE_STANDALONE);
-            }
-        });
+        registration.registerReadOnlyAttribute(LAUNCH_TYPE, (context, operation) -> context.getResult().set(TYPE_STANDALONE));
 
         TestServiceListener listener = new TestServiceListener();
         listener.reset(1);

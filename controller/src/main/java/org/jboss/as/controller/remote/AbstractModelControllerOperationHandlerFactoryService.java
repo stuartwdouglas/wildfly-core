@@ -90,11 +90,7 @@ public abstract class AbstractModelControllerOperationHandlerFactoryService impl
         responseAttachmentSupport = new ResponseAttachmentInputStreamSupport(scheduledExecutor.getValue());
 
         final BlockingQueue<Runnable> workQueue = new LinkedBlockingQueue<Runnable>(WORK_QUEUE_SIZE);
-        final ThreadFactory threadFactory = doPrivileged(new PrivilegedAction<JBossThreadFactory>() {
-            public JBossThreadFactory run() {
-                return new JBossThreadFactory(new ThreadGroup("management-handler-thread"), Boolean.FALSE, null, "%G - %t", null, null);
-            }
-        });
+        final ThreadFactory threadFactory = doPrivileged((PrivilegedAction<JBossThreadFactory>) () -> new JBossThreadFactory(new ThreadGroup("management-handler-thread"), Boolean.FALSE, null, "%G - %t", null, null));
         ThreadPoolExecutor executor = new ThreadPoolExecutor(POOL_CORE_SIZE, POOL_MAX_SIZE,
                 60L, TimeUnit.SECONDS, workQueue,
                 threadFactory);
@@ -107,17 +103,14 @@ public abstract class AbstractModelControllerOperationHandlerFactoryService impl
     @Override
     public synchronized void stop(final StopContext stopContext) {
         final ExecutorService executorService = executor.getValue();
-        final Runnable task = new Runnable() {
-            @Override
-            public void run() {
-                try {
-                    responseAttachmentSupport.shutdown();
-                    // Shut down new requests to the client request executor,
-                    // but don't mess with currently running tasks
-                    clientRequestExecutor.shutdown();
-                } finally {
-                    stopContext.complete();
-                }
+        final Runnable task = () -> {
+            try {
+                responseAttachmentSupport.shutdown();
+                // Shut down new requests to the client request executor,
+                // but don't mess with currently running tasks
+                clientRequestExecutor.shutdown();
+            } finally {
+                stopContext.complete();
             }
         };
         try {

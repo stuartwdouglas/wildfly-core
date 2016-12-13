@@ -79,8 +79,6 @@ import org.jboss.as.protocol.mgmt.ManagementRequestHeader;
 import org.jboss.as.protocol.mgmt.ManagementResponseHeader;
 import org.jboss.dmr.ModelNode;
 import org.jboss.dmr.Property;
-import org.jboss.remoting3.Channel;
-import org.jboss.remoting3.CloseHandler;
 import org.jboss.threads.AsyncFutureTask;
 import org.wildfly.common.Assert;
 
@@ -247,12 +245,9 @@ public class HostControllerRegistrationHandler implements ManagementRequestHandl
             }
 
             // Read the domain model async, this will block until the registration process is complete
-            context.executeAsync(new ManagementRequestContext.AsyncTask<RegistrationContext>() {
-                @Override
-                public void execute(ManagementRequestContext<RegistrationContext> context) throws Exception {
-                    if (Thread.currentThread().isInterrupted()) throw new IllegalStateException("interrupted");
-                    registration.processRegistration();
-                }
+            context.executeAsync(context1 -> {
+                if (Thread.currentThread().isInterrupted()) throw new IllegalStateException("interrupted");
+                registration.processRegistration();
             }, registrationExecutor);
         }
 
@@ -372,14 +367,11 @@ public class HostControllerRegistrationHandler implements ManagementRequestHandl
                 final ReadMasterDomainModelHandler handler = new ReadMasterDomainModelHandler(hostInfo, transformers, domainController.getExtensionRegistry(), false);
                 context.addStep(READ_DOMAIN_MODEL.getOperation(), handler, OperationContext.Stage.MODEL);
 
-                context.completeStep(new OperationContext.ResultHandler() {
-                    @Override
-                    public void handleResult(OperationContext.ResultAction resultAction, OperationContext context, ModelNode operation) {
-                        try {
-                            operationExecutor.releaseReadlock(operationID);
-                        } catch (IllegalArgumentException e) {
-                            HostControllerLogger.ROOT_LOGGER.hostRegistrationCannotReleaseSharedLock(operationID);
-                        }
+                context.completeStep((resultAction, context1, operation1) -> {
+                    try {
+                        operationExecutor.releaseReadlock(operationID);
+                    } catch (IllegalArgumentException e) {
+                        HostControllerLogger.ROOT_LOGGER.hostRegistrationCannotReleaseSharedLock(operationID);
                     }
                 });
                 locked = false;
@@ -497,12 +489,9 @@ public class HostControllerRegistrationHandler implements ManagementRequestHandl
                 // Send a registered notification back
                 sendCompletedMessage();
                 // Make sure that the host controller gets unregistered when the channel is closed
-                responseChannel.getChannel().addCloseHandler(new CloseHandler<Channel>() {
-                    @Override
-                    public void handleClose(Channel closed, IOException exception) {
-                        boolean cleanShutdown = ! domainController.isHostRegistered(hostName);
-                        domainController.unregisterRemoteHost(hostName, getRemoteConnectionId(), cleanShutdown);
-                    }
+                responseChannel.getChannel().addCloseHandler((closed, exception) -> {
+                    boolean cleanShutdown = ! domainController.isHostRegistered(hostName);
+                    domainController.unregisterRemoteHost(hostName, getRemoteConnectionId(), cleanShutdown);
                 });
             }
         }

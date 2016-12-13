@@ -103,11 +103,7 @@ public class ModelControllerClientTestCase {
 
                 private ExecutorService getClientRequestExecutor() {
                     final BlockingQueue<Runnable> workQueue = new LinkedBlockingQueue<Runnable>(512);
-                    final ThreadFactory threadFactory = doPrivileged(new PrivilegedAction<ThreadFactory>() {
-                        public ThreadFactory run() {
-                            return new JBossThreadFactory(new ThreadGroup("management-handler-thread"), Boolean.FALSE, null, "%G - %t", null, null);
-                        }
-                    });
+                    final ThreadFactory threadFactory = doPrivileged((PrivilegedAction<ThreadFactory>) () -> new JBossThreadFactory(new ThreadGroup("management-handler-thread"), Boolean.FALSE, null, "%G - %t", null, null));
                     ThreadPoolExecutor executor = new ThreadPoolExecutor(4, 4,
                             250L, TimeUnit.MILLISECONDS, workQueue,
                             threadFactory);
@@ -148,13 +144,9 @@ public class ModelControllerClientTestCase {
             final BlockingQueue<String> messages = new LinkedBlockingQueue<String>();
 
             ModelNode result = client.execute(operation,
-                    new OperationMessageHandler() {
-
-                        @Override
-                        public void handleReport(MessageSeverity severity, String message) {
-                            if (severity == MessageSeverity.INFO && message.startsWith("Test")) {
-                                messages.add(message);
-                            }
+                    (severity, message) -> {
+                        if (severity == MessageSeverity.INFO && message.startsWith("Test")) {
+                            messages.add(message);
                         }
                     });
             assertEquals("123", controller.getOperation().get("test").asString());
@@ -262,13 +254,9 @@ public class ModelControllerClientTestCase {
             final BlockingQueue<String> messages = new LinkedBlockingQueue<String>();
 
             AsyncFuture<ModelNode> resultFuture = client.executeAsync(operation,
-                    new OperationMessageHandler() {
-
-                        @Override
-                        public void handleReport(MessageSeverity severity, String message) {
-                            if (severity == MessageSeverity.INFO && message.startsWith("Test")) {
-                                messages.add(message);
-                            }
+                    (severity, message) -> {
+                        if (severity == MessageSeverity.INFO && message.startsWith("Test")) {
+                            messages.add(message);
                         }
                     });
             ModelNode result = resultFuture.get();
@@ -315,13 +303,9 @@ public class ModelControllerClientTestCase {
             final BlockingQueue<String> messages = new LinkedBlockingQueue<String>();
 
             AsyncFuture<ModelNode> resultFuture = client.executeAsync(operation,
-                    new OperationMessageHandler() {
-
-                        @Override
-                        public void handleReport(MessageSeverity severity, String message) {
-                            if (severity == MessageSeverity.INFO && message.startsWith("Test")) {
-                                messages.add(message);
-                            }
+                    (severity, message) -> {
+                        if (severity == MessageSeverity.INFO && message.startsWith("Test")) {
+                            messages.add(message);
                         }
                     });
             executeLatch.await();

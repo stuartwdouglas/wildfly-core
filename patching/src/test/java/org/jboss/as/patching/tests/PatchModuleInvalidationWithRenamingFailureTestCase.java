@@ -60,12 +60,9 @@ public class PatchModuleInvalidationWithRenamingFailureTestCase extends Abstract
     private static final String MODULE_NAME = "org.jboss.test.module";
     private static final String RESOURCE = "SimpleResource.jar";
 
-    private static final TestUtils.ContentTask CONTENT_TASK = new TestUtils.ContentTask() {
-        @Override
-        public String[] writeContent(File target) throws IOException {
-            writeJar(new File(target, RESOURCE));
-            return new String[]{RESOURCE};
-        }
+    private static final TestUtils.ContentTask CONTENT_TASK = target -> {
+        writeJar(new File(target, RESOURCE));
+        return new String[]{RESOURCE};
     };
 
     @Test

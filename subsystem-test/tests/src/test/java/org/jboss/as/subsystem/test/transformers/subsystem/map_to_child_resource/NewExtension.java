@@ -203,39 +203,33 @@ public class NewExtension implements Extension {
         }
     }
 
-    private static ResourceTransformer PROPERTIES_RESOURCE_TRANSFORMER = new ResourceTransformer() {
-        @Override
-        public void transformResource(ResourceTransformationContext context, PathAddress address, Resource resource) throws OperationFailedException {
-            ModelNode properties = resource.getModel().remove("properties");
-            ResourceTransformationContext childCtx = context.addTransformedResourceFromRoot(address, resource);
+    private static ResourceTransformer PROPERTIES_RESOURCE_TRANSFORMER = (context, address, resource) -> {
+        ModelNode properties = resource.getModel().remove("properties");
+        ResourceTransformationContext childCtx = context.addTransformedResourceFromRoot(address, resource);
 
-            for (ModelNode property : properties.asList()) {
-                Property prop = property.asProperty();
-                Resource child = Resource.Factory.create();
-                child.getModel().get("value").set(prop.getValue());
-                childCtx.addTransformedResource(PathAddress.pathAddress("property", prop.getName()), child);
-            }
+        for (ModelNode property : properties.asList()) {
+            Property prop = property.asProperty();
+            Resource child = Resource.Factory.create();
+            child.getModel().get("value").set(prop.getValue());
+            childCtx.addTransformedResource(PathAddress.pathAddress("property", prop.getName()), child);
         }
     };
 
-    private static OperationTransformer PROPERTIES_ADD_OPERATION_TRANSFORMER = new OperationTransformer() {
-        @Override
-        public TransformedOperation transformOperation(TransformationContext context, PathAddress address, ModelNode operation) throws OperationFailedException {
-            ModelNode properties = operation.remove("properties");
+    private static OperationTransformer PROPERTIES_ADD_OPERATION_TRANSFORMER = (context, address, operation) -> {
+        ModelNode properties = operation.remove("properties");
 
-            ModelNode composite = Util.createEmptyOperation("composite", PathAddress.EMPTY_ADDRESS);
-            ModelNode steps = composite.get("steps");
-            steps.add(operation);
+        ModelNode composite = Util.createEmptyOperation("composite", PathAddress.EMPTY_ADDRESS);
+        ModelNode steps = composite.get("steps");
+        steps.add(operation);
 
-            for (ModelNode property : properties.asList()) {
-                Property prop = property.asProperty();
-                ModelNode addProp = Util.createAddOperation(address.append("property", prop.getName()));
-                addProp.get("value").set(prop.getValue());
-                steps.add(addProp);
-            }
-
-            return new TransformedOperation(composite, TransformedOperation.ORIGINAL_RESULT);
+        for (ModelNode property : properties.asList()) {
+            Property prop = property.asProperty();
+            ModelNode addProp = Util.createAddOperation(address.append("property", prop.getName()));
+            addProp.get("value").set(prop.getValue());
+            steps.add(addProp);
         }
+
+        return new OperationTransformer.TransformedOperation(composite, OperationTransformer.TransformedOperation.ORIGINAL_RESULT);
     };
 
     private static OperationTransformer PROPERTIES_WRITE_ATTRIBUTE_TRANSFORMER = new OperationTransformer() {

@@ -22,7 +22,6 @@
 package org.jboss.as.cli.handlers.jca;
 
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 
@@ -36,7 +35,6 @@ import org.jboss.as.cli.accesscontrol.HostServerOperationAccess;
 import org.jboss.as.cli.handlers.BaseOperationCommand;
 import org.jboss.as.cli.impl.ArgumentWithValue;
 import org.jboss.as.cli.impl.DefaultCompleter;
-import org.jboss.as.cli.impl.DefaultCompleter.CandidatesProvider;
 import org.jboss.as.cli.util.SimpleTable;
 import org.jboss.as.controller.client.ModelControllerClient;
 import org.jboss.dmr.ModelNode;
@@ -57,15 +55,13 @@ public class JDBCDriverInfoHandler extends BaseOperationCommand {
         super(ctx, "jdbc-driver-info", true);
         addRequiredPath("/subsystem=datasources");
 
-        host = new ArgumentWithValue(this, new DefaultCompleter(new CandidatesProvider(){
-            @Override
-            public Collection<String> getAllCandidates(CommandContext ctx) {
-                final ModelControllerClient client = ctx.getModelControllerClient();
-                if(client == null) {
-                    return Collections.emptyList();
-                }
-                return hostServerPermission.getAllowedHosts(ctx);
-            }}), "--host") {
+        host = new ArgumentWithValue(this, new DefaultCompleter(ctx13 -> {
+            final ModelControllerClient client = ctx13.getModelControllerClient();
+            if(client == null) {
+                return Collections.emptyList();
+            }
+            return hostServerPermission.getAllowedHosts(ctx13);
+        }), "--host") {
             @Override
             public boolean canAppearNext(CommandContext ctx) throws CommandFormatException {
                 return ctx.isDomainMode() && super.canAppearNext(ctx);
@@ -73,43 +69,39 @@ public class JDBCDriverInfoHandler extends BaseOperationCommand {
         };
 
         final HostServerOperationAccess hostServerPermission = this.hostServerPermission;
-        server = new ArgumentWithValue(this, new DefaultCompleter(new CandidatesProvider(){
-            @Override
-            public Collection<String> getAllCandidates(CommandContext ctx) {
-                final ModelControllerClient client = ctx.getModelControllerClient();
-                if(client == null) {
-                    return Collections.emptyList();
-                }
-                return hostServerPermission.getAllowedServers(ctx, host.getValue(ctx.getParsedCommandLine()));
-            }}), "--server") {
+        server = new ArgumentWithValue(this, new DefaultCompleter(ctx12 -> {
+            final ModelControllerClient client = ctx12.getModelControllerClient();
+            if(client == null) {
+                return Collections.emptyList();
+            }
+            return hostServerPermission.getAllowedServers(ctx12, host.getValue(ctx12.getParsedCommandLine()));
+        }), "--server") {
             @Override
             public boolean canAppearNext(CommandContext ctx) throws CommandFormatException {
                 return host.isPresent(ctx.getParsedCommandLine()) && super.canAppearNext(ctx);
             }
         };
 
-        name = new ArgumentWithValue(this, new DefaultCompleter(new CandidatesProvider(){
-            @Override
-            public Collection<String> getAllCandidates(CommandContext ctx) {
-                try {
-                    final ModelNode req = buildRequestWithoutHeaders(ctx);
-                    final ModelNode response = ctx.getModelControllerClient().execute(req);
-                    if(response.hasDefined(Util.RESULT)) {
-                        final List<ModelNode> list = response.get(Util.RESULT).asList();
-                        final List<String> names = new ArrayList<String>(list.size());
-                        for(ModelNode node : list) {
-                            if(node.hasDefined(Util.DRIVER_NAME)) {
-                                names.add(node.get(Util.DRIVER_NAME).asString());
-                            }
+        name = new ArgumentWithValue(this, new DefaultCompleter(ctx1 -> {
+            try {
+                final ModelNode req = buildRequestWithoutHeaders(ctx1);
+                final ModelNode response = ctx1.getModelControllerClient().execute(req);
+                if(response.hasDefined(Util.RESULT)) {
+                    final List<ModelNode> list = response.get(Util.RESULT).asList();
+                    final List<String> names = new ArrayList<String>(list.size());
+                    for(ModelNode node : list) {
+                        if(node.hasDefined(Util.DRIVER_NAME)) {
+                            names.add(node.get(Util.DRIVER_NAME).asString());
                         }
-                        return names;
-                    } else {
-                        return Collections.emptyList();
                     }
-                } catch (Exception e) {
+                    return names;
+                } else {
                     return Collections.emptyList();
                 }
-            }}), 0, "--name") {
+            } catch (Exception e) {
+                return Collections.emptyList();
+            }
+        }), 0, "--name") {
             @Override
             public boolean canAppearNext(CommandContext ctx) throws CommandFormatException {
                 if(ctx.isDomainMode()) {

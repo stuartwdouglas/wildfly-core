@@ -1035,12 +1035,10 @@ public class ValueTypeCompleter implements CommandLineCompleter {
             super(ID);
             enterState('{', StartObjectState.INSTANCE);
             enterState('[', StartListState.INSTANCE);
-            setDefaultHandler(new CharacterHandler() {
-                @Override
-                public void handle(ParsingContext ctx) throws CommandFormatException {
-                    //ctx.enterState(prop);
-                    ctx.enterState(PropertyListState.INSTANCE);
-                }});
+            setDefaultHandler(ctx -> {
+                //ctx.enterState(prop);
+                ctx.enterState(PropertyListState.INSTANCE);
+            });
             addCandidate("{");
             addCandidate("[");
             addCandidates(prop.getCandidates(null));
@@ -1054,17 +1052,9 @@ public class ValueTypeCompleter implements CommandLineCompleter {
 
         public StartObjectState() {
             super(ID);
-            setDefaultHandler(new CharacterHandler(){
-                @Override
-                public void handle(ParsingContext ctx) throws CommandFormatException {
-                    ctx.enterState(PropertyListState.INSTANCE);
-                }});
+            setDefaultHandler(ctx -> ctx.enterState(PropertyListState.INSTANCE));
             setIgnoreWhitespaces(true);
-            setReturnHandler(new CharacterHandler(){
-                @Override
-                public void handle(ParsingContext ctx) throws CommandFormatException {
-                    ctx.leaveState();
-                }});
+            setReturnHandler(ctx -> ctx.leaveState());
                 }
         }
 
@@ -1075,21 +1065,15 @@ public class ValueTypeCompleter implements CommandLineCompleter {
 
         public StartListState() {
             super(ID);
-            setDefaultHandler(new CharacterHandler(){
-                @Override
-                public void handle(ParsingContext ctx) throws CommandFormatException {
-                    ctx.enterState(PropertyListState.INSTANCE);
-                }});
+            setDefaultHandler(ctx -> ctx.enterState(PropertyListState.INSTANCE));
             setIgnoreWhitespaces(true);
-            setReturnHandler(new CharacterHandler(){
-                @Override
-                public void handle(ParsingContext ctx) throws CommandFormatException {
-                    // Location is advanced in the CallbackHandler (leavingState)
-                    //if(!ctx.isEndOfContent()) {
-                    //    ctx.advanceLocation(1);
-                    //}
-                    ctx.leaveState();
-                }});
+            setReturnHandler(ctx -> {
+                // Location is advanced in the CallbackHandler (leavingState)
+                //if(!ctx.isEndOfContent()) {
+                //    ctx.advanceLocation(1);
+                //}
+                ctx.leaveState();
+            });
                 }
         }
 
@@ -1100,26 +1084,15 @@ public class ValueTypeCompleter implements CommandLineCompleter {
 
         public PropertyListState() {
             super(ID);
-            setEnterHandler(new CharacterHandler() {
-                @Override
-                public void handle(ParsingContext ctx) throws CommandFormatException {
-                    ctx.enterState(PropertyState.INSTANCE);
-                }});
-            setDefaultHandler(new CharacterHandler(){
-                @Override
-                public void handle(ParsingContext ctx) throws CommandFormatException {
-                    ctx.enterState(PropertyState.INSTANCE);
-                }});
-            setReturnHandler(new CharacterHandler(){
-                @Override
-                public void handle(ParsingContext ctx) throws CommandFormatException {
-                    if(ctx.isEndOfContent()) {
-                        ctx.leaveState();
-                        return;
-                    }
-                    final char ch = ctx.getCharacter();
-                    getHandler(ch).handle(ctx);
+            setEnterHandler(ctx -> ctx.enterState(PropertyState.INSTANCE));
+            setDefaultHandler(ctx -> ctx.enterState(PropertyState.INSTANCE));
+            setReturnHandler(ctx -> {
+                if(ctx.isEndOfContent()) {
+                    ctx.leaveState();
+                    return;
                 }
+                final char ch = ctx.getCharacter();
+                getHandler(ch).handle(ctx);
             });
             enterState(',', ListItemSeparatorState.INSTANCE);
             leaveState(']');
@@ -1135,14 +1108,12 @@ public class ValueTypeCompleter implements CommandLineCompleter {
 
         public ListItemSeparatorState() {
             super(ID);
-            setEnterHandler(new CharacterHandler(){
-                @Override
-                public void handle(ParsingContext ctx) throws CommandFormatException {
-                    if(!ctx.isEndOfContent()) {
-                        ctx.advanceLocation(1);
-                    }
-                    ctx.leaveState();
-                }});
+            setEnterHandler(ctx -> {
+                if(!ctx.isEndOfContent()) {
+                    ctx.advanceLocation(1);
+                }
+                ctx.leaveState();
+            });
                 }
 
         @Override
@@ -1160,13 +1131,10 @@ public class ValueTypeCompleter implements CommandLineCompleter {
 
         public PropertyState() {
             super(ID);
-            this.setEnterHandler(new CharacterHandler(){
-                @Override
-                public void handle(ParsingContext ctx) throws CommandFormatException {
-                    final char ch = ctx.getCharacter();
-                    final CharacterHandler handler = getHandler(ch);
-                    handler.handle(ctx);
-                }
+            this.setEnterHandler(ctx -> {
+                final char ch = ctx.getCharacter();
+                final CharacterHandler handler = getHandler(ch);
+                handler.handle(ctx);
             });
             enterState('{', StartObjectState.INSTANCE);
             // Used to be PropertyListState but when '[' is encountered we should
@@ -1174,11 +1142,7 @@ public class ValueTypeCompleter implements CommandLineCompleter {
             enterState('[', StartListState.INSTANCE);
             setDefaultHandler(WordCharacterHandler.IGNORE_LB_ESCAPE_ON);
             enterState('=', EqualsState.INSTANCE);
-            setReturnHandler(new CharacterHandler(){
-                @Override
-                public void handle(ParsingContext ctx) throws CommandFormatException {
-                    ctx.leaveState();
-                }});
+            setReturnHandler(ctx -> ctx.leaveState());
             leaveState(',');
             leaveState(']');
             leaveState('}');
@@ -1201,11 +1165,7 @@ public class ValueTypeCompleter implements CommandLineCompleter {
         public EqualsState() {
             super(ID);
             setIgnoreWhitespaces(true);
-            setDefaultHandler(new CharacterHandler() {
-                @Override
-                public void handle(ParsingContext ctx) throws CommandFormatException {
-                    ctx.enterState(TextState.INSTANCE);
-                }});
+            setDefaultHandler(ctx -> ctx.enterState(TextState.INSTANCE));
             putHandler('>', GlobalCharacterHandlers.NOOP_CHARACTER_HANDLER);
             enterState('{', StartObjectState.INSTANCE);
             enterState('[', StartListState.INSTANCE);

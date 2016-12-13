@@ -22,7 +22,6 @@
 package org.jboss.as.cli.parsing.operation.header;
 
 import org.jboss.as.cli.CommandFormatException;
-import org.jboss.as.cli.parsing.CharacterHandler;
 import org.jboss.as.cli.parsing.DefaultParsingState;
 import org.jboss.as.cli.parsing.EnterStateCharacterHandler;
 import org.jboss.as.cli.parsing.LineBreakHandler;
@@ -59,20 +58,18 @@ public class RolloutPlanState extends DefaultParsingState {
                 }
             }});
         setDefaultHandler(new EnterStateCharacterHandler(props));
-        setReturnHandler(new CharacterHandler(){
-            @Override
-            public void handle(ParsingContext ctx) throws CommandFormatException {
-                if(ctx.isEndOfContent()) {
-                    return;
-                }
-                final char ch = ctx.getCharacter();
-                if(ch == '}' || ch == ';') {
-                    ctx.leaveState();
-                    return;
-                }
-                ctx.enterState(props);
-                //ctx.leaveState();
-            }});
+        setReturnHandler(ctx -> {
+            if(ctx.isEndOfContent()) {
+                return;
+            }
+            final char ch = ctx.getCharacter();
+            if(ch == '}' || ch == ';') {
+                ctx.leaveState();
+                return;
+            }
+            ctx.enterState(props);
+            //ctx.leaveState();
+        });
     }
 
     private static boolean inputHasArgument(String argName, String input, int location) {

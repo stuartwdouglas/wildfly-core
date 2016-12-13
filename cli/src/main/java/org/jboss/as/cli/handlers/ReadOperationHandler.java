@@ -55,38 +55,36 @@ public class ReadOperationHandler extends BaseOperationCommand {
 
         node = new ArgumentWithValue(this, OperationRequestCompleter.ARG_VALUE_COMPLETER, "--node");
 
-        name = new ArgumentWithValue(this, new DefaultCompleter(new DefaultCompleter.CandidatesProvider() {
-            @Override
-            public List<String> getAllCandidates(CommandContext ctx) {
-                try {
-                    final OperationRequestAddress address = getAddress(ctx);
-                    final ModelNode req = new ModelNode();
-                    if(address.isEmpty()) {
-                        req.get(Util.ADDRESS).setEmptyList();
-                    } else {
-                        if(address.endsOnType()) {
-                            return Collections.emptyList();
-                        }
-                        final ModelNode addrNode = req.get(Util.ADDRESS);
-                        for(OperationRequestAddress.Node node : address) {
-                            addrNode.add(node.getType(), node.getName());
-                        }
+        name = new ArgumentWithValue(this, new DefaultCompleter(ctx1 -> {
+            try {
+                final OperationRequestAddress address = getAddress(ctx1);
+                final ModelNode req = new ModelNode();
+                if(address.isEmpty()) {
+                    req.get(Util.ADDRESS).setEmptyList();
+                } else {
+                    if(address.endsOnType()) {
+                        return Collections.emptyList();
                     }
-                    req.get(Util.OPERATION).set(Util.READ_OPERATION_NAMES);
-                    if(ctx.getConfig().isAccessControl()) {
-                        req.get(Util.ACCESS_CONTROL).set(true);
+                    final ModelNode addrNode = req.get(Util.ADDRESS);
+                    for(OperationRequestAddress.Node node : address) {
+                        addrNode.add(node.getType(), node.getName());
                     }
-                    try {
-                        final ModelNode response = ctx.getModelControllerClient().execute(req);
-                        return Util.getList(response);
-                    } catch (IOException e) {
-                        e.printStackTrace();
-                    }
-                } catch (CommandFormatException e) {
-                    return Collections.emptyList();
                 }
+                req.get(Util.OPERATION).set(Util.READ_OPERATION_NAMES);
+                if(ctx1.getConfig().isAccessControl()) {
+                    req.get(Util.ACCESS_CONTROL).set(true);
+                }
+                try {
+                    final ModelNode response = ctx1.getModelControllerClient().execute(req);
+                    return Util.getList(response);
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            } catch (CommandFormatException e) {
                 return Collections.emptyList();
-            }}), 0, "--name");
+            }
+            return Collections.emptyList();
+        }), 0, "--name");
     }
 
     /* (non-Javadoc)

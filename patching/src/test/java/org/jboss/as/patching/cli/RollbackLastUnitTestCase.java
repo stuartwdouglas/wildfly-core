@@ -41,7 +41,6 @@ import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 import java.io.File;
-import java.io.FileFilter;
 import java.util.Arrays;
 import java.util.List;
 
@@ -204,11 +203,7 @@ public class RollbackLastUnitTestCase extends AbstractTaskTestCase {
             return;
         }
         assertTrue(modulesPatchesDir.exists());
-        final List<File> patchDirs = Arrays.asList(modulesPatchesDir.listFiles(new FileFilter(){
-            @Override
-            public boolean accept(File pathname) {
-                return pathname.isDirectory();
-            }}));
+        final List<File> patchDirs = Arrays.asList(modulesPatchesDir.listFiles(pathname -> pathname.isDirectory()));
         if(patchElements == null) {
             assertTrue(patchDirs.isEmpty());
         } else {

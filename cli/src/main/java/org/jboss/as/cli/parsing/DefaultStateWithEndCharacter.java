@@ -21,7 +21,6 @@
  */
 package org.jboss.as.cli.parsing;
 
-import org.jboss.as.cli.CommandFormatException;
 import org.jboss.as.cli.parsing.command.ArgumentValueNotFinishedException;
 
 /**
@@ -48,25 +47,20 @@ public class DefaultStateWithEndCharacter extends DefaultParsingState {
         super(id, enterLeaveContent, enterStateHandlers);
         this.leaveStateChar = leaveStateChar;
         if(enterLeaveContent) {
-            setLeaveHandler(new CharacterHandler() {
-                @Override
-                public void handle(ParsingContext ctx) throws CommandFormatException {
-                    if(ctx.getCharacter() == leaveStateChar) {
-                        GlobalCharacterHandlers.CONTENT_CHARACTER_HANDLER.handle(ctx);
-                    }
-                }});
+            setLeaveHandler(ctx -> {
+                if(ctx.getCharacter() == leaveStateChar) {
+                    GlobalCharacterHandlers.CONTENT_CHARACTER_HANDLER.handle(ctx);
+                }
+            });
         }
         if(endRequired) {
            this.setEndContentHandler(new ErrorCharacterHandler(("Closing '" + leaveStateChar + "' is missing.")));
         } else {
-            this.setEndContentHandler(new CharacterHandler() {
-                @Override
-                public void handle(ParsingContext ctx) throws CommandFormatException {
-                    // only set the error, but don't throw it even if the strict parsing is enabled.
-                    // the command is still valid, but the error is needed to correctly treat a trailing space in
-                    // argument value (WFCORE-1572)
-                    ctx.setError(new ArgumentValueNotFinishedException("Closing '" + leaveStateChar + "' is missing"));
-                }
+            this.setEndContentHandler(ctx -> {
+                // only set the error, but don't throw it even if the strict parsing is enabled.
+                // the command is still valid, but the error is needed to correctly treat a trailing space in
+                // argument value (WFCORE-1572)
+                ctx.setError(new ArgumentValueNotFinishedException("Closing '" + leaveStateChar + "' is missing"));
             });
         }
         this.setDefaultHandler(GlobalCharacterHandlers.CONTENT_CHARACTER_HANDLER);

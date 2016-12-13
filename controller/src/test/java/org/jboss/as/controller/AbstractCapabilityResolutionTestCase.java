@@ -284,12 +284,7 @@ abstract class AbstractCapabilityResolutionTestCase {
                 if (capName != null) {
                     rcb.addRequirements(reqName);
                 }
-                context.addStep(new OperationStepHandler() {
-                    @Override
-                    public void execute(OperationContext context, ModelNode operation) throws OperationFailedException {
-                        context.getResult().set(context.hasOptionalCapability(reqName, capName, null));
-                    }
-                }, OperationContext.Stage.RUNTIME);
+                context.addStep((context1, operation1) -> context1.getResult().set(context1.hasOptionalCapability(reqName, capName, null)), OperationContext.Stage.RUNTIME);
             }  else {
                 context.getResult().set(true);
             }

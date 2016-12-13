@@ -84,61 +84,58 @@ class DomainFinalResultHandler implements OperationStepHandler {
 
         // Just register a result handler.
 
-        context.completeStep(new OperationContext.ResultHandler() {
-            @Override
-            public void handleResult(OperationContext.ResultAction resultAction, OperationContext context, ModelNode operation) {
-                DomainControllerLogger.HOST_CONTROLLER_LOGGER.tracef("Establishing final response -- result action is %s", resultAction);
-                // On the way out, fix up the response
-                final boolean isDomain = isDomainOperation(operation);
-                boolean shouldContinue = collectDomainFailure(context, isDomain);
-                shouldContinue = shouldContinue && collectContextFailure(context, isDomain);
-                if (shouldContinue) {
+        context.completeStep((resultAction, context1, operation1) -> {
+            DomainControllerLogger.HOST_CONTROLLER_LOGGER.tracef("Establishing final response -- result action is %s", resultAction);
+            // On the way out, fix up the response
+            final boolean isDomain = isDomainOperation(operation1);
+            boolean shouldContinue = collectDomainFailure(context1, isDomain);
+            shouldContinue = shouldContinue && collectContextFailure(context1, isDomain);
+            if (shouldContinue) {
 
-                    ModelNode contextResult = context.getResult();
-                    contextResult.setEmptyObject(); // clear out any old data
+                ModelNode contextResult = context1.getResult();
+                contextResult.setEmptyObject(); // clear out any old data
 
-                    // Format any local response for easy searching, putting it in the same format
-                    // a slave would send in response to DomainSlaveHandler
-                    ModelNode localDomainFormatted;
-                    if (executionSupport == null) {
-                        localDomainFormatted = new ModelNode();
-                    } else {
-                        ModelNode localResponse = multiphaseContext.getLocalContext().getLocalResponse();
-                        localDomainFormatted = localResponse.clone();
-                        localDomainFormatted.get(RESULT).clear();
-                        ModelNode domainResults = executionSupport.getFormattedDomainResult(localResponse.get(RESULT));
-                        localDomainFormatted.get(RESULT, DOMAIN_RESULTS).set(domainResults);
-                        DomainControllerLogger.HOST_CONTROLLER_LOGGER.tracef("Domain formatted result for local response %s is %s",
-                                localResponse, localDomainFormatted);
-                    }
+                // Format any local response for easy searching, putting it in the same format
+                // a slave would send in response to DomainSlaveHandler
+                ModelNode localDomainFormatted;
+                if (executionSupport == null) {
+                    localDomainFormatted = new ModelNode();
+                } else {
+                    ModelNode localResponse = multiphaseContext.getLocalContext().getLocalResponse();
+                    localDomainFormatted = localResponse.clone();
+                    localDomainFormatted.get(RESULT).clear();
+                    ModelNode domainResults = executionSupport.getFormattedDomainResult(localResponse.get(RESULT));
+                    localDomainFormatted.get(RESULT, DOMAIN_RESULTS).set(domainResults);
+                    DomainControllerLogger.HOST_CONTROLLER_LOGGER.tracef("Domain formatted result for local response %s is %s",
+                            localResponse, localDomainFormatted);
+                }
 
-                    contextResult.set(getDomainResults(operation, localDomainFormatted));
+                contextResult.set(getDomainResults(operation1, localDomainFormatted));
 
-                    // If we have server results we know all was ok on the slaves
-                    Map<ServerIdentity, ModelNode> serverResults = multiphaseContext.getServerResults();
-                    if (serverResults.size() > 0) {
-                        populateServerGroupResults(context, serverResults);
-                        // TODO report post-commit failures on slaves (i.e. in OperationContext.ResultHandler impls).
-                        // Consider enabling this. Problem is this results in the op having
-                        // outcome=failed, but really the model and MSC were updated on all HCs and servers
-                        // so the effect is likely much more like outcome=success
-                        // We don't really know what went wrong.
+                // If we have server results we know all was ok on the slaves
+                Map<ServerIdentity, ModelNode> serverResults = multiphaseContext.getServerResults();
+                if (serverResults.size() > 0) {
+                    populateServerGroupResults(context1, serverResults);
+                    // TODO report post-commit failures on slaves (i.e. in OperationContext.ResultHandler impls).
+                    // Consider enabling this. Problem is this results in the op having
+                    // outcome=failed, but really the model and MSC were updated on all HCs and servers
+                    // so the effect is likely much more like outcome=success
+                    // We don't really know what went wrong.
 //                        if (isDomain) {
 //                            // If there were any post-prepare failures on slaves, report them
 //                            populatePostPrepareHCFailures(context);
 //                        }
-                    } else {
-                        shouldContinue = collectHostFailures(context, isDomain);
-                        if (shouldContinue) {
-                            // Just make sure there's an 'undefined' server-groups node
-                            context.getServerResults();
-                        }
+                } else {
+                    shouldContinue = collectHostFailures(context1, isDomain);
+                    if (shouldContinue) {
+                        // Just make sure there's an 'undefined' server-groups node
+                        context1.getServerResults();
                     }
                 }
+            }
 
-                if (!shouldContinue && context.hasResult()) {
-                    context.getResult().setEmptyObject();  // clear out any old data
-                }
+            if (!shouldContinue && context1.hasResult()) {
+                context1.getResult().setEmptyObject();  // clear out any old data
             }
         });
     }

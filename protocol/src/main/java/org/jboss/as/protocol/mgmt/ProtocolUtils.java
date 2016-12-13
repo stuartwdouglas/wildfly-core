@@ -43,17 +43,14 @@ public final class ProtocolUtils {
     }
 
     public static <A> ManagementRequestContext.AsyncTask<A> emptyResponseTask() {
-        return new ManagementRequestContext.AsyncTask<A>() {
-            @Override
-            public void execute(final ManagementRequestContext<A> context) throws Exception {
-                final ManagementResponseHeader header = ManagementResponseHeader.create(context.getRequestHeader());
-                final FlushableDataOutput output = context.writeMessage(header);
-                try {
-                    output.writeByte(ManagementProtocol.RESPONSE_END);
-                    output.close();
-                } finally {
-                    StreamUtils.safeClose(output);
-                }
+        return context -> {
+            final ManagementResponseHeader header = ManagementResponseHeader.create(context.getRequestHeader());
+            final FlushableDataOutput output = context.writeMessage(header);
+            try {
+                output.writeByte(ManagementProtocol.RESPONSE_END);
+                output.close();
+            } finally {
+                StreamUtils.safeClose(output);
             }
         };
     }
@@ -116,11 +113,8 @@ public final class ProtocolUtils {
 
     public interface ResponseWriter {
 
-        ResponseWriter EMPTY = new ResponseWriter() {
-            @Override
-            public void write(FlushableDataOutput output) throws IOException {
-                // nothing
-            }
+        ResponseWriter EMPTY = output -> {
+            // nothing
         };
 
         void write(FlushableDataOutput output) throws IOException;

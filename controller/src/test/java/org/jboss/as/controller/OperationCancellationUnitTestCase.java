@@ -441,20 +441,11 @@ public class OperationCancellationUnitTestCase {
 
             context.getResult();
 
-            context.addStep(new OperationStepHandler() {
+            context.addStep((context12, operation12) -> {
+                toggleRuntimeState(state);
+                block();
 
-                @Override
-                public void execute(OperationContext context, ModelNode operation) {
-                    toggleRuntimeState(state);
-                    block();
-
-                    context.completeStep(new OperationContext.RollbackHandler() {
-                        @Override
-                        public void handleRollback(OperationContext context, ModelNode operation) {
-                            toggleRuntimeState(state);
-                        }
-                    });
-                }
+                context12.completeStep((context1, operation1) -> toggleRuntimeState(state));
             }, OperationContext.Stage.RUNTIME);
 
             context.completeStep(OperationContext.RollbackHandler.NOOP_ROLLBACK_HANDLER);
@@ -467,21 +458,12 @@ public class OperationCancellationUnitTestCase {
 
             context.readResourceForUpdate(PathAddress.EMPTY_ADDRESS);
 
-            context.addStep(new OperationStepHandler() {
+            context.addStep((context12, operation12) -> {
 
-                @Override
-                public void execute(final OperationContext context, ModelNode operation) {
+                final ServiceName svcName = ServiceName.JBOSS.append("good-service");
+                context12.getServiceTarget().addService(svcName, Service.NULL).install();
 
-                    final ServiceName svcName = ServiceName.JBOSS.append("good-service");
-                    context.getServiceTarget().addService(svcName, Service.NULL).install();
-
-                    context.completeStep(new OperationContext.RollbackHandler() {
-                        @Override
-                        public void handleRollback(OperationContext context, ModelNode operation) {
-                            context.removeService(svcName);
-                        }
-                    });
-                }
+                context12.completeStep((context1, operation1) -> context1.removeService(svcName));
             }, OperationContext.Stage.RUNTIME);
 
             context.completeStep(OperationContext.RollbackHandler.NOOP_ROLLBACK_HANDLER);
@@ -494,39 +476,30 @@ public class OperationCancellationUnitTestCase {
 
             context.readResourceForUpdate(PathAddress.EMPTY_ADDRESS);
 
-            context.addStep(new OperationStepHandler() {
+            context.addStep((context12, operation12) -> {
 
-                @Override
-                public void execute(final OperationContext context, ModelNode operation) {
+                Service<Void> bad = new Service<Void>() {
 
-                    Service<Void> bad = new Service<Void>() {
+                    @Override
+                    public Void getValue() throws IllegalStateException, IllegalArgumentException {
+                        return null;
+                    }
 
-                        @Override
-                        public Void getValue() throws IllegalStateException, IllegalArgumentException {
-                            return null;
-                        }
+                    @Override
+                    public void start(StartContext context12) throws StartException {
+                        block();
+                    }
 
-                        @Override
-                        public void start(StartContext context) throws StartException {
-                            block();
-                        }
+                    @Override
+                    public void stop(StopContext context12) {
+                        releaseBlockingThreads();
+                    }
 
-                        @Override
-                        public void stop(StopContext context) {
-                            releaseBlockingThreads();
-                        }
+                };
+                final ServiceName svcName = ServiceName.JBOSS.append("bad-service");
+                context12.getServiceTarget().addService(svcName, bad).install();
 
-                    };
-                    final ServiceName svcName = ServiceName.JBOSS.append("bad-service");
-                    context.getServiceTarget().addService(svcName, bad).install();
-
-                    context.completeStep(new OperationContext.RollbackHandler() {
-                        @Override
-                        public void handleRollback(OperationContext context, ModelNode operation) {
-                            context.removeService(svcName);
-                        }
-                    });
-                }
+                context12.completeStep((context1, operation1) -> context1.removeService(svcName));
             }, OperationContext.Stage.RUNTIME);
 
             context.completeStep(OperationContext.RollbackHandler.NOOP_ROLLBACK_HANDLER);

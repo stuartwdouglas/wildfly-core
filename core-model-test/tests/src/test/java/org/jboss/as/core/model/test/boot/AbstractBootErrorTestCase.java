@@ -20,7 +20,6 @@
  */
 package org.jboss.as.core.model.test.boot;
 
-import org.jboss.as.controller.registry.Resource;
 import org.jboss.as.core.model.test.AbstractCoreModelTest;
 import org.jboss.as.core.model.test.KernelServicesBuilder;
 import org.jboss.as.core.model.test.ModelInitializer;
@@ -45,11 +44,8 @@ public abstract class AbstractBootErrorTestCase extends AbstractCoreModelTest {
     protected abstract String getXmlResource();
 
     protected ModelInitializer createEmptyModelInitalizer() {
-        return new ModelInitializer() {
-            @Override
-            public void populateModel(Resource rootResource) {
-                //Default is no-op
-            }
+        return rootResource -> {
+            //Default is no-op
         };
     }
 }

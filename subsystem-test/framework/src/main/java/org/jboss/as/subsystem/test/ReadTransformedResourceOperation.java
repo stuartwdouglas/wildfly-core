@@ -94,12 +94,9 @@ class ReadTransformedResourceOperation implements OperationStepHandler {
         // Add a step to transform the result of a READ_RESOURCE.
         // Do this first, Stage.IMMEDIATE
         final ModelNode readResourceResult = new ModelNode();
-        context.addStep(new OperationStepHandler() {
-            @Override
-            public void execute(OperationContext context, ModelNode operation) throws OperationFailedException {
-                ModelNode transformed = transformReadResourceResult(context, readResourceResult, subsystem);
-                context.getResult().set(transformed);
-            }
+        context.addStep((context1, operation1) -> {
+            ModelNode transformed = transformReadResourceResult(context1, readResourceResult, subsystem);
+            context1.getResult().set(transformed);
         }, OperationContext.Stage.MODEL, true);
 
         // Now add a step to do the READ_RESOURCE, also IMMEDIATE. This will execute *before* the one ^^^

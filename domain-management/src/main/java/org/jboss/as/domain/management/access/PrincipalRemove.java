@@ -25,7 +25,6 @@ package org.jboss.as.domain.management.access;
 import java.util.Locale;
 
 import org.jboss.as.controller.OperationContext;
-import org.jboss.as.controller.OperationContext.RollbackHandler;
 import org.jboss.as.controller.OperationContext.Stage;
 import org.jboss.as.controller.OperationFailedException;
 import org.jboss.as.controller.OperationStepHandler;
@@ -82,29 +81,21 @@ public class PrincipalRemove implements OperationStepHandler {
          * The address of the resource whilst hopefully being related to the attributes of the Principal resource is not
          * guaranteed, a unique name is needed but not one attribute can be regarded as being suitable as a unique key.
          */
-        context.addStep(new OperationStepHandler() {
-
-            @Override
-            public void execute(OperationContext context, ModelNode operation) throws OperationFailedException {
-                if (authorizerConfiguration.removeRoleMappingPrincipal(roleName, principalType, matchType, name, realm)) {
-                    registerRollbackHandler(context, roleName, principalType, name, realm);
-                } else {
-                    context.restartRequired();
-                    throw DomainManagementLogger.ROOT_LOGGER.inconsistentRbacRuntimeState();
-                }
+        context.addStep((context1, operation) -> {
+            if (authorizerConfiguration.removeRoleMappingPrincipal(roleName, principalType, matchType, name, realm)) {
+                registerRollbackHandler(context1, roleName, principalType, name, realm);
+            } else {
+                context1.restartRequired();
+                throw DomainManagementLogger.ROOT_LOGGER.inconsistentRbacRuntimeState();
             }
         }, Stage.RUNTIME);
     }
 
     private void registerRollbackHandler(final OperationContext context, final String roleName,
             final AuthorizerConfiguration.PrincipalType principalType, final String name, final String realm) {
-        context.completeStep(new RollbackHandler() {
-
-            @Override
-            public void handleRollback(OperationContext context, ModelNode operation) {
-                if (authorizerConfiguration.addRoleMappingPrincipal(roleName, principalType, matchType, name, realm, false) == false) {
-                    context.restartRequired();
-                }
+        context.completeStep((context1, operation) -> {
+            if (authorizerConfiguration.addRoleMappingPrincipal(roleName, principalType, matchType, name, realm, false) == false) {
+                context1.restartRequired();
             }
         });
     }

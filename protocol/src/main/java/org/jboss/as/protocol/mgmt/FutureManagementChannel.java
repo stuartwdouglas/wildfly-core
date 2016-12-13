@@ -29,7 +29,6 @@ import org.jboss.as.protocol.ProtocolConnectionManager;
 import org.jboss.as.protocol.StreamUtils;
 import org.jboss.as.protocol.logging.ProtocolLogger;
 import org.jboss.remoting3.Channel;
-import org.jboss.remoting3.CloseHandler;
 import org.jboss.remoting3.Connection;
 import org.xnio.IoFuture;
 import org.xnio.OptionMap;
@@ -174,15 +173,12 @@ public abstract class FutureManagementChannel extends ManagementClientChannelStr
                 return false;
             }
             this.channel = newChannel;
-            this.channel.addCloseHandler(new CloseHandler<Channel>() {
-                @Override
-                public void handleClose(final Channel closed, final IOException exception) {
-                    synchronized (lock) {
-                        if(FutureManagementChannel.this.channel == closed) {
-                            FutureManagementChannel.this.channel = null;
-                        }
-                        lock.notifyAll();
+            this.channel.addCloseHandler((closed, exception) -> {
+                synchronized (lock) {
+                    if(FutureManagementChannel.this.channel == closed) {
+                        FutureManagementChannel.this.channel = null;
                     }
+                    lock.notifyAll();
                 }
             });
             lock.notifyAll();

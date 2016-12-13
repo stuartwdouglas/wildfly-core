@@ -324,20 +324,17 @@ public class HostInfo implements Transformers.ResourceIgnoredTransformationRegis
     private static Transformers.ResourceIgnoredTransformationRegistry createIgnoredRegistry(final ModelNode modelNode,
                                                                                             Set<String> domainIgnoredExtensions) {
         final Map<String, IgnoredType> ignoredResources = processIgnoredResource(modelNode, domainIgnoredExtensions);
-        return new Transformers.ResourceIgnoredTransformationRegistry() {
-            @Override
-            public boolean isResourceTransformationIgnored(PathAddress address) {
-                if (ignoredResources != null && address.size() > 0) {
-                    PathElement firstElement = address.getElement(0);
-                    IgnoredType ignoredType = ignoredResources.get(firstElement.getKey());
-                    if (ignoredType != null) {
-                        if (ignoredType.hasName(firstElement.getValue())) {
-                            return true;
-                        }
+        return address -> {
+            if (ignoredResources != null && address.size() > 0) {
+                PathElement firstElement = address.getElement(0);
+                IgnoredType ignoredType = ignoredResources.get(firstElement.getKey());
+                if (ignoredType != null) {
+                    if (ignoredType.hasName(firstElement.getValue())) {
+                        return true;
                     }
                 }
-                return false;
             }
+            return false;
         };
     }
 

@@ -22,7 +22,6 @@
 package org.jboss.as.cli.parsing.operation;
 
 import org.jboss.as.cli.CommandFormatException;
-import org.jboss.as.cli.parsing.CharacterHandler;
 import org.jboss.as.cli.parsing.DefaultParsingState;
 import org.jboss.as.cli.parsing.EnterStateCharacterHandler;
 import org.jboss.as.cli.parsing.GlobalCharacterHandlers;
@@ -52,19 +51,17 @@ public class HeaderState extends DefaultParsingState {
         final NameValueSeparatorState nameValueSep = new NameValueSeparatorState(headerValue);
         enterState('=', nameValueSep);
         setDefaultHandler(new EnterStateCharacterHandler(headerValue));
-        setReturnHandler(new CharacterHandler(){
-            @Override
-            public void handle(ParsingContext ctx) throws CommandFormatException {
-                if(ctx.isEndOfContent()) {
-                    return;
-                }
-                final char ch = ctx.getCharacter();
-                if(ch == '=') {
-                    ctx.enterState(nameValueSep);
-                } else if (!Character.isWhitespace(ch) && ch != '\\') {
-                    ctx.leaveState();
-                }
-            }});
+        setReturnHandler(ctx -> {
+            if(ctx.isEndOfContent()) {
+                return;
+            }
+            final char ch = ctx.getCharacter();
+            if(ch == '=') {
+                ctx.enterState(nameValueSep);
+            } else if (!Character.isWhitespace(ch) && ch != '\\') {
+                ctx.leaveState();
+            }
+        });
     }
 
     private static class NameValueSeparatorState extends DefaultParsingState {

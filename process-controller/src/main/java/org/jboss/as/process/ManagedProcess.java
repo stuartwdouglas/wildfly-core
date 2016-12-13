@@ -401,21 +401,17 @@ final class ManagedProcess {
                         slowRespawn = true;
                     } else {
                         processController.removeProcess(processName);
-                        new Thread(new Runnable() {
-                            public void run() {
-                                processController.shutdown();
-                                System.exit(ExitCodes.NORMAL);
-                            }
+                        new Thread(() -> {
+                            processController.shutdown();
+                            System.exit(ExitCodes.NORMAL);
                         }).start();
                     }
                 } else if (isPrivileged() && exitCode == ExitCodes.RESTART_PROCESS_FROM_STARTUP_SCRIPT) {
                     // Host Controller restart via exit code picked up by script
                     processController.removeProcess(processName);
-                    new Thread(new Runnable() {
-                        public void run() {
-                            processController.shutdown();
-                            System.exit(ExitCodes.RESTART_PROCESS_FROM_STARTUP_SCRIPT);
-                        }
+                    new Thread(() -> {
+                        processController.shutdown();
+                        System.exit(ExitCodes.RESTART_PROCESS_FROM_STARTUP_SCRIPT);
                     }).start();
 
                 } else {

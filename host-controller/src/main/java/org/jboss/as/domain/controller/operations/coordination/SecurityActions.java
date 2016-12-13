@@ -48,24 +48,11 @@ class SecurityActions {
 
         AccessAuditContext currentContext();
 
-        AccessAuditContextActions NON_PRIVILEGED = new AccessAuditContextActions() {
-
-            @Override
-            public AccessAuditContext currentContext() {
-                return AccessAuditContext.currentAccessAuditContext();
-            }
-        };
+        AccessAuditContextActions NON_PRIVILEGED = () -> AccessAuditContext.currentAccessAuditContext();
 
         AccessAuditContextActions PRIVILEGED = new AccessAuditContextActions() {
 
-            private final PrivilegedAction<AccessAuditContext> PRIVILEGED_ACTION = new PrivilegedAction<AccessAuditContext>() {
-
-                @Override
-                public AccessAuditContext run() {
-                    return NON_PRIVILEGED.currentContext();
-                }
-
-            };
+            private final PrivilegedAction<AccessAuditContext> PRIVILEGED_ACTION = () -> NON_PRIVILEGED.currentContext();
 
             @Override
             public AccessAuditContext currentContext() {

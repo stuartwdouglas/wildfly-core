@@ -53,7 +53,6 @@ import org.jboss.as.protocol.mgmt.ManagementClientChannelStrategy;
 import org.jboss.dmr.ModelNode;
 import org.jboss.remoting3.Channel;
 import org.jboss.remoting3.CloseHandler;
-import org.jboss.remoting3.Connection;
 import org.jboss.remoting3.Endpoint;
 import org.jboss.threads.JBossThreadFactory;
 import org.xnio.OptionMap;
@@ -71,11 +70,7 @@ public class CLIModelControllerClient extends AbstractModelControllerClient
     private static final Endpoint endpoint;
     static {
         final BlockingQueue<Runnable> workQueue = new LinkedBlockingQueue<Runnable>();
-        final ThreadFactory threadFactory = doPrivileged(new PrivilegedAction<JBossThreadFactory>() {
-            public JBossThreadFactory run() {
-                return new JBossThreadFactory(new ThreadGroup("cli-remoting"), Boolean.FALSE, null, "%G - %t", null, null);
-            }
-        });
+        final ThreadFactory threadFactory = doPrivileged((PrivilegedAction<JBossThreadFactory>) () -> new JBossThreadFactory(new ThreadGroup("cli-remoting"), Boolean.FALSE, null, "%G - %t", null, null));
         executorService = new ThreadPoolExecutor(2, 4, 60L, TimeUnit.SECONDS, workQueue, threadFactory);
         // Allow the core threads to time out as well
         executorService.allowCoreThreadTimeOut(true);
@@ -343,11 +338,7 @@ public class CLIModelControllerClient extends AbstractModelControllerClient
             // Closing the strategy in this handler may result in race conditions
             // with connection closing and then deadlocks in remoting
             // it's safer to close the strategy from the connection close handler
-            closed.getConnection().addCloseHandler(new CloseHandler<Connection>(){
-                @Override
-                public void handleClose(Connection closed, IOException exception) {
-                    StreamUtils.safeClose(originalStrategy);
-                }});
+            closed.getConnection().addCloseHandler((closed1, exception1) -> StreamUtils.safeClose(originalStrategy));
         }
     }
 }

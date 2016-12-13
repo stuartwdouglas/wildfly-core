@@ -92,43 +92,37 @@ public class ExplodedDeploymentRemoveContentHandler implements OperationStepHand
         }
         contentItemNode.get(CONTENT_HASH.getName()).set(newHash);
         if (!paths.isEmpty() && ENABLED.resolveModelAttribute(context, deploymentResource.getModel()).asBoolean()) {
-            context.addStep(new OperationStepHandler() {
-                @Override
-                public void execute(OperationContext context, ModelNode operation) throws OperationFailedException {
-                    try {
-                        ExecutorService executor = (ExecutorService) context.getServiceRegistry(false).getRequiredService(JBOSS_SERVER_EXECUTOR).getValue();
-                        CountDownLatch latch = delete(executor, paths, managementName);
-                        if (latch != null) {
-                            try {
-                                if (!latch.await(60, TimeUnit.SECONDS)) {
-                                    return;
-                                }
-                            } catch (InterruptedException ex) {
-                                Thread.currentThread().interrupt();
-                                throw createFailureException(ex.toString());
+            context.addStep((context12, operation12) -> {
+                try {
+                    ExecutorService executor = (ExecutorService) context12.getServiceRegistry(false).getRequiredService(JBOSS_SERVER_EXECUTOR).getValue();
+                    CountDownLatch latch = delete(executor, paths, managementName);
+                    if (latch != null) {
+                        try {
+                            if (!latch.await(60, TimeUnit.SECONDS)) {
+                                return;
                             }
+                        } catch (InterruptedException ex) {
+                            Thread.currentThread().interrupt();
+                            throw createFailureException(ex.toString());
                         }
-                    } catch (IOException ex) {
-                        throw createFailureException(ex.toString());
                     }
+                } catch (IOException ex) {
+                    throw createFailureException(ex.toString());
                 }
             }, OperationContext.Stage.RUNTIME);
         }
-        context.completeStep(new OperationContext.ResultHandler() {
-            @Override
-            public void handleResult(ResultAction resultAction, OperationContext context, ModelNode operation) {
-                if (resultAction == ResultAction.KEEP) {
-                    if (oldHash != null  && (newHash == null || !Arrays.equals(oldHash, newHash))) {
-                        // The old content is no longer used; clean from repos
-                        contentRepository.removeContent(ModelContentReference.fromModelAddress(address, oldHash));
-                    }
-                    if (newHash != null) {
-                        contentRepository.addContentReference(ModelContentReference.fromModelAddress(address, newHash));
-                    }
-                } else if (newHash != null && (oldHash == null || !Arrays.equals(oldHash, newHash))) {
-                    // Due to rollback, the new content isn't used; clean from repos
-                    contentRepository.removeContent(ModelContentReference.fromModelAddress(address, newHash));
+        context.completeStep((resultAction, context1, operation1) -> {
+            if (resultAction == ResultAction.KEEP) {
+                if (oldHash != null  && (newHash == null || !Arrays.equals(oldHash, newHash))) {
+                    // The old content is no longer used; clean from repos
+                    contentRepository.removeContent(ModelContentReference.fromModelAddress(address, oldHash));
                 }
+                if (newHash != null) {
+                    contentRepository.addContentReference(ModelContentReference.fromModelAddress(address, newHash));
+                }
+            } else if (newHash != null && (oldHash == null || !Arrays.equals(oldHash, newHash))) {
+                // Due to rollback, the new content isn't used; clean from repos
+                contentRepository.removeContent(ModelContentReference.fromModelAddress(address, newHash));
             }
         });
     }
@@ -138,20 +132,17 @@ public class ExplodedDeploymentRemoveContentHandler implements OperationStepHand
         Path runtimeDeployedPath = DeploymentHandlerUtil.getExplodedDeploymentRoot(serverEnvironment, managementName);
         if (Files.exists(runtimeDeployedPath)) {
             result = new CountDownLatch(1);
-            Runnable r = new Runnable() {
-                @Override
-                public void run() {
-                    try {
-                        for (String path : paths) {
-                            try {
-                                deleteRecursively(PathUtil.resolveSecurely(runtimeDeployedPath, path));
-                            } catch (IOException ex) {
-                                ServerLogger.DEPLOYMENT_LOGGER.couldNotDeleteFile(ex, path, managementName);
-                            }
+            Runnable r = () -> {
+                try {
+                    for (String path : paths) {
+                        try {
+                            deleteRecursively(PathUtil.resolveSecurely(runtimeDeployedPath, path));
+                        } catch (IOException ex) {
+                            ServerLogger.DEPLOYMENT_LOGGER.couldNotDeleteFile(ex, path, managementName);
                         }
-                    } finally {
-                        result.countDown();
                     }
+                } finally {
+                    result.countDown();
                 }
             };
             executor.submit(r);

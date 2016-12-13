@@ -386,13 +386,9 @@ public class ChainedOperationBuilderTestCase {
     public void testRawOperationOverride() throws Exception {
         ChainedTransformationDescriptionBuilder chainedBuilder = TransformationDescriptionBuilder.Factory.createChainedInstance(PATH, V4_0_0);
         ResourceTransformationDescriptionBuilder builder = chainedBuilder.createBuilder(V4_0_0, V3_0_0)
-            .addRawOperationTransformationOverride("test", new OperationTransformer() {
-                @Override
-                public TransformedOperation transformOperation(TransformationContext context, PathAddress address, ModelNode operation)
-                        throws OperationFailedException {
-                    Assert.assertEquals("test", operation.get(OP).asString());
-                    return new TransformedOperation(Util.createOperation("test1", address), TransformedOperation.ORIGINAL_RESULT);
-                }
+            .addRawOperationTransformationOverride("test", (context, address, operation) -> {
+                Assert.assertEquals("test", operation.get(OP).asString());
+                return new TransformedOperation(Util.createOperation("test1", address), TransformedOperation.ORIGINAL_RESULT);
             });
         builder.getAttributeBuilder()
             .setValueConverter(new SimpleAttributeConverter("old", "one"), "attr")
@@ -400,26 +396,18 @@ public class ChainedOperationBuilderTestCase {
 
 
         builder = chainedBuilder.createBuilder(V3_0_0, V2_0_0)
-                .addRawOperationTransformationOverride("test1", new OperationTransformer() {
-                    @Override
-                    public TransformedOperation transformOperation(TransformationContext context, PathAddress address, ModelNode operation)
-                            throws OperationFailedException {
-                        Assert.assertEquals("test1", operation.get(OP).asString());
-                        return new TransformedOperation(Util.createOperation("test2", address), TransformedOperation.ORIGINAL_RESULT);
-                    }
+                .addRawOperationTransformationOverride("test1", (context, address, operation) -> {
+                    Assert.assertEquals("test1", operation.get(OP).asString());
+                    return new TransformedOperation(Util.createOperation("test2", address), TransformedOperation.ORIGINAL_RESULT);
                 });
         builder.getAttributeBuilder()
             .setValueConverter(new SimpleAttributeConverter("one", "two"), "attr")
             .end();
 
         builder = chainedBuilder.createBuilder(V2_0_0, V1_0_0)
-                .addRawOperationTransformationOverride("test2", new OperationTransformer() {
-                    @Override
-                    public TransformedOperation transformOperation(TransformationContext context, PathAddress address, ModelNode operation)
-                            throws OperationFailedException {
-                        Assert.assertEquals("test2", operation.get(OP).asString());
-                        return new TransformedOperation(Util.createOperation("test3", address), TransformedOperation.ORIGINAL_RESULT);
-                    }
+                .addRawOperationTransformationOverride("test2", (context, address, operation) -> {
+                    Assert.assertEquals("test2", operation.get(OP).asString());
+                    return new TransformedOperation(Util.createOperation("test3", address), TransformedOperation.ORIGINAL_RESULT);
                 });
         builder.getAttributeBuilder()
             .setValueConverter(new SimpleAttributeConverter("two", "three"), "attr")
@@ -568,19 +556,15 @@ public class ChainedOperationBuilderTestCase {
                 .inheritResourceAttributeDefinitions()
                 .addRename("attr1", "attr-one")
                 .rename("testA")
-                .setCustomOperationTransformer(new OperationTransformer() {
-                    @Override
-                    public TransformedOperation transformOperation(TransformationContext context, PathAddress address, ModelNode operation)
-                            throws OperationFailedException {
-                        Assert.assertEquals("testA", operation.get(OP).asString());
-                        Assert.assertEquals("one", operation.get("attr").asString());
-                        Assert.assertEquals("a", operation.get("attr-one").asString());
+                .setCustomOperationTransformer((context, address, operation) -> {
+                    Assert.assertEquals("testA", operation.get(OP).asString());
+                    Assert.assertEquals("one", operation.get("attr").asString());
+                    Assert.assertEquals("a", operation.get("attr-one").asString());
 
-                        ModelNode copy = operation.clone();
-                        copy.get("attr").set("one_");
-                        copy.get("attr-one").set("a_");
-                        return new TransformedOperation(copy, TransformedOperation.ORIGINAL_RESULT);
-                    }
+                    ModelNode copy = operation.clone();
+                    copy.get("attr").set("one_");
+                    copy.get("attr-one").set("a_");
+                    return new TransformedOperation(copy, TransformedOperation.ORIGINAL_RESULT);
                 });
 
 
@@ -590,14 +574,10 @@ public class ChainedOperationBuilderTestCase {
                 .end();
         builder.addOperationTransformationOverride("testA")
             .setValueConverter(new SimpleAttributeConverter("a_", "No1"), "attr-one")
-            .setCustomOperationTransformer(new OperationTransformer() {
-                @Override
-                public TransformedOperation transformOperation(TransformationContext context, PathAddress address, ModelNode operation)
-                        throws OperationFailedException {
-                    ModelNode copy = operation.clone();
-                    copy.get("attr-new").set("new-one");
-                    return new TransformedOperation(copy, TransformedOperation.ORIGINAL_RESULT);
-                }
+            .setCustomOperationTransformer((context, address, operation) -> {
+                ModelNode copy = operation.clone();
+                copy.get("attr-new").set("new-one");
+                return new TransformedOperation(copy, TransformedOperation.ORIGINAL_RESULT);
             });
 
 

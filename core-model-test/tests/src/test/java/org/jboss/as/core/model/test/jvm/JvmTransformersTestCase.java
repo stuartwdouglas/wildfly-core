@@ -174,15 +174,11 @@ public class JvmTransformersTestCase extends AbstractCoreModelTest {
         return modelVersion.getMajor() >= 1 && modelVersion.getMinor() >= 4;
     }
 
-    private ModelFixer FIXER = new ModelFixer() {
-
-        @Override
-        public ModelNode fixModel(ModelNode modelNode) {
-            modelNode.remove(SOCKET_BINDING_GROUP);
-            if (!isIgnoredResourceListAvailableAtRegistration()) {
-                modelNode.get(SERVER_GROUP, "test", JVM, "full").remove(LAUNCH_COMMAND.getName());
-            }
-            return isFailExpressions() ? modelNode.resolve() : modelNode;
+    private ModelFixer FIXER = modelNode -> {
+        modelNode.remove(SOCKET_BINDING_GROUP);
+        if (!isIgnoredResourceListAvailableAtRegistration()) {
+            modelNode.get(SERVER_GROUP, "test", JVM, "full").remove(LAUNCH_COMMAND.getName());
         }
+        return isFailExpressions() ? modelNode.resolve() : modelNode;
     };
 }

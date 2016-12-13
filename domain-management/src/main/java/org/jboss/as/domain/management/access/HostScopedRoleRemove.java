@@ -62,23 +62,15 @@ class HostScopedRoleRemove implements OperationStepHandler {
         final String roleName = PathAddress.pathAddress(operation.require(ModelDescriptionConstants.OP_ADDR)).getLastElement().getValue();
         RoleMappingNotRequiredHandler.addOperation(context, roleName);
 
-        context.addStep(new OperationStepHandler() {
-            @Override
-            public void execute(OperationContext context, ModelNode operation) throws OperationFailedException {
+        context.addStep((context12, operation12) -> {
 
-                final String baseRole = ServerGroupScopedRoleResourceDefinition.BASE_ROLE.resolveModelAttribute(context, model).asString();
-                ModelNode hostsAttribute = HostScopedRolesResourceDefinition.HOSTS.resolveModelAttribute(context, model);
-                final List<ModelNode> hostNodes = hostsAttribute.isDefined() ? hostsAttribute.asList() : Collections.<ModelNode>emptyList();
+            final String baseRole = ServerGroupScopedRoleResourceDefinition.BASE_ROLE.resolveModelAttribute(context12, model).asString();
+            ModelNode hostsAttribute = HostScopedRolesResourceDefinition.HOSTS.resolveModelAttribute(context12, model);
+            final List<ModelNode> hostNodes = hostsAttribute.isDefined() ? hostsAttribute.asList() : Collections.<ModelNode>emptyList();
 
-                authorizerConfiguration.removeScopedRole(roleName);
-                constraintMap.remove(roleName);
-                context.completeStep(new OperationContext.RollbackHandler() {
-                    @Override
-                    public void handleRollback(OperationContext context, ModelNode operation) {
-                        HostScopedRoleAdd.addScopedRole(roleName, baseRole, hostNodes, authorizerConfiguration, constraintMap);
-                    }
-                });
-            }
+            authorizerConfiguration.removeScopedRole(roleName);
+            constraintMap.remove(roleName);
+            context12.completeStep((context1, operation1) -> HostScopedRoleAdd.addScopedRole(roleName, baseRole, hostNodes, authorizerConfiguration, constraintMap));
         }, OperationContext.Stage.RUNTIME);
     }
 }

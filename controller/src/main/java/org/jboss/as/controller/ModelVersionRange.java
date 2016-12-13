@@ -41,12 +41,7 @@ public interface ModelVersionRange {
         }
 
         public static ModelVersionRange range(final ModelVersion... versions) {
-            return new ModelVersionRange() {
-                @Override
-                public ModelVersion[] getVersions() {
-                    return versions;
-                }
-            };
+            return () -> versions;
         }
 
     }

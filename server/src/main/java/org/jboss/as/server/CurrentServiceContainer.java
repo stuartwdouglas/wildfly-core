@@ -37,12 +37,7 @@ import org.jboss.msc.service.ServiceContainer;
  */
 public class CurrentServiceContainer {
 
-    public static final PrivilegedAction<ServiceContainer> GET_ACTION = new PrivilegedAction<ServiceContainer>() {
-        @Override
-        public ServiceContainer run() {
-            return getServiceContainer();
-        }
-    };
+    public static final PrivilegedAction<ServiceContainer> GET_ACTION = () -> getServiceContainer();
 
     private static volatile ServiceContainer serviceContainer;
 

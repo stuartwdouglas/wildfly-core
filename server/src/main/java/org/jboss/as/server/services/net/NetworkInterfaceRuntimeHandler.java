@@ -59,19 +59,16 @@ public class NetworkInterfaceRuntimeHandler implements OperationStepHandler {
         final PathAddress address = PathAddress.pathAddress(operation.get(ModelDescriptionConstants.OP_ADDR));
         final String interfaceName = address.getLastElement().getValue();
         final String attributeName = operation.require(ModelDescriptionConstants.NAME).asString();
-        context.addStep(new OperationStepHandler() {
-            @Override
-            public void execute(final OperationContext context, final ModelNode operation) throws OperationFailedException {
-                final ServiceController<?> controller = context.getServiceRegistry(false).getService(NetworkInterfaceService.JBOSS_NETWORK_INTERFACE.append(interfaceName));
-                if(controller != null && controller.getState() == ServiceController.State.UP) {
-                    final NetworkInterfaceBinding binding = NetworkInterfaceBinding.class.cast(controller.getValue());
-                    final InetAddress address = binding.getAddress();
-                    final ModelNode result = new ModelNode();
-                    if(RESOLVED_ADDRESS.getName().equals(attributeName)) {
-                        result.set(NetworkUtils.canonize(address.getHostAddress()));
-                    }
-                    context.getResult().set(result);
+        context.addStep((context1, operation1) -> {
+            final ServiceController<?> controller = context1.getServiceRegistry(false).getService(NetworkInterfaceService.JBOSS_NETWORK_INTERFACE.append(interfaceName));
+            if(controller != null && controller.getState() == ServiceController.State.UP) {
+                final NetworkInterfaceBinding binding = NetworkInterfaceBinding.class.cast(controller.getValue());
+                final InetAddress address1 = binding.getAddress();
+                final ModelNode result = new ModelNode();
+                if(RESOLVED_ADDRESS.getName().equals(attributeName)) {
+                    result.set(NetworkUtils.canonize(address1.getHostAddress()));
                 }
+                context1.getResult().set(result);
             }
         }, OperationContext.Stage.RUNTIME);
     }

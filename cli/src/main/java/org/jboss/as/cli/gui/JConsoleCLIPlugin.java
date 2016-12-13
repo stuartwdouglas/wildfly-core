@@ -152,11 +152,7 @@ public class JConsoleCLIPlugin extends JConsolePlugin {
 
     private ExecutorService createExecutor() {
         final ThreadGroup group = new ThreadGroup("management-client-thread");
-        final ThreadFactory threadFactory = doPrivileged(new PrivilegedAction<JBossThreadFactory>() {
-            public JBossThreadFactory run() {
-                return new JBossThreadFactory(group, Boolean.FALSE, null, "%G " + executorCount.incrementAndGet() + "-%t", null, null);
-            }
-        });
+        final ThreadFactory threadFactory = doPrivileged((PrivilegedAction<JBossThreadFactory>) () -> new JBossThreadFactory(group, Boolean.FALSE, null, "%G " + executorCount.incrementAndGet() + "-%t", null, null));
         return new ThreadPoolExecutor(2, DEFAULT_MAX_THREADS, 60, TimeUnit.SECONDS, new LinkedBlockingQueue<Runnable>(), threadFactory);
     }
 

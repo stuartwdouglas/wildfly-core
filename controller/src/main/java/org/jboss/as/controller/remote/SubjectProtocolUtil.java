@@ -163,45 +163,37 @@ class SubjectProtocolUtil {
 
     private static class RealmUserHandlerFactory implements PrincipalHandlerFactory {
 
-        private PrincipalReader READER = new PrincipalReader() {
-
-            @Override
-            public Principal read(DataInput in) throws IOException {
-                byte paramType = in.readByte();
-                String realm = null;
-                String name = null;
-                if (paramType == REALM_PARAM) {
-                    realm = in.readUTF();
-                    paramType = in.readByte();
-                }
-                if (paramType == NAME_PARAM) {
-                    name = in.readUTF();
-                } else {
-                    throw ControllerLogger.ROOT_LOGGER.unsupportedPrincipalParameter(paramType, REALM_USER_PRINCIPAL);
-                }
-
-                return realm == null ? new RealmUser(name) : new RealmUser(realm, name);
+        private PrincipalReader READER = in -> {
+            byte paramType = in.readByte();
+            String realm = null;
+            String name = null;
+            if (paramType == REALM_PARAM) {
+                realm = in.readUTF();
+                paramType = in.readByte();
             }
+            if (paramType == NAME_PARAM) {
+                name = in.readUTF();
+            } else {
+                throw ControllerLogger.ROOT_LOGGER.unsupportedPrincipalParameter(paramType, REALM_USER_PRINCIPAL);
+            }
+
+            return realm == null ? new RealmUser(name) : new RealmUser(realm, name);
         };
 
         @Override
         public PrincipalWriter handlerFor(final Principal principal) {
             if (principal instanceof RealmUser) {
-                return new PrincipalWriter() {
+                return out -> {
+                    RealmUser user = (RealmUser) principal;
+                    out.write(REALM_USER_PRINCIPAL);
 
-                    @Override
-                    public void write(DataOutput out) throws IOException {
-                        RealmUser user = (RealmUser) principal;
-                        out.write(REALM_USER_PRINCIPAL);
-
-                        String realm = user.getRealm();
-                        if (realm != null) {
-                            out.write(REALM_PARAM);
-                            out.writeUTF(realm);
-                        }
-                        out.write(NAME_PARAM);
-                        out.writeUTF(user.getName());
+                    String realm = user.getRealm();
+                    if (realm != null) {
+                        out.write(REALM_PARAM);
+                        out.writeUTF(realm);
                     }
+                    out.write(NAME_PARAM);
+                    out.writeUTF(user.getName());
                 };
             }
             return null;
@@ -219,45 +211,37 @@ class SubjectProtocolUtil {
 
     private static class RealmGroupHandlerFactory implements PrincipalHandlerFactory {
 
-        private PrincipalReader READER = new PrincipalReader() {
-
-            @Override
-            public Principal read(DataInput in) throws IOException {
-                byte paramType = in.readByte();
-                String realm = null;
-                String name = null;
-                if (paramType == REALM_PARAM) {
-                    realm = in.readUTF();
-                    paramType = in.readByte();
-                }
-                if (paramType == NAME_PARAM) {
-                    name = in.readUTF();
-                } else {
-                    throw ControllerLogger.ROOT_LOGGER.unsupportedPrincipalParameter(paramType, REALM_GROUP_PRINCIPAL);
-                }
-
-                return realm == null ? new RealmGroup(name) : new RealmGroup(realm, name);
+        private PrincipalReader READER = in -> {
+            byte paramType = in.readByte();
+            String realm = null;
+            String name = null;
+            if (paramType == REALM_PARAM) {
+                realm = in.readUTF();
+                paramType = in.readByte();
             }
+            if (paramType == NAME_PARAM) {
+                name = in.readUTF();
+            } else {
+                throw ControllerLogger.ROOT_LOGGER.unsupportedPrincipalParameter(paramType, REALM_GROUP_PRINCIPAL);
+            }
+
+            return realm == null ? new RealmGroup(name) : new RealmGroup(realm, name);
         };
 
         @Override
         public PrincipalWriter handlerFor(final Principal principal) {
             if (principal instanceof RealmGroup) {
-                return new PrincipalWriter() {
+                return out -> {
+                    RealmGroup group = (RealmGroup) principal;
+                    out.write(REALM_GROUP_PRINCIPAL);
 
-                    @Override
-                    public void write(DataOutput out) throws IOException {
-                        RealmGroup group = (RealmGroup) principal;
-                        out.write(REALM_GROUP_PRINCIPAL);
-
-                        String realm = group.getRealm();
-                        if (realm != null) {
-                            out.write(REALM_PARAM);
-                            out.writeUTF(realm);
-                        }
-                        out.write(NAME_PARAM);
-                        out.writeUTF(group.getName());
+                    String realm = group.getRealm();
+                    if (realm != null) {
+                        out.write(REALM_PARAM);
+                        out.writeUTF(realm);
                     }
+                    out.write(NAME_PARAM);
+                    out.writeUTF(group.getName());
                 };
             }
             return null;
@@ -275,35 +259,27 @@ class SubjectProtocolUtil {
 
     private static class RealmRoleHandlerFactory implements PrincipalHandlerFactory {
 
-        private PrincipalReader READER = new PrincipalReader() {
-
-            @Override
-            public Principal read(DataInput in) throws IOException {
-                byte paramType = in.readByte();
-                String name = null;
-                if (paramType == NAME_PARAM) {
-                    name = in.readUTF();
-                } else {
-                    throw ControllerLogger.ROOT_LOGGER.unsupportedPrincipalParameter(paramType, REALM_ROLE_PRINCIPAL);
-                }
-
-                return new RealmRole(name);
+        private PrincipalReader READER = in -> {
+            byte paramType = in.readByte();
+            String name = null;
+            if (paramType == NAME_PARAM) {
+                name = in.readUTF();
+            } else {
+                throw ControllerLogger.ROOT_LOGGER.unsupportedPrincipalParameter(paramType, REALM_ROLE_PRINCIPAL);
             }
+
+            return new RealmRole(name);
         };
 
         @Override
         public PrincipalWriter handlerFor(final Principal principal) {
             if (principal instanceof RealmRole) {
-                return new PrincipalWriter() {
+                return out -> {
+                    RealmRole role = (RealmRole) principal;
+                    out.write(REALM_ROLE_PRINCIPAL);
 
-                    @Override
-                    public void write(DataOutput out) throws IOException {
-                        RealmRole role = (RealmRole) principal;
-                        out.write(REALM_ROLE_PRINCIPAL);
-
-                        out.write(NAME_PARAM);
-                        out.writeUTF(role.getName());
-                    }
+                    out.write(NAME_PARAM);
+                    out.writeUTF(role.getName());
                 };
             }
             return null;
@@ -321,54 +297,46 @@ class SubjectProtocolUtil {
 
     private static class InetAddressHandlerFactory implements PrincipalHandlerFactory {
 
-        private PrincipalReader READER = new PrincipalReader() {
-
-            @Override
-            public Principal read(DataInput in) throws IOException {
-                byte paramType = in.readByte();
-                String host;
-                byte[] addr;
-                if (paramType == HOST_PARAM) {
-                    host = in.readUTF();
-                } else {
-                    throw ControllerLogger.ROOT_LOGGER.unsupportedPrincipalParameter(paramType, INET_ADDRESS_PRINCIPAL);
-                }
-
-                paramType = in.readByte();
-                if (paramType == ADDR_PARAM) {
-                    int length = in.readInt();
-                    addr = new byte[length];
-                    in.readFully(addr);
-                } else {
-                    throw ControllerLogger.ROOT_LOGGER.unsupportedPrincipalParameter(paramType, INET_ADDRESS_PRINCIPAL);
-                }
-
-                InetAddress address = InetAddress.getByAddress(host, addr);
-
-                return new InetAddressPrincipal(address);
+        private PrincipalReader READER = in -> {
+            byte paramType = in.readByte();
+            String host;
+            byte[] addr;
+            if (paramType == HOST_PARAM) {
+                host = in.readUTF();
+            } else {
+                throw ControllerLogger.ROOT_LOGGER.unsupportedPrincipalParameter(paramType, INET_ADDRESS_PRINCIPAL);
             }
+
+            paramType = in.readByte();
+            if (paramType == ADDR_PARAM) {
+                int length = in.readInt();
+                addr = new byte[length];
+                in.readFully(addr);
+            } else {
+                throw ControllerLogger.ROOT_LOGGER.unsupportedPrincipalParameter(paramType, INET_ADDRESS_PRINCIPAL);
+            }
+
+            InetAddress address = InetAddress.getByAddress(host, addr);
+
+            return new InetAddressPrincipal(address);
         };
 
         @Override
         public PrincipalWriter handlerFor(final Principal principal) {
             if (principal instanceof InetAddressPrincipal) {
-                return new PrincipalWriter() {
+                return out -> {
+                    InetAddressPrincipal inetPrin = (InetAddressPrincipal) principal;
+                    out.write(INET_ADDRESS_PRINCIPAL);
 
-                    @Override
-                    public void write(DataOutput out) throws IOException {
-                        InetAddressPrincipal inetPrin = (InetAddressPrincipal) principal;
-                        out.write(INET_ADDRESS_PRINCIPAL);
+                    InetAddress address = inetPrin.getInetAddress();
+                    String host = address.getHostName();
+                    byte[] addr = address.getAddress();
 
-                        InetAddress address = inetPrin.getInetAddress();
-                        String host = address.getHostName();
-                        byte[] addr = address.getAddress();
-
-                        out.write(HOST_PARAM);
-                        out.writeUTF(host);
-                        out.write(ADDR_PARAM);
-                        out.writeInt(addr.length);
-                        out.write(addr);
-                    }
+                    out.write(HOST_PARAM);
+                    out.writeUTF(host);
+                    out.write(ADDR_PARAM);
+                    out.writeInt(addr.length);
+                    out.write(addr);
                 };
             }
             return null;

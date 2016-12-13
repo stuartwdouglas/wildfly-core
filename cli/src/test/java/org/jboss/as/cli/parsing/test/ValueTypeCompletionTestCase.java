@@ -28,7 +28,6 @@ import static org.junit.Assert.assertTrue;
 
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import org.jboss.as.cli.CommandContext;
@@ -1454,12 +1453,7 @@ public class ValueTypeCompletionTestCase {
         private final List<String> capabilities;
 
         public TestCapabilityReferenceCompleter(List<String> capabilities) {
-            super(new CandidatesProvider() {
-                @Override
-                public Collection<String> getAllCandidates(CommandContext ctx) {
-                    return capabilities;
-                }
-            });
+            super(ctx -> capabilities);
             this.capabilities = capabilities;
         }
 

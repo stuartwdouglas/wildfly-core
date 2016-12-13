@@ -21,7 +21,6 @@
 */
 package org.jboss.as.core.model.test.auditlog;
 
-import org.jboss.as.controller.registry.Resource;
 import org.jboss.as.core.model.test.AbstractCoreModelTest;
 import org.jboss.as.core.model.test.KernelServices;
 import org.jboss.as.core.model.test.KernelServicesBuilder;
@@ -67,11 +66,8 @@ public abstract class AbstractAuditLogTestCase extends AbstractCoreModelTest {
     protected abstract String getXmlResource();
 
     protected ModelInitializer createEmptyModelInitalizer() {
-        return new ModelInitializer() {
-            @Override
-            public void populateModel(Resource rootResource) {
-                //Default is no-op
-            }
+        return rootResource -> {
+            //Default is no-op
         };
     }
 }

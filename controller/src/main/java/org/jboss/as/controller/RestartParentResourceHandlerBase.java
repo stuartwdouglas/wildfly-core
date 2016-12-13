@@ -50,47 +50,41 @@ public abstract class RestartParentResourceHandlerBase implements OperationStepH
         updateModel(context, operation);
 
         if (!context.isBooting() && requiresRuntime(context)) {
-            context.addStep(new OperationStepHandler() {
-                @Override
-                public void execute(OperationContext context, ModelNode operation) throws OperationFailedException {
+            context.addStep((context12, operation12) -> {
 
-                    PathAddress address = getParentAddress(context.getCurrentAddress());
-                    ServiceName serviceName = getParentServiceName(address);
-                    final ServiceController<?> service = serviceName != null ?
-                            context.getServiceRegistry(false).getService(serviceName) : null;
+                PathAddress address = getParentAddress(context12.getCurrentAddress());
+                ServiceName serviceName = getParentServiceName(address);
+                final ServiceController<?> service = serviceName != null ?
+                        context12.getServiceRegistry(false).getService(serviceName) : null;
 
-                    ModelNode parentModel = null;
-                    boolean servicesRestarted = false;
-                    final boolean reloadRequired = service != null && !isResourceServiceRestartAllowed(context, service);
+                ModelNode parentModel = null;
+                boolean servicesRestarted = false;
+                final boolean reloadRequired = service != null && !isResourceServiceRestartAllowed(context12, service);
+                if (reloadRequired) {
+                    parentModel = getModel(context12, address);
+                    if (parentModel != null) {
+                        context12.reloadRequired();
+                    } // else the parent remove must have run as part of this op and we're not responsible for runtime
+                } else if (service != null ) {
+                    parentModel = getModel(context12, address);
+                    if (parentModel != null && context12.markResourceRestarted(address, RestartParentResourceHandlerBase.this)) {
+                        removeServices(context12, serviceName, parentModel);
+                        recreateParentService(context12, address, parentModel);
+                        servicesRestarted = true;
+                    }
+                } // else  No parent service, nothing to do
+
+                // If we restarted services, keep the model that drove the new services so we can
+                // revert the change on rollback
+                final ModelNode invalidatedParentModel = servicesRestarted ? parentModel : null;
+
+                context12.completeStep((context1, operation1) -> {
                     if (reloadRequired) {
-                        parentModel = getModel(context, address);
-                        if (parentModel != null) {
-                            context.reloadRequired();
-                        } // else the parent remove must have run as part of this op and we're not responsible for runtime
-                    } else if (service != null ) {
-                        parentModel = getModel(context, address);
-                        if (parentModel != null && context.markResourceRestarted(address, RestartParentResourceHandlerBase.this)) {
-                            removeServices(context, serviceName, parentModel);
-                            recreateParentService(context, address, parentModel);
-                            servicesRestarted = true;
-                        }
-                    } // else  No parent service, nothing to do
-
-                    // If we restarted services, keep the model that drove the new services so we can
-                    // revert the change on rollback
-                    final ModelNode invalidatedParentModel = servicesRestarted ? parentModel : null;
-
-                    context.completeStep(new OperationContext.RollbackHandler() {
-                        @Override
-                        public void handleRollback(OperationContext context, ModelNode operation) {
-                            if (reloadRequired) {
-                                context.revertReloadRequired();
-                            } else if (invalidatedParentModel != null) {
-                                recoverServices(context, invalidatedParentModel);
-                            }
-                        }
-                    });
-                }
+                        context1.revertReloadRequired();
+                    } else if (invalidatedParentModel != null) {
+                        recoverServices(context1, invalidatedParentModel);
+                    }
+                });
             }, OperationContext.Stage.RUNTIME);
         }
     }

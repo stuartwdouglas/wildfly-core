@@ -47,45 +47,43 @@ class Messages {
      * @return the bundle
      */
     public static <T> T getBundle(final Class<T> type) {
-        return doPrivileged(new PrivilegedAction<T>() {
-            public T run() {
-                final Locale locale = Locale.getDefault();
-                final String lang = locale.getLanguage();
-                final String country = locale.getCountry();
-                final String variant = locale.getVariant();
+        return doPrivileged((PrivilegedAction<T>) () -> {
+            final Locale locale = Locale.getDefault();
+            final String lang = locale.getLanguage();
+            final String country = locale.getCountry();
+            final String variant = locale.getVariant();
 
-                Class<? extends T> bundleClass = null;
-                if (variant != null && !variant.isEmpty()) try {
-                    bundleClass = Class.forName(join(type.getName(), "$bundle", lang, country, variant), true, type.getClassLoader()).asSubclass(type);
-                } catch (ClassNotFoundException e) {
-                    // ignore
-                }
-                if (bundleClass == null && country != null && !country.isEmpty()) try {
-                    bundleClass = Class.forName(join(type.getName(), "$bundle", lang, country, null), true, type.getClassLoader()).asSubclass(type);
-                } catch (ClassNotFoundException e) {
-                    // ignore
-                }
-                if (bundleClass == null && lang != null && !lang.isEmpty()) try {
-                    bundleClass = Class.forName(join(type.getName(), "$bundle", lang, null, null), true, type.getClassLoader()).asSubclass(type);
-                } catch (ClassNotFoundException e) {
-                    // ignore
-                }
-                if (bundleClass == null) try {
-                    bundleClass = Class.forName(join(type.getName(), "$bundle", null, null, null), true, type.getClassLoader()).asSubclass(type);
-                } catch (ClassNotFoundException e) {
-                    throw new IllegalArgumentException("Invalid bundle " + type + " (implementation not found)");
-                }
-                final Field field;
-                try {
-                    field = bundleClass.getField("INSTANCE");
-                } catch (NoSuchFieldException e) {
-                    throw new IllegalArgumentException("Bundle implementation " + bundleClass + " has no instance field");
-                }
-                try {
-                    return type.cast(field.get(null));
-                } catch (IllegalAccessException e) {
-                    throw new IllegalArgumentException("Bundle implementation " + bundleClass + " could not be instantiated", e);
-                }
+            Class<? extends T> bundleClass = null;
+            if (variant != null && !variant.isEmpty()) try {
+                bundleClass = Class.forName(join(type.getName(), "$bundle", lang, country, variant), true, type.getClassLoader()).asSubclass(type);
+            } catch (ClassNotFoundException e) {
+                // ignore
+            }
+            if (bundleClass == null && country != null && !country.isEmpty()) try {
+                bundleClass = Class.forName(join(type.getName(), "$bundle", lang, country, null), true, type.getClassLoader()).asSubclass(type);
+            } catch (ClassNotFoundException e) {
+                // ignore
+            }
+            if (bundleClass == null && lang != null && !lang.isEmpty()) try {
+                bundleClass = Class.forName(join(type.getName(), "$bundle", lang, null, null), true, type.getClassLoader()).asSubclass(type);
+            } catch (ClassNotFoundException e) {
+                // ignore
+            }
+            if (bundleClass == null) try {
+                bundleClass = Class.forName(join(type.getName(), "$bundle", null, null, null), true, type.getClassLoader()).asSubclass(type);
+            } catch (ClassNotFoundException e) {
+                throw new IllegalArgumentException("Invalid bundle " + type + " (implementation not found)");
+            }
+            final Field field;
+            try {
+                field = bundleClass.getField("INSTANCE");
+            } catch (NoSuchFieldException e) {
+                throw new IllegalArgumentException("Bundle implementation " + bundleClass + " has no instance field");
+            }
+            try {
+                return type.cast(field.get(null));
+            } catch (IllegalAccessException e) {
+                throw new IllegalArgumentException("Bundle implementation " + bundleClass + " could not be instantiated", e);
             }
         });
     }

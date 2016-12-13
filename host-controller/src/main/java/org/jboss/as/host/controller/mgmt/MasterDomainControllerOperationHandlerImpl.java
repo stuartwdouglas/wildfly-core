@@ -21,7 +21,6 @@ package org.jboss.as.host.controller.mgmt;
 import static org.jboss.as.process.protocol.ProtocolUtils.expectHeader;
 
 import java.io.DataInput;
-import java.io.File;
 import java.io.IOException;
 import java.util.concurrent.Executor;
 
@@ -38,7 +37,6 @@ import org.jboss.as.protocol.mgmt.ManagementRequestHandler;
 import org.jboss.as.protocol.mgmt.ManagementRequestHandlerFactory;
 import org.jboss.as.protocol.mgmt.ManagementRequestHeader;
 import org.jboss.as.protocol.mgmt.ManagementResponseHeader;
-import org.jboss.as.protocol.mgmt.RequestProcessingException;
 import org.jboss.as.repository.ContentReference;
 import org.jboss.as.repository.HostFileRepository;
 import org.jboss.as.repository.RemoteFileRequestAndHandler.RootFileReader;
@@ -100,24 +98,22 @@ class MasterDomainControllerOperationHandlerImpl implements ManagementRequestHan
         @Override
         void handleRequest(String hostId, DataInput input, ActiveOperation.ResultHandler<Void> resultHandler, ManagementRequestContext<Void> context) throws IOException {
             DomainControllerLogger.ROOT_LOGGER.tracef("Handling GetFileOperation with id %d from %s", context.getOperationId(), hostId);
-            final RootFileReader reader = new RootFileReader() {
-                public File readRootFile(byte rootId, String filePath) throws RequestProcessingException {
-                    final HostFileRepository localFileRepository = domainController.getLocalFileRepository();
+            final RootFileReader reader = (rootId, filePath) -> {
+                final HostFileRepository localFileRepository = domainController.getLocalFileRepository();
 
-                    switch (rootId) {
-                        case DomainControllerProtocol.PARAM_ROOT_ID_FILE: {
-                            return localFileRepository.getFile(filePath);
-                        }
-                        case DomainControllerProtocol.PARAM_ROOT_ID_CONFIGURATION: {
-                            return localFileRepository.getConfigurationFile(filePath);
-                        }
-                        case DomainControllerProtocol.PARAM_ROOT_ID_DEPLOYMENT: {
-                            byte[] hash = HashUtil.hexStringToByteArray(filePath);
-                            return localFileRepository.getDeploymentRoot(new ContentReference(filePath, hash));
-                        }
-                        default: {
-                            throw HostControllerLogger.ROOT_LOGGER.invalidRootId(rootId);
-                        }
+                switch (rootId) {
+                    case DomainControllerProtocol.PARAM_ROOT_ID_FILE: {
+                        return localFileRepository.getFile(filePath);
+                    }
+                    case DomainControllerProtocol.PARAM_ROOT_ID_CONFIGURATION: {
+                        return localFileRepository.getConfigurationFile(filePath);
+                    }
+                    case DomainControllerProtocol.PARAM_ROOT_ID_DEPLOYMENT: {
+                        byte[] hash = HashUtil.hexStringToByteArray(filePath);
+                        return localFileRepository.getDeploymentRoot(new ContentReference(filePath, hash));
+                    }
+                    default: {
+                        throw HostControllerLogger.ROOT_LOGGER.invalidRootId(rootId);
                     }
                 }
             };
@@ -158,14 +154,11 @@ class MasterDomainControllerOperationHandlerImpl implements ManagementRequestHan
             final String serverName = input.readUTF();
             expectHeader(input, DomainControllerProtocol.PARAM_HOST_ID);
             final String hostName = input.readUTF();
-            context.executeAsync(new ManagementRequestContext.AsyncTask<Void>() {
-                @Override
-                public void execute(ManagementRequestContext<Void> context) throws Exception {
-                    try {
-                        HostControllerLogger.ROOT_LOGGER.managedServerUnstable(serverName, hostName);
-                    } finally {
-                        resultHandler.done(null);
-                    }
+            context.executeAsync(context1 -> {
+                try {
+                    HostControllerLogger.ROOT_LOGGER.managedServerUnstable(serverName, hostName);
+                } finally {
+                    resultHandler.done(null);
                 }
             });
         }

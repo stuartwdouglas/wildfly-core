@@ -312,16 +312,13 @@ public class ReadResourceDescriptionHandler extends GlobalOperationHandlers.Abst
             }
         }
 
-        context.completeStep(new OperationContext.RollbackHandler() {
-            @Override
-            public void handleRollback(OperationContext context, ModelNode operation) {
+        context.completeStep((context1, operation1) -> {
 
-                if (!context.hasFailureDescription()) {
-                    for (final ModelNode value : childResources.values()) {
-                        if (value.hasDefined(FAILURE_DESCRIPTION)) {
-                            context.getFailureDescription().set(value.get(FAILURE_DESCRIPTION));
-                            break;
-                        }
+            if (!context1.hasFailureDescription()) {
+                for (final ModelNode value : childResources.values()) {
+                    if (value.hasDefined(FAILURE_DESCRIPTION)) {
+                        context1.getFailureDescription().set(value.get(FAILURE_DESCRIPTION));
+                        break;
                     }
                 }
             }

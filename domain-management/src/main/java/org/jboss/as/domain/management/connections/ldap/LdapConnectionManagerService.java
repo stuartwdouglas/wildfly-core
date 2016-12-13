@@ -87,13 +87,9 @@ public class LdapConnectionManagerService implements Service<LdapConnectionManag
 
     public synchronized void start(final StartContext context) throws StartException {
         try {
-            context.execute(new Runnable() {
-
-                @Override
-                public void run() {
-                    connectionManagerRegistry.addLdapConnectionManagerService(name, LdapConnectionManagerService.this);
-                    context.complete();
-                }
+            context.execute(() -> {
+                connectionManagerRegistry.addLdapConnectionManagerService(name, LdapConnectionManagerService.this);
+                context.complete();
             });
         } finally {
             context.asynchronous();
@@ -102,13 +98,9 @@ public class LdapConnectionManagerService implements Service<LdapConnectionManag
 
     public synchronized void stop(final StopContext context) {
         try {
-            context.execute(new Runnable() {
-
-                @Override
-                public void run() {
-                    connectionManagerRegistry.removeLdapConnectionManagerService(name);
-                    context.complete();
-                }
+            context.execute(() -> {
+                connectionManagerRegistry.removeLdapConnectionManagerService(name);
+                context.complete();
             });
 
         } finally {

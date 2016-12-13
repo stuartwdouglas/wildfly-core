@@ -71,16 +71,13 @@ public class ProcessHelper {
      *                                     java.lang.RuntimePermission <code>RuntimePermission("shutdownHooks")</code>}
      */
     public static Thread addShutdownHook(final Process process) {
-        final Thread thread = new Thread(new Runnable() {
-            @Override
-            public void run() {
-                if (process != null) {
-                    process.destroy();
-                    try {
-                        process.waitFor();
-                    } catch (InterruptedException e) {
-                        throw new RuntimeException(e);
-                    }
+        final Thread thread = new Thread(() -> {
+            if (process != null) {
+                process.destroy();
+                try {
+                    process.waitFor();
+                } catch (InterruptedException e) {
+                    throw new RuntimeException(e);
                 }
             }
         });

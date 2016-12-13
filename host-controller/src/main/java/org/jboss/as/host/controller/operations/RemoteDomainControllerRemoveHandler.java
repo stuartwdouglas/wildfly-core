@@ -55,11 +55,6 @@ public class RemoteDomainControllerRemoveHandler implements OperationStepHandler
         final ModelNode model = resource.getModel();
         model.get(DOMAIN_CONTROLLER).setEmptyObject();
         context.reloadRequired();
-        context.completeStep(new OperationContext.RollbackHandler() {
-            @Override
-            public void handleRollback(OperationContext context, ModelNode operation) {
-                context.revertReloadRequired();
-            }
-        });
+        context.completeStep((context1, operation1) -> context1.revertReloadRequired());
     }
 }

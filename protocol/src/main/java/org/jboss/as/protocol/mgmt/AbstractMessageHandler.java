@@ -535,13 +535,10 @@ public abstract class AbstractMessageHandler implements ManagementMessageHandler
      * @return the fallback handler
      */
     protected static <T, A> ManagementRequestHandler<T, A> getFallbackHandler(final ManagementRequestHeader header) {
-        return new ManagementRequestHandler<T, A>() {
-            @Override
-            public void handleRequest(final DataInput input, ActiveOperation.ResultHandler<T> resultHandler, ManagementRequestContext<A> context) throws IOException {
-                final Exception error = ProtocolLogger.ROOT_LOGGER.noSuchResponseHandler(Integer.toHexString(header.getRequestId()));
-                if(resultHandler.failed(error)) {
-                    safeWriteErrorResponse(context.getChannel(), context.getRequestHeader(), error);
-                }
+        return (input, resultHandler, context) -> {
+            final Exception error = ProtocolLogger.ROOT_LOGGER.noSuchResponseHandler(Integer.toHexString(header.getRequestId()));
+            if(resultHandler.failed(error)) {
+                safeWriteErrorResponse(context.getChannel(), context.getRequestHeader(), error);
             }
         };
     }

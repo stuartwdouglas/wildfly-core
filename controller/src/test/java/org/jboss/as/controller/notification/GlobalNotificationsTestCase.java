@@ -51,7 +51,6 @@ import org.jboss.as.controller.AbstractWriteAttributeHandler;
 import org.jboss.as.controller.ManagementModel;
 import org.jboss.as.controller.OperationContext;
 import org.jboss.as.controller.OperationFailedException;
-import org.jboss.as.controller.OperationStepHandler;
 import org.jboss.as.controller.PathAddress;
 import org.jboss.as.controller.ResourceBuilder;
 import org.jboss.as.controller.ResourceDefinition;
@@ -143,17 +142,7 @@ public class GlobalNotificationsTestCase extends AbstractControllerTestBase {
                     protected void revertUpdateToRuntime(OperationContext context, ModelNode operation, String attributeName, ModelNode valueToRestore, ModelNode valueToRevert, Long handback) throws OperationFailedException {
                     }
                 })
-                .addReadWriteAttribute(MY_RUNTIME_ATTRIBUTE, new OperationStepHandler() {
-                    @Override
-                    public void execute(OperationContext context, ModelNode operation) throws OperationFailedException {
-                        context.getResult().set(runtimeAttributeValue);
-                    }
-                },  new OperationStepHandler() {
-                    @Override
-                    public void execute(OperationContext context, ModelNode operation) throws OperationFailedException {
-                        runtimeAttributeValue = operation.get(VALUE).asLong();
-                    }
-                })
+                .addReadWriteAttribute(MY_RUNTIME_ATTRIBUTE, (context, operation) -> context.getResult().set(runtimeAttributeValue), (context, operation) -> runtimeAttributeValue = operation.get(VALUE).asLong())
                 .build();
     }
 

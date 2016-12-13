@@ -109,17 +109,14 @@ public class SystemPropertyAddHandler implements OperationStepHandler{
             context.reloadRequired();
         }
 
-        context.completeStep(new OperationContext.RollbackHandler() {
-            @Override
-            public void handleRollback(OperationContext context, ModelNode operation) {
-                if (reload) {
-                    context.revertReloadRequired();
-                }
+        context.completeStep((context1, operation1) -> {
+            if (reload) {
+                context1.revertReloadRequired();
+            }
+            if (systemPropertyUpdater != null) {
+                WildFlySecurityManager.clearPropertyPrivileged(name);
                 if (systemPropertyUpdater != null) {
-                    WildFlySecurityManager.clearPropertyPrivileged(name);
-                    if (systemPropertyUpdater != null) {
-                        systemPropertyUpdater.systemPropertyUpdated(name, null);
-                    }
+                    systemPropertyUpdater.systemPropertyUpdated(name, null);
                 }
             }
         });
@@ -149,20 +146,17 @@ public class SystemPropertyAddHandler implements OperationStepHandler{
         }
         deferredResolver.unresolved.put(propertyName, model);
 
-        context.addStep(new OperationStepHandler() {
-            @Override
-            public void execute(OperationContext context, ModelNode operation) throws OperationFailedException {
-                DeferredProcessor deferredResolver = (DeferredProcessor) context.getAttachment(SystemPropertyDeferredProcessor.ATTACHMENT_KEY);
-                if (deferredResolver != null && deferredResolver.unresolved.containsKey(propertyName)) {
-                    context.setRollbackOnly();
-                    if (resolutionFailure instanceof RuntimeException) {
-                        throw (RuntimeException) resolutionFailure;
-                    } else if (resolutionFailure instanceof OperationFailedException) {
-                        throw (OperationFailedException) resolutionFailure;
-                    }
-                    // Should not be possible -- see initial assert
-                    throw new RuntimeException(resolutionFailure);
+        context.addStep((context1, operation) -> {
+            DeferredProcessor deferredResolver1 = (DeferredProcessor) context1.getAttachment(SystemPropertyDeferredProcessor.ATTACHMENT_KEY);
+            if (deferredResolver1 != null && deferredResolver1.unresolved.containsKey(propertyName)) {
+                context1.setRollbackOnly();
+                if (resolutionFailure instanceof RuntimeException) {
+                    throw (RuntimeException) resolutionFailure;
+                } else if (resolutionFailure instanceof OperationFailedException) {
+                    throw (OperationFailedException) resolutionFailure;
                 }
+                // Should not be possible -- see initial assert
+                throw new RuntimeException(resolutionFailure);
             }
         }, OperationContext.Stage.VERIFY);
     }

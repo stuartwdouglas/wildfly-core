@@ -37,9 +37,7 @@ import org.jboss.as.controller.transform.OperationResultTransformer;
 import org.jboss.as.controller.transform.OperationTransformer;
 import org.jboss.as.controller.transform.PathAddressTransformer;
 import org.jboss.as.controller.transform.ResourceTransformer;
-import org.jboss.as.controller.transform.TransformationContext;
 import org.jboss.as.controller.transform.TransformerEntry;
-import org.jboss.dmr.ModelNode;
 
 /**
  * Resolved/unversioned operation transformer registry.
@@ -448,13 +446,7 @@ public class OperationTransformerRegistry {
 
     }
 
-    static final OperationTransformer FORWARD_TRANSFORMER = new OperationTransformer() {
-
-        @Override
-        public TransformedOperation transformOperation(TransformationContext context, PathAddress address, ModelNode operation) {
-            return new TransformedOperation(operation, OperationResultTransformer.ORIGINAL_RESULT);
-        }
-    };
+    static final OperationTransformer FORWARD_TRANSFORMER = (context, address, operation) -> new OperationTransformer.TransformedOperation(operation, OperationResultTransformer.ORIGINAL_RESULT);
 
     static final OperationTransformer DISCARD_TRANSFORMER = OperationTransformer.DISCARD;
 

@@ -31,7 +31,6 @@ import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.SOC
 import org.jboss.as.controller.AbstractRemoveStepHandler;
 import org.jboss.as.controller.OperationContext;
 import org.jboss.as.controller.OperationFailedException;
-import org.jboss.as.controller.OperationStepHandler;
 import org.jboss.as.controller.PathAddress;
 import org.jboss.as.controller.PathElement;
 import org.jboss.as.controller.ProxyController;
@@ -74,25 +73,17 @@ public class ServerRemoveHandler extends AbstractRemoveStepHandler {
         runningServerRemove.get(OP).set(REMOVE);
         runningServerRemove.get(OP_ADDR).set(running.toModelNode());
 
-        context.addStep(runningServerRemove, new OperationStepHandler() {
-            @Override
-            public void execute(final OperationContext context, final ModelNode operation) throws OperationFailedException {
-                context.removeResource(PathAddress.EMPTY_ADDRESS);
-            }
-        }, OperationContext.Stage.MODEL, true);
+        context.addStep(runningServerRemove, (context12, operation12) -> context12.removeResource(PathAddress.EMPTY_ADDRESS), OperationContext.Stage.MODEL, true);
 
         // Verify that the server is stopped
         final ModelNode verifyOp = new ModelNode();
         verifyOp.get(OP).set("verify-running-server");
         verifyOp.get(OP_ADDR).add(HOST, address.getElement(0).getValue());
-        context.addStep(verifyOp, new OperationStepHandler() {
-            @Override
-            public void execute(final OperationContext context, final ModelNode operation) throws OperationFailedException {
-                final PathAddress serverAddress = PathAddress.EMPTY_ADDRESS.append(PathElement.pathElement(SERVER, serverName));
-                final ProxyController controller = context.getResourceRegistration().getProxyController(serverAddress);
-                if (controller != null) {
-                    context.getFailureDescription().set(HostControllerLogger.ROOT_LOGGER.serverStillRunning(serverName));
-                }
+        context.addStep(verifyOp, (context1, operation1) -> {
+            final PathAddress serverAddress = PathAddress.EMPTY_ADDRESS.append(PathElement.pathElement(SERVER, serverName));
+            final ProxyController controller = context1.getResourceRegistration().getProxyController(serverAddress);
+            if (controller != null) {
+                context1.getFailureDescription().set(HostControllerLogger.ROOT_LOGGER.serverStillRunning(serverName));
             }
         }, OperationContext.Stage.RUNTIME);
 

@@ -27,7 +27,6 @@ import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.OP_
 import java.util.Locale;
 
 import org.jboss.as.controller.OperationContext;
-import org.jboss.as.controller.OperationContext.RollbackHandler;
 import org.jboss.as.controller.OperationContext.Stage;
 import org.jboss.as.controller.OperationFailedException;
 import org.jboss.as.controller.OperationStepHandler;
@@ -68,29 +67,21 @@ public class RoleMappingRemove implements OperationStepHandler {
     }
 
     private void registerRuntimeRemove(final OperationContext context, final String roleName) {
-        context.addStep(new OperationStepHandler() {
-
-            @Override
-            public void execute(OperationContext context, ModelNode operation) throws OperationFailedException {
-                Object undoKey = authorizerConfiguration.removeRoleMapping(roleName);
-                if (undoKey == null) {
-                    context.restartRequired();
-                    throw DomainManagementLogger.ROOT_LOGGER.inconsistentRbacRuntimeState();
-                }
-
-                registerRollbackHandler(context, undoKey);
+        context.addStep((context1, operation) -> {
+            Object undoKey = authorizerConfiguration.removeRoleMapping(roleName);
+            if (undoKey == null) {
+                context1.restartRequired();
+                throw DomainManagementLogger.ROOT_LOGGER.inconsistentRbacRuntimeState();
             }
+
+            registerRollbackHandler(context1, undoKey);
         }, Stage.RUNTIME);
     }
 
     private void registerRollbackHandler(final OperationContext context, final Object undoKey) {
-        context.completeStep(new RollbackHandler() {
-
-            @Override
-            public void handleRollback(OperationContext context, ModelNode operation) {
-                if (authorizerConfiguration.undoRoleMappingRemove(undoKey) == false) {
-                    context.restartRequired();
-                }
+        context.completeStep((context1, operation) -> {
+            if (authorizerConfiguration.undoRoleMappingRemove(undoKey) == false) {
+                context1.restartRequired();
             }
         });
 

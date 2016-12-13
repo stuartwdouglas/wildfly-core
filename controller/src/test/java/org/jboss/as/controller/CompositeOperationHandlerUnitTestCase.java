@@ -548,12 +548,9 @@ public class CompositeOperationHandlerUnitTestCase {
 
         final CountDownLatch latch = new CountDownLatch(1);
         final AtomicInteger i = new AtomicInteger();
-        new Thread(new Runnable() {
-            @Override
-            public void run() {
-                i.set(controller.execute(getOperation("good", "attr1", 3), null, null, null).get("result").asInt());
-                latch.countDown();
-            }
+        new Thread(() -> {
+            i.set(controller.execute(getOperation("good", "attr1", 3), null, null, null).get("result").asInt());
+            latch.countDown();
         }).start();
         latch.await();
         assertEquals(2, i.get());

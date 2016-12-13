@@ -258,45 +258,37 @@ public class OperationTimeoutUnitTestCase {
 
             context.readResourceForUpdate(PathAddress.EMPTY_ADDRESS);
 
-            context.addStep(new OperationStepHandler() {
+            context.addStep((context12, operation12) -> {
 
-                @Override
-                public void execute(final OperationContext context, ModelNode operation) {
+                boolean start = operation12.get("start").asBoolean(false);
+                boolean stop = operation12.get("stop").asBoolean(false);
+                boolean fail = operation12.get("fail").asBoolean(false);
+                final boolean repair = fail && operation12.get("repair").asBoolean(false);
 
-                    boolean start = operation.get("start").asBoolean(false);
-                    boolean stop = operation.get("stop").asBoolean(false);
-                    boolean fail = operation.get("fail").asBoolean(false);
-                    final boolean repair = fail && operation.get("repair").asBoolean(false);
+                BlockingService bad = start ? (stop ? BlockingService.BOTH : BlockingService.START)
+                                            : (stop ? BlockingService.STOP : BlockingService.NEITHER);
 
-                    BlockingService bad = start ? (stop ? BlockingService.BOTH : BlockingService.START)
-                                                : (stop ? BlockingService.STOP : BlockingService.NEITHER);
+                final ServiceName svcName = ServiceName.JBOSS.append("bad-service");
+                context12.getServiceTarget().addService(svcName, bad).install();
 
-                    final ServiceName svcName = ServiceName.JBOSS.append("bad-service");
-                    context.getServiceTarget().addService(svcName, bad).install();
-
-                    try {
-                        bad.startLatch.await(20, TimeUnit.SECONDS);
-                    } catch (InterruptedException e) {
-                        Thread.currentThread().interrupt();
-                        throw new RuntimeException(e);
-                    }
-
-                    if (fail) {
-                        context.setRollbackOnly();
-                        context.getFailureDescription().set("failfailfail");
-                    }
-                    context.completeStep(new OperationContext.ResultHandler() {
-
-                        @Override
-                        public void handleResult(OperationContext.ResultAction resultAction, OperationContext context, ModelNode operation) {
-                            if (repair) {
-                                releaseBlockingThreads();
-                            }
-                            context.removeService(svcName);
-                        }
-                    });
-
+                try {
+                    bad.startLatch.await(20, TimeUnit.SECONDS);
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                    throw new RuntimeException(e);
                 }
+
+                if (fail) {
+                    context12.setRollbackOnly();
+                    context12.getFailureDescription().set("failfailfail");
+                }
+                context12.completeStep((resultAction, context1, operation1) -> {
+                    if (repair) {
+                        releaseBlockingThreads();
+                    }
+                    context1.removeService(svcName);
+                });
+
             }, OperationContext.Stage.RUNTIME);
 
             context.completeStep(OperationContext.RollbackHandler.NOOP_ROLLBACK_HANDLER);

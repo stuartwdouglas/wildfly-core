@@ -334,91 +334,88 @@ public class JmxFacadeRbacEnabledTestCase extends AbstractControllerTestBase {
     }
 
     private void checkMBeanAccess(final StandardRole standardRole, final boolean addressable, final boolean readable, final boolean writable, final boolean executable) throws Exception {
-        AccessAuditContext.doAs(roleToSecurityIdentity(standardRole), null, new PrivilegedExceptionAction<Void>() {
-            @Override
-            public Void run() throws Exception {
-                Set<ObjectName> names = server.queryNames(null, null);
-                Assert.assertEquals(addressable, names.contains(ONE_A_NAME));
-                Assert.assertEquals(addressable, names.contains(ONE_B_NAME));
+        AccessAuditContext.doAs(roleToSecurityIdentity(standardRole), null, (PrivilegedExceptionAction<Void>) () -> {
+            Set<ObjectName> names = server.queryNames(null, null);
+            Assert.assertEquals(addressable, names.contains(ONE_A_NAME));
+            Assert.assertEquals(addressable, names.contains(ONE_B_NAME));
 
-                Set<ObjectInstance> instances = server.queryMBeans(null, null);
-                Assert.assertEquals(names.size(), instances.size());
-                for (ObjectInstance instance : instances) {
-                    Assert.assertTrue(names.contains(instance.getObjectName()));
-                }
-                int number = server.getMBeanCount();
-                Assert.assertEquals(names.size(), number);
-
-                try {
-                    server.getMBeanInfo(ONE_A_NAME);
-                    Assert.assertTrue(addressable);
-                } catch (InstanceNotFoundException e) {
-                    Assert.assertFalse(addressable);
-                }
-
-                try {
-                    server.getObjectInstance(ONE_A_NAME);
-                    Assert.assertTrue(addressable);
-                } catch (InstanceNotFoundException e) {
-                    Assert.assertFalse(addressable);
-                }
-
-                try {
-                    server.getAttribute(ONE_A_NAME, "attr1");
-                    Assert.assertTrue(addressable);
-                    Assert.assertTrue(readable);
-                } catch (InstanceNotFoundException e) {
-                    Assert.assertFalse(addressable);
-                } catch (JMRuntimeException e) {
-                    Assert.assertTrue(addressable);
-                    Assert.assertFalse(readable);
-                }
-
-                try {
-                    server.getAttributes(ONE_B_NAME, new String[] {"attr1"});
-                    Assert.assertTrue(addressable);
-                    Assert.assertTrue(readable);
-                } catch (InstanceNotFoundException e) {
-                    Assert.assertFalse(addressable);
-                } catch (JMRuntimeException e) {
-                    Assert.assertTrue(addressable);
-                    Assert.assertFalse(readable);
-                }
-
-                try {
-                    server.setAttribute(ONE_A_NAME, new Attribute("attr1", "Test"));
-                    Assert.assertTrue(addressable);
-                    Assert.assertTrue(writable);
-                } catch (InstanceNotFoundException e) {
-                    Assert.assertFalse(addressable);
-                } catch (JMRuntimeException e) {
-                    Assert.assertTrue(addressable);
-                    Assert.assertFalse(writable);
-                }
-
-                try {
-                    server.setAttributes(ONE_A_NAME, new AttributeList(Collections.singletonList(new Attribute("attr1", "Test"))));
-                    Assert.assertTrue(addressable);
-                    Assert.assertTrue(writable);
-                } catch (InstanceNotFoundException e) {
-                    Assert.assertFalse(addressable);
-                } catch (JMRuntimeException e) {
-                    Assert.assertTrue(addressable);
-                    Assert.assertFalse(writable);
-                }
-
-                try {
-                    server.invoke(ONE_A_NAME, "test", new Object[0], new String[0]);
-                    Assert.assertTrue(addressable);
-                    Assert.assertTrue(executable);
-                } catch (InstanceNotFoundException e) {
-                    Assert.assertFalse(addressable);
-                } catch (JMRuntimeException e) {
-                    Assert.assertTrue(addressable);
-                    Assert.assertFalse(executable);
-                }
-                return null;
+            Set<ObjectInstance> instances = server.queryMBeans(null, null);
+            Assert.assertEquals(names.size(), instances.size());
+            for (ObjectInstance instance : instances) {
+                Assert.assertTrue(names.contains(instance.getObjectName()));
             }
+            int number = server.getMBeanCount();
+            Assert.assertEquals(names.size(), number);
+
+            try {
+                server.getMBeanInfo(ONE_A_NAME);
+                Assert.assertTrue(addressable);
+            } catch (InstanceNotFoundException e) {
+                Assert.assertFalse(addressable);
+            }
+
+            try {
+                server.getObjectInstance(ONE_A_NAME);
+                Assert.assertTrue(addressable);
+            } catch (InstanceNotFoundException e) {
+                Assert.assertFalse(addressable);
+            }
+
+            try {
+                server.getAttribute(ONE_A_NAME, "attr1");
+                Assert.assertTrue(addressable);
+                Assert.assertTrue(readable);
+            } catch (InstanceNotFoundException e) {
+                Assert.assertFalse(addressable);
+            } catch (JMRuntimeException e) {
+                Assert.assertTrue(addressable);
+                Assert.assertFalse(readable);
+            }
+
+            try {
+                server.getAttributes(ONE_B_NAME, new String[] {"attr1"});
+                Assert.assertTrue(addressable);
+                Assert.assertTrue(readable);
+            } catch (InstanceNotFoundException e) {
+                Assert.assertFalse(addressable);
+            } catch (JMRuntimeException e) {
+                Assert.assertTrue(addressable);
+                Assert.assertFalse(readable);
+            }
+
+            try {
+                server.setAttribute(ONE_A_NAME, new Attribute("attr1", "Test"));
+                Assert.assertTrue(addressable);
+                Assert.assertTrue(writable);
+            } catch (InstanceNotFoundException e) {
+                Assert.assertFalse(addressable);
+            } catch (JMRuntimeException e) {
+                Assert.assertTrue(addressable);
+                Assert.assertFalse(writable);
+            }
+
+            try {
+                server.setAttributes(ONE_A_NAME, new AttributeList(Collections.singletonList(new Attribute("attr1", "Test"))));
+                Assert.assertTrue(addressable);
+                Assert.assertTrue(writable);
+            } catch (InstanceNotFoundException e) {
+                Assert.assertFalse(addressable);
+            } catch (JMRuntimeException e) {
+                Assert.assertTrue(addressable);
+                Assert.assertFalse(writable);
+            }
+
+            try {
+                server.invoke(ONE_A_NAME, "test", new Object[0], new String[0]);
+                Assert.assertTrue(addressable);
+                Assert.assertTrue(executable);
+            } catch (InstanceNotFoundException e) {
+                Assert.assertFalse(addressable);
+            } catch (JMRuntimeException e) {
+                Assert.assertTrue(addressable);
+                Assert.assertFalse(executable);
+            }
+            return null;
         });
     }
 
@@ -493,23 +490,20 @@ public class JmxFacadeRbacEnabledTestCase extends AbstractControllerTestBase {
         oneChild.addOperation("test", true, false, null);
         rootRegistration.registerSubModel(oneChild);
 
-        AccessAuditContext.doAs(roleToSecurityIdentity(standardRole), null, new PrivilegedExceptionAction<Void>() {
-            @Override
-            public Void run() throws Exception {
-                Assert.assertFalse(server.queryNames(null, null).contains(ONE_A_NAME));
-                try {
-                    String add = wildcard ? "addOne" : "addOneA";
-                    Object[] params = wildcard ? new String[]{"a", "test"} : new String[]{"test"};
-                    String[] sig = wildcard ? new String[] {String.class.getName(), String.class.getName()} : new String[] {String.class.getName()};
-                    server.invoke(ROOT_NAME, add, params, sig);
-                    Assert.assertTrue(executable);
-                    Assert.assertTrue(server.queryNames(null, null).contains(ONE_A_NAME));
-                } catch (JMRuntimeException e) {
-                    Assert.assertFalse(executable);
-                }
-
-                return null;
+        AccessAuditContext.doAs(roleToSecurityIdentity(standardRole), null, (PrivilegedExceptionAction<Void>) () -> {
+            Assert.assertFalse(server.queryNames(null, null).contains(ONE_A_NAME));
+            try {
+                String add = wildcard ? "addOne" : "addOneA";
+                Object[] params = wildcard ? new String[]{"a", "test"} : new String[]{"test"};
+                String[] sig = wildcard ? new String[] {String.class.getName(), String.class.getName()} : new String[] {String.class.getName()};
+                server.invoke(ROOT_NAME, add, params, sig);
+                Assert.assertTrue(executable);
+                Assert.assertTrue(server.queryNames(null, null).contains(ONE_A_NAME));
+            } catch (JMRuntimeException e) {
+                Assert.assertFalse(executable);
             }
+
+            return null;
         });
     }
 
@@ -544,19 +538,16 @@ public class JmxFacadeRbacEnabledTestCase extends AbstractControllerTestBase {
             resourceB.getModel().get("attr1").set("${VAULT::AA::bb::cc}");
             rootResource.registerChild(ONE_B, resourceB);
 
-            AccessAuditContext.doAs(roleToSecurityIdentity(standardRole), null, new PrivilegedExceptionAction<Void>() {
-                @Override
-                public Void run() throws Exception {
-                    Assert.assertEquals("test-a", server.getAttribute(ONE_A_NAME, "attr1"));
-                    try {
-                        Assert.assertEquals("${VAULT::AA::bb::cc}", server.getAttribute(ONE_B_NAME, "attr1"));
-                        Assert.assertTrue(readable);
-                    } catch (JMRuntimeException e) {
-                        Assert.assertFalse(readable);
-                    }
-
-                    return null;
+            AccessAuditContext.doAs(roleToSecurityIdentity(standardRole), null, (PrivilegedExceptionAction<Void>) () -> {
+                Assert.assertEquals("test-a", server.getAttribute(ONE_A_NAME, "attr1"));
+                try {
+                    Assert.assertEquals("${VAULT::AA::bb::cc}", server.getAttribute(ONE_B_NAME, "attr1"));
+                    Assert.assertTrue(readable);
+                } catch (JMRuntimeException e) {
+                    Assert.assertFalse(readable);
                 }
+
+                return null;
             });
         } finally {
             VaultExpressionSensitivityConfig.INSTANCE.setConfiguredRequiresAccessPermission(null);
@@ -593,18 +584,15 @@ public class JmxFacadeRbacEnabledTestCase extends AbstractControllerTestBase {
             resourceA.getModel().get("attr1").set("test-a");
             rootResource.registerChild(ONE_A, resourceA);
 
-            AccessAuditContext.doAs(roleToSecurityIdentity(standardRole), null, new PrivilegedExceptionAction<Void>() {
-                @Override
-                public Void run() throws Exception {
-                    try {
-                        server.setAttribute(ONE_A_NAME, new Attribute("attr1", "${VAULT::AA::bb::cc}"));
-                        Assert.assertTrue(writable);
-                    } catch (JMRuntimeException e) {
-                        Assert.assertFalse(writable);
-                    }
-
-                    return null;
+            AccessAuditContext.doAs(roleToSecurityIdentity(standardRole), null, (PrivilegedExceptionAction<Void>) () -> {
+                try {
+                    server.setAttribute(ONE_A_NAME, new Attribute("attr1", "${VAULT::AA::bb::cc}"));
+                    Assert.assertTrue(writable);
+                } catch (JMRuntimeException e) {
+                    Assert.assertFalse(writable);
                 }
+
+                return null;
             });
         } finally {
             VaultExpressionSensitivityConfig.INSTANCE.setConfiguredRequiresAccessPermission(null);
@@ -645,23 +633,20 @@ public class JmxFacadeRbacEnabledTestCase extends AbstractControllerTestBase {
             resourceA.getModel().get("attr1").set("test-a");
             rootResource.registerChild(ONE_A, resourceA);
 
-            AccessAuditContext.doAs(roleToSecurityIdentity(standardRole), null, new PrivilegedExceptionAction<Void>() {
-                @Override
-                public Void run() throws Exception {
-                    try {
-                        server.invoke(ONE_A_NAME, "test", new Object[] {"stuff"}, new String[] {String.class.getName()});
-                        Assert.assertTrue(executable);
-                    } catch (JMRuntimeException e) {
-                        Assert.assertFalse(executable);
-                    }
-                    try {
-                        server.invoke(ONE_A_NAME, "test", new Object[] {"${VAULT::AA::bb::cc}"}, new String[] {String.class.getName()});
-                        Assert.assertTrue(executableVault);
-                    } catch (JMRuntimeException e) {
-                        Assert.assertFalse(executableVault);
-                    }
-                    return null;
+            AccessAuditContext.doAs(roleToSecurityIdentity(standardRole), null, (PrivilegedExceptionAction<Void>) () -> {
+                try {
+                    server.invoke(ONE_A_NAME, "test", new Object[] {"stuff"}, new String[] {String.class.getName()});
+                    Assert.assertTrue(executable);
+                } catch (JMRuntimeException e) {
+                    Assert.assertFalse(executable);
                 }
+                try {
+                    server.invoke(ONE_A_NAME, "test", new Object[] {"${VAULT::AA::bb::cc}"}, new String[] {String.class.getName()});
+                    Assert.assertTrue(executableVault);
+                } catch (JMRuntimeException e) {
+                    Assert.assertFalse(executableVault);
+                }
+                return null;
             });
         } finally {
             VaultExpressionSensitivityConfig.INSTANCE.setConfiguredRequiresAccessPermission(null);
@@ -698,23 +683,20 @@ public class JmxFacadeRbacEnabledTestCase extends AbstractControllerTestBase {
             oneChild.addOperation("test", true, false, null);
             rootRegistration.registerSubModel(oneChild);
 
-            AccessAuditContext.doAs(roleToSecurityIdentity(standardRole), null, new PrivilegedExceptionAction<Void>() {
-                @Override
-                public Void run() throws Exception {
-                    Assert.assertFalse(server.queryNames(null, null).contains(ONE_A_NAME));
-                    try {
-                        String add = "addOneA";
-                        Object[] params = new String[]{"${VAULT::AA::bb::cc}"};
-                        String[] sig = new String[] {String.class.getName()};
-                        server.invoke(ROOT_NAME, add, params, sig);
-                        Assert.assertTrue(executable);
-                        Assert.assertTrue(server.queryNames(null, null).contains(ONE_A_NAME));
-                    } catch (JMRuntimeException e) {
-                        Assert.assertFalse(executable);
-                    }
-
-                    return null;
+            AccessAuditContext.doAs(roleToSecurityIdentity(standardRole), null, (PrivilegedExceptionAction<Void>) () -> {
+                Assert.assertFalse(server.queryNames(null, null).contains(ONE_A_NAME));
+                try {
+                    String add = "addOneA";
+                    Object[] params = new String[]{"${VAULT::AA::bb::cc}"};
+                    String[] sig = new String[] {String.class.getName()};
+                    server.invoke(ROOT_NAME, add, params, sig);
+                    Assert.assertTrue(executable);
+                    Assert.assertTrue(server.queryNames(null, null).contains(ONE_A_NAME));
+                } catch (JMRuntimeException e) {
+                    Assert.assertFalse(executable);
                 }
+
+                return null;
             });
         } finally {
             VaultExpressionSensitivityConfig.INSTANCE.setConfiguredRequiresAccessPermission(false);

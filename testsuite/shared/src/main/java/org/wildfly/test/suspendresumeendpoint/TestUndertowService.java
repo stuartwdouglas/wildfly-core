@@ -38,12 +38,9 @@ public class TestUndertowService implements Service<TestUndertowService> {
         final SuspendResumeHandler suspendResumeHandler = new SuspendResumeHandler();
         final ControlPoint controlPoint = requestControllerInjectedValue.getValue().getControlPoint("test", "test");
 
-        final ExchangeCompletionListener exchangeCompletionListener = new ExchangeCompletionListener() {
-            @Override
-            public void exchangeEvent(HttpServerExchange exchange, NextListener nextListener) {
-                controlPoint.requestComplete();
-                nextListener.proceed();
-            }
+        final ExchangeCompletionListener exchangeCompletionListener = (exchange, nextListener) -> {
+            controlPoint.requestComplete();
+            nextListener.proceed();
         };
 
         HttpHandler shutdown = new HttpHandler() {
@@ -64,25 +61,14 @@ public class TestUndertowService implements Service<TestUndertowService> {
                 System.out.println("Attempting " + count + " " + exchange);
                 RunResult result = controlPoint.beginRequest();
                 if (result == RunResult.REJECTED) {
-                    exchange.dispatch(new Runnable() {
-                        @Override
-                        public void run() {
-                            controlPoint.queueTask(new Runnable() {
-                                @Override
-                                public void run() {
-                                    exchange.addExchangeCompleteListener(exchangeCompletionListener);
-                                    exchange.dispatch(suspendResumeHandler);
-                                }
-                            }, exchange.getIoThread(), 1000, new Runnable() {
-                                @Override
-                                public void run() {
-                                    System.out.println("Rejected " + count + " " + exchange);
-                                    exchange.setStatusCode(503);
-                                    exchange.endExchange();
-                                }
-                            }, true);
-                        }
-                    });
+                    exchange.dispatch(() -> controlPoint.queueTask(() -> {
+                        exchange.addExchangeCompleteListener(exchangeCompletionListener);
+                        exchange.dispatch(suspendResumeHandler);
+                    }, exchange.getIoThread(), 1000, () -> {
+                        System.out.println("Rejected " + count + " " + exchange);
+                        exchange.setStatusCode(503);
+                        exchange.endExchange();
+                    }, true));
 
                     return;
                 }

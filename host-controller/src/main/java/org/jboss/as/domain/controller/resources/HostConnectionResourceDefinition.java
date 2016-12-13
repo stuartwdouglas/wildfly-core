@@ -110,18 +110,8 @@ public class HostConnectionResourceDefinition extends SimpleResourceDefinition {
     @Override
     public void registerOperations(ManagementResourceRegistration resourceRegistration) {
 
-        resourceRegistration.registerOperationHandler(PRUNE_EXPIRED_DEF, new OperationStepHandler() {
-            @Override
-            public void execute(OperationContext context, ModelNode operation) throws OperationFailedException {
-                slaveHosts.pruneExpired();
-            }
-        });
-        resourceRegistration.registerOperationHandler(PRUNE_DISCONNECTED_DEF, new OperationStepHandler() {
-            @Override
-            public void execute(OperationContext context, ModelNode operation) throws OperationFailedException {
-                slaveHosts.pruneDisconnected();
-            }
-        });
+        resourceRegistration.registerOperationHandler(PRUNE_EXPIRED_DEF, (context, operation) -> slaveHosts.pruneExpired());
+        resourceRegistration.registerOperationHandler(PRUNE_DISCONNECTED_DEF, (context, operation) -> slaveHosts.pruneDisconnected());
 
     }
 

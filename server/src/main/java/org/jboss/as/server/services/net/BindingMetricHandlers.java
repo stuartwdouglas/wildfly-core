@@ -53,19 +53,16 @@ public final class BindingMetricHandlers {
         @Override
         public void execute(OperationContext context, ModelNode operation) throws OperationFailedException {
 
-            context.addStep(new OperationStepHandler() {
-                @Override
-                public void execute(final OperationContext context, final ModelNode operation) throws OperationFailedException {
-                    final ModelNode result = context.getResult();
-                    final String name = context.getCurrentAddressValue();
-                    ServiceName svcName = SOCKET_BINDING_CAPABILITY.getCapabilityServiceName(name, SocketBinding.class);
-                    final ServiceController<?> controller = context.getServiceRegistry(false).getRequiredService(svcName);
-                    if(controller != null && controller.getState() == ServiceController.State.UP) {
-                        final SocketBinding binding = SocketBinding.class.cast(controller.getValue());
-                        AbstractBindingMetricsHandler.this.execute(operation, binding, result);
-                    } else {
-                        result.set(getNoMetrics());
-                    }
+            context.addStep((context1, operation1) -> {
+                final ModelNode result = context1.getResult();
+                final String name = context1.getCurrentAddressValue();
+                ServiceName svcName = SOCKET_BINDING_CAPABILITY.getCapabilityServiceName(name, SocketBinding.class);
+                final ServiceController<?> controller = context1.getServiceRegistry(false).getRequiredService(svcName);
+                if(controller != null && controller.getState() == ServiceController.State.UP) {
+                    final SocketBinding binding = SocketBinding.class.cast(controller.getValue());
+                    AbstractBindingMetricsHandler.this.execute(operation1, binding, result);
+                } else {
+                    result.set(getNoMetrics());
                 }
             }, OperationContext.Stage.RUNTIME);
         }

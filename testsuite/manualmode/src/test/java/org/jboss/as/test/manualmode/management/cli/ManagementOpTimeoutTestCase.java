@@ -96,12 +96,7 @@ public class ManagementOpTimeoutTestCase extends AbstractCliTestBase {
         // Trigger a hang, but with a short timeout
         final CountDownLatch latch = new CountDownLatch(1);
         final Throwable[] holder = new Throwable[1];
-        Runnable r = new Runnable() {
-            @Override
-            public void run() {
-                block(latch, holder);
-            }
-        };
+        Runnable r = () -> block(latch, holder);
         Thread t = new Thread(r);
         t.setDaemon(true);
         t.start();

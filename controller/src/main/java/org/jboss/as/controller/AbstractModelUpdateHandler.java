@@ -38,17 +38,10 @@ public abstract class AbstractModelUpdateHandler implements OperationStepHandler
         updateModel(operation, resource);
 
         if (requiresRuntime(context)) {
-            context.addStep(new OperationStepHandler() {
-                public void execute(OperationContext context, ModelNode operation) throws OperationFailedException {
-                    performRuntime(context, operation, resource);
+            context.addStep((context12, operation12) -> {
+                performRuntime(context12, operation12, resource);
 
-                    context.completeStep(new OperationContext.RollbackHandler() {
-                        @Override
-                        public void handleRollback(OperationContext context, ModelNode operation) {
-                            rollbackRuntime(context, operation, resource);
-                        }
-                    });
-                }
+                context12.completeStep((context1, operation1) -> rollbackRuntime(context1, operation1, resource));
             }, OperationContext.Stage.RUNTIME);
         }
     }

@@ -330,12 +330,7 @@ public class RemoteDomainConnectionService implements MasterDomainControllerClie
     public synchronized Cancellable pollForConnect() {
         final Future<Connection> future = connection.reconnect();
         setupHandler();
-        return new Cancellable() {
-            @Override
-            public boolean cancel() {
-                return future.cancel(true);
-            }
-        };
+        return () -> future.cancel(true);
     }
 
     /** {@inheritDoc} */
@@ -397,81 +392,75 @@ public class RemoteDomainConnectionService implements MasterDomainControllerClie
     @Override
     public void fetchAndSyncMissingConfiguration(final OperationContext context, final Resource original) throws OperationFailedException {
         final TransactionalProtocolClient client = txMasterProxy;
-        context.addStep(new OperationStepHandler() {
-            @Override
-            public void execute(OperationContext context, ModelNode operation) throws OperationFailedException {
+        context.addStep((context12, operation) -> {
 
-                // Create the operation to get the required configuration from the master
-                final ModelNode fetchContentOp = new ModelNode();
-                fetchContentOp.get(OP).set(FetchMissingConfigurationHandler.OPERATION_NAME);
-                fetchContentOp.get(OP_ADDR).setEmptyList();
-                // This is based on the configured server-configs and required server-groups and socket-bindings
-                final PathElement hostElement = PathElement.pathElement(HOST, localHostInfo.getLocalHostName());
-                final Resource hostModel = context.readResourceFromRoot(PathAddress.pathAddress(hostElement));
-                // Add the information about which parts of configuration are required and ignored
-                IgnoredNonAffectedServerGroupsUtil.addServerGroupsToModel(hostModel, fetchContentOp);
-                final ModelNode ignoredModel = ignoredDomainResourceRegistry.getIgnoredResourcesAsModel();
-                if (ignoredModel.hasDefined(IGNORED_RESOURCE_TYPE)) {
-                    fetchContentOp.get(IGNORED_RESOURCES).set(ignoredModel.require(IGNORED_RESOURCE_TYPE));
-                }
-
-                // Attach the operation id, in case it got executed through the master
-                final Integer domainControllerLock = context.getAttachment(DomainControllerLockIdUtils.DOMAIN_CONTROLLER_LOCK_ID_ATTACHMENT);
-                if (domainControllerLock != null) {
-                    fetchContentOp.get(OPERATION_HEADERS, DomainControllerLockIdUtils.DOMAIN_CONTROLLER_LOCK_ID).set(domainControllerLock);
-                }
-
-                // execute the operation blocking
-                final TransactionalProtocolClient.PreparedOperation<TransactionalProtocolClient.Operation> preparedOperation;
-                try {
-                     preparedOperation = TransactionalProtocolHandlers.executeBlocking(fetchContentOp, client);
-                } catch (IOException e) {
-                    throw new OperationFailedException(e);
-                } catch (InterruptedException e) {
-                    throw ControllerLogger.ROOT_LOGGER.operationCancelledAsynchronously();
-                }
-
-                // Process the prepared result, note: this won't include outcome yet
-                final ModelNode result = preparedOperation.getPreparedResult();
-                if (preparedOperation.isFailed()) {
-                    final ModelNode prepared = preparedOperation.getPreparedResult();
-                    if (prepared.hasDefined(FAILURE_DESCRIPTION)) {
-                        throw new OperationFailedException(prepared.get(FAILURE_DESCRIPTION).asString());
-                    } else {
-                        throw new OperationFailedException(prepared);
-                    }
-                } else if (result.get(FAILURE_DESCRIPTION).isDefined()) {
-                    preparedOperation.rollback();
-                    throw new OperationFailedException(result.get(FAILURE_DESCRIPTION).asString());
-                }
-
-                final ModelNode syncOperation = new ModelNode();
-                syncOperation.get(OP).set("calculate-diff-and-sync");
-                syncOperation.get(OP_ADDR).setEmptyList();
-                syncOperation.get(DOMAIN_MODEL).set(result.get(RESULT));
-
-                // Execute the handler to synchronize the model
-                SyncModelParameters parameters =
-                        new SyncModelParameters(domainController, ignoredDomainResourceRegistry,
-                                hostControllerEnvironment, extensionRegistry, operationExecutor, false, serverProxies,
-                                remoteFileRepository, contentRepository);
-                final SyncServerGroupOperationHandler handler =
-                        new SyncServerGroupOperationHandler(localHostInfo.getLocalHostName(), original, parameters);
-                context.addStep(syncOperation, handler, OperationContext.Stage.MODEL, true);
-                // Complete the remote tx on the master depending on the outcome
-                // This cannot be executed as another step
-                // If this is not called the lock on the master will not be released and result in a deadlock
-                context.completeStep(new OperationContext.ResultHandler() {
-                    @Override
-                    public void handleResult(OperationContext.ResultAction resultAction, OperationContext context, ModelNode operation) {
-                        if (resultAction == OperationContext.ResultAction.KEEP) {
-                            preparedOperation.commit();
-                        } else {
-                            preparedOperation.rollback();
-                        }
-                    }
-                });
+            // Create the operation to get the required configuration from the master
+            final ModelNode fetchContentOp = new ModelNode();
+            fetchContentOp.get(OP).set(FetchMissingConfigurationHandler.OPERATION_NAME);
+            fetchContentOp.get(OP_ADDR).setEmptyList();
+            // This is based on the configured server-configs and required server-groups and socket-bindings
+            final PathElement hostElement = PathElement.pathElement(HOST, localHostInfo.getLocalHostName());
+            final Resource hostModel = context12.readResourceFromRoot(PathAddress.pathAddress(hostElement));
+            // Add the information about which parts of configuration are required and ignored
+            IgnoredNonAffectedServerGroupsUtil.addServerGroupsToModel(hostModel, fetchContentOp);
+            final ModelNode ignoredModel = ignoredDomainResourceRegistry.getIgnoredResourcesAsModel();
+            if (ignoredModel.hasDefined(IGNORED_RESOURCE_TYPE)) {
+                fetchContentOp.get(IGNORED_RESOURCES).set(ignoredModel.require(IGNORED_RESOURCE_TYPE));
             }
+
+            // Attach the operation id, in case it got executed through the master
+            final Integer domainControllerLock = context12.getAttachment(DomainControllerLockIdUtils.DOMAIN_CONTROLLER_LOCK_ID_ATTACHMENT);
+            if (domainControllerLock != null) {
+                fetchContentOp.get(OPERATION_HEADERS, DomainControllerLockIdUtils.DOMAIN_CONTROLLER_LOCK_ID).set(domainControllerLock);
+            }
+
+            // execute the operation blocking
+            final TransactionalProtocolClient.PreparedOperation<TransactionalProtocolClient.Operation> preparedOperation;
+            try {
+                 preparedOperation = TransactionalProtocolHandlers.executeBlocking(fetchContentOp, client);
+            } catch (IOException e) {
+                throw new OperationFailedException(e);
+            } catch (InterruptedException e) {
+                throw ControllerLogger.ROOT_LOGGER.operationCancelledAsynchronously();
+            }
+
+            // Process the prepared result, note: this won't include outcome yet
+            final ModelNode result = preparedOperation.getPreparedResult();
+            if (preparedOperation.isFailed()) {
+                final ModelNode prepared = preparedOperation.getPreparedResult();
+                if (prepared.hasDefined(FAILURE_DESCRIPTION)) {
+                    throw new OperationFailedException(prepared.get(FAILURE_DESCRIPTION).asString());
+                } else {
+                    throw new OperationFailedException(prepared);
+                }
+            } else if (result.get(FAILURE_DESCRIPTION).isDefined()) {
+                preparedOperation.rollback();
+                throw new OperationFailedException(result.get(FAILURE_DESCRIPTION).asString());
+            }
+
+            final ModelNode syncOperation = new ModelNode();
+            syncOperation.get(OP).set("calculate-diff-and-sync");
+            syncOperation.get(OP_ADDR).setEmptyList();
+            syncOperation.get(DOMAIN_MODEL).set(result.get(RESULT));
+
+            // Execute the handler to synchronize the model
+            SyncModelParameters parameters =
+                    new SyncModelParameters(domainController, ignoredDomainResourceRegistry,
+                            hostControllerEnvironment, extensionRegistry, operationExecutor, false, serverProxies,
+                            remoteFileRepository, contentRepository);
+            final SyncServerGroupOperationHandler handler =
+                    new SyncServerGroupOperationHandler(localHostInfo.getLocalHostName(), original, parameters);
+            context12.addStep(syncOperation, handler, OperationContext.Stage.MODEL, true);
+            // Complete the remote tx on the master depending on the outcome
+            // This cannot be executed as another step
+            // If this is not called the lock on the master will not be released and result in a deadlock
+            context12.completeStep((resultAction, context1, operation1) -> {
+                if (resultAction == OperationContext.ResultAction.KEEP) {
+                    preparedOperation.commit();
+                } else {
+                    preparedOperation.rollback();
+                }
+            });
         }, OperationContext.Stage.MODEL, true);
 
     }
@@ -605,15 +594,12 @@ public class RemoteDomainConnectionService implements MasterDomainControllerClie
     /** {@inheritDoc} */
     @Override
     public synchronized void stop(final StopContext context) {
-        Runnable r = new Runnable() {
-            @Override
-            public void run() {
-                try {
-                    StreamUtils.safeClose(connection);
-                    responseAttachmentSupport.shutdown();
-                } finally {
-                    context.complete();
-                }
+        Runnable r = () -> {
+            try {
+                StreamUtils.safeClose(connection);
+                responseAttachmentSupport.shutdown();
+            } finally {
+                context.complete();
             }
         };
         try {

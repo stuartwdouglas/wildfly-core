@@ -135,12 +135,7 @@ public class DeploymentAddHandler implements OperationStepHandler {
 
         if (context.getProcessType() == ProcessType.STANDALONE_SERVER) {
             // Add a step to validate uniqueness of runtime names
-            context.addStep(new OperationStepHandler() {
-                @Override
-                public void execute(OperationContext context, ModelNode operation) throws OperationFailedException {
-                    validateRuntimeNames(name, context);
-                }
-            }, OperationContext.Stage.MODEL);
+            context.addStep((context12, operation12) -> validateRuntimeNames(name, context12), OperationContext.Stage.MODEL);
         }
 
         if (ENABLED.resolveModelAttribute(context, newModel).asBoolean() && context.isNormalServer()) {
@@ -150,12 +145,9 @@ public class DeploymentAddHandler implements OperationStepHandler {
 
         if (contentItem.getHash() != null) {
             final byte[] contentHash = contentItem.getHash();
-            context.completeStep(new OperationContext.ResultHandler() {
-                @Override
-                public void handleResult(ResultAction resultAction, OperationContext context, ModelNode operation) {
-                    if (resultAction == ResultAction.KEEP) {
-                        contentRepository.addContentReference(ModelContentReference.fromModelAddress(address, contentHash));
-                    }
+            context.completeStep((resultAction, context1, operation1) -> {
+                if (resultAction == ResultAction.KEEP) {
+                    contentRepository.addContentReference(ModelContentReference.fromModelAddress(address, contentHash));
                 }
             });
         }

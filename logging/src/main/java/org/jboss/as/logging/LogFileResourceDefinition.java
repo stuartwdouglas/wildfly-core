@@ -159,16 +159,13 @@ class LogFileResourceDefinition extends SimpleResourceDefinition {
             }
         });
 
-        final OperationStepHandler streamHandler = new OperationStepHandler() {
-            @Override
-            public void execute(OperationContext context, ModelNode operation) throws OperationFailedException {
-                final Path path = Paths.get(pathManager.resolveRelativePathEntry(LoggingOperations.getAddressName(operation), ServerEnvironment.SERVER_LOG_DIR));
-                try {
-                    String uuid = context.attachResultStream("text/plain", Files.newInputStream(path));
-                    context.getResult().set(uuid);
-                } catch (IOException e) {
-                    throw new RuntimeException(e);
-                }
+        final OperationStepHandler streamHandler = (context, operation) -> {
+            final Path path = Paths.get(pathManager.resolveRelativePathEntry(LoggingOperations.getAddressName(operation), ServerEnvironment.SERVER_LOG_DIR));
+            try {
+                String uuid = context.attachResultStream("text/plain", Files.newInputStream(path));
+                context.getResult().set(uuid);
+            } catch (IOException e) {
+                throw new RuntimeException(e);
             }
         };
         resourceRegistration.registerReadOnlyAttribute(STREAM, streamHandler);

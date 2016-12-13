@@ -79,11 +79,7 @@ class ProcessControllerConnectionService implements Service<ProcessControllerCon
     public synchronized void start(StartContext context) throws StartException {
         final ProcessControllerClient client;
         try {
-            final ThreadFactory threadFactory = doPrivileged(new PrivilegedAction<JBossThreadFactory>() {
-                public JBossThreadFactory run() {
-                    return new JBossThreadFactory(new ThreadGroup("ProcessControllerConnection-thread"), Boolean.FALSE, null, "%G - %t", null, null);
-                }
-            });
+            final ThreadFactory threadFactory = doPrivileged((PrivilegedAction<JBossThreadFactory>) () -> new JBossThreadFactory(new ThreadGroup("ProcessControllerConnection-thread"), Boolean.FALSE, null, "%G - %t", null, null));
             final ThreadPoolExecutor executorService = new ThreadPoolExecutor(THREAD_POOL_CORE_SIZE, THREAD_POOL_MAX_SIZE, 30L, TimeUnit.MILLISECONDS, new LinkedBlockingQueue<Runnable>(WORK_QUEUE_SIZE), threadFactory);
 
             final ProtocolClient.Configuration configuration = new ProtocolClient.Configuration();

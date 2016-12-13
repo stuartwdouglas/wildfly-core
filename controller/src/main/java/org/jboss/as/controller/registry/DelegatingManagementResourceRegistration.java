@@ -70,12 +70,7 @@ public class DelegatingManagementResourceRegistration implements ManagementResou
      * @param delegate the delegate. Cannot be {@code null}
      */
     public DelegatingManagementResourceRegistration(final ManagementResourceRegistration delegate) {
-        this(new RegistrationDelegateProvider() {
-            @Override
-            public ManagementResourceRegistration getDelegateRegistration() {
-                return delegate;
-            }
-        });
+        this(() -> delegate);
     }
 
     /**

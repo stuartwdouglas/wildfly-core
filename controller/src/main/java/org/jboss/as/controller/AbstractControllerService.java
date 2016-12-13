@@ -307,30 +307,24 @@ public abstract class AbstractControllerService implements Service<ModelControll
         this.processState.setStarting();
 
         final long bootStackSize = getBootStackSize();
-        final Thread bootThread = new Thread(null, new Runnable() {
-            public void run() {
+        final Thread bootThread = new Thread(null, () -> {
+            try {
                 try {
-                    try {
-                        boot(new BootContext() {
-                            public ServiceTarget getServiceTarget() {
-                                return target;
-                            }
-                        });
-                    } finally {
-                        processState.setRunning();
-                    }
-                } catch (Throwable t) {
-                    container.shutdown();
-                    if (t instanceof StackOverflowError) {
-                        ROOT_LOGGER.errorBootingContainer(t, bootStackSize, BOOT_STACK_SIZE_PROPERTY);
-                    } else {
-                        ROOT_LOGGER.errorBootingContainer(t);
-                    }
+                    boot(() -> target);
                 } finally {
-                    bootThreadDone();
+                    processState.setRunning();
                 }
-
+            } catch (Throwable t) {
+                container.shutdown();
+                if (t instanceof StackOverflowError) {
+                    ROOT_LOGGER.errorBootingContainer(t, bootStackSize, BOOT_STACK_SIZE_PROPERTY);
+                } else {
+                    ROOT_LOGGER.errorBootingContainer(t);
+                }
+            } finally {
+                bootThreadDone();
             }
+
         }, "Controller Boot Thread", bootStackSize);
         bootThread.start();
     }
@@ -489,17 +483,14 @@ public abstract class AbstractControllerService implements Service<ModelControll
         capabilityRegistry.publish();
         controller = null;
         processState.setStopping();
-        Runnable r = new Runnable() {
-            @Override
-            public void run() {
+        Runnable r = () -> {
+            try {
+                stopAsynchronous(context);
+            } finally {
                 try {
-                    stopAsynchronous(context);
+                    authorizer.shutdown();
                 } finally {
-                    try {
-                        authorizer.shutdown();
-                    } finally {
-                        context.complete();
-                    }
+                    context.complete();
                 }
             }
         };
@@ -634,29 +625,26 @@ public abstract class AbstractControllerService implements Service<ModelControll
 
         @Override
         public void execute(OperationContext context, ModelNode operation) throws OperationFailedException {
-            context.addStep(new OperationStepHandler() {
-                @Override
-                public void execute(OperationContext context, ModelNode operation) throws OperationFailedException {
-                    //Get the current management model instance here, so make sure that if ModelControllerServiceInitializations
-                    //add resources, those resources end up in the model
-                    assert context instanceof OperationContextImpl;
-                    ManagementModel managementModel = ((OperationContextImpl)context).getManagementModel();
+            context.addStep((context1, operation1) -> {
+                //Get the current management model instance here, so make sure that if ModelControllerServiceInitializations
+                //add resources, those resources end up in the model
+                assert context1 instanceof OperationContextImpl;
+                ManagementModel managementModel = ((OperationContextImpl) context1).getManagementModel();
 
-                    final ServiceLoader<ModelControllerServiceInitialization> sl = initParams.serviceLoader;
+                final ServiceLoader<ModelControllerServiceInitialization> sl = initParams.serviceLoader;
 
-                    final String hostName = initParams.getHostName();
-                    assert processType != ProcessType.HOST_CONTROLLER || hostName != null;
-                    for (ModelControllerServiceInitialization init : sl) {
-                        if (processType == ProcessType.HOST_CONTROLLER) {
-                            init.initializeHost(context.getServiceTarget(), managementModel, hostName);
-                            init.initializeDomain(context.getServiceTarget(), managementModel);
-                        } else {
-                            init.initializeStandalone(context.getServiceTarget(), managementModel);
+                final String hostName = initParams.getHostName();
+                assert processType != ProcessType.HOST_CONTROLLER || hostName != null;
+                for (ModelControllerServiceInitialization init : sl) {
+                    if (processType == ProcessType.HOST_CONTROLLER) {
+                        init.initializeHost(context1.getServiceTarget(), managementModel, hostName);
+                        init.initializeDomain(context1.getServiceTarget(), managementModel);
+                    } else {
+                        init.initializeStandalone(context1.getServiceTarget(), managementModel);
 
-                        }
                     }
-                    managementModel.getRootResourceRegistration().unregisterOperationHandler(INIT_CONTROLLER_OP.getName());
                 }
+                managementModel.getRootResourceRegistration().unregisterOperationHandler(INIT_CONTROLLER_OP.getName());
             }, Stage.RUNTIME);
         }
     }

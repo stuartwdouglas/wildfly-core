@@ -28,8 +28,6 @@ import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.NAM
 import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.RESOURCE_ADDED_NOTIFICATION;
 import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.RESOURCE_REMOVED_NOTIFICATION;
 
-import java.util.ResourceBundle;
-
 import org.jboss.as.controller.NotificationDefinition;
 import org.jboss.as.controller.ProcessType;
 import org.jboss.as.controller.descriptions.common.ControllerResolver;
@@ -55,16 +53,13 @@ public class GlobalNotifications {
     public static final String NEW_VALUE = "new-value";
 
     private static final NotificationDefinition ATTRIBUTE_VALUE_WRITTEN = NotificationDefinition.Builder.create(ATTRIBUTE_VALUE_WRITTEN_NOTIFICATION, ControllerResolver.getResolver("global"))
-            .setDataValueDescriptor(new NotificationDefinition.DataValueDescriptor() {
-                @Override
-                public ModelNode describe(ResourceBundle bundle) {
-                    String prefix = "global." + ATTRIBUTE_VALUE_WRITTEN_NOTIFICATION + ".";
-                    final ModelNode desc = new ModelNode();
-                    desc.get(NAME, DESCRIPTION).set(bundle.getString(prefix + NAME));
-                    desc.get(OLD_VALUE, DESCRIPTION).set(bundle.getString(prefix + OLD_VALUE));
-                    desc.get(NEW_VALUE, DESCRIPTION).set(bundle.getString(prefix + NEW_VALUE));
-                    return desc;
-                }
+            .setDataValueDescriptor(bundle -> {
+                String prefix = "global." + ATTRIBUTE_VALUE_WRITTEN_NOTIFICATION + ".";
+                final ModelNode desc = new ModelNode();
+                desc.get(NAME, DESCRIPTION).set(bundle.getString(prefix + NAME));
+                desc.get(OLD_VALUE, DESCRIPTION).set(bundle.getString(prefix + OLD_VALUE));
+                desc.get(NEW_VALUE, DESCRIPTION).set(bundle.getString(prefix + NEW_VALUE));
+                return desc;
             })
             .build();
 

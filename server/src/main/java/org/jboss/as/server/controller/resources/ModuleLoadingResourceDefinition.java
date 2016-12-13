@@ -125,12 +125,9 @@ public class ModuleLoadingResourceDefinition extends SimpleResourceDefinition {
             final ModelNode list = context.getResult().setEmptyList();
 
             try {
-                AccessController.doPrivileged(new PrivilegedExceptionAction<Void>() {
-                    @Override
-                    public Void run() throws Exception {
-                        storeRepoRoots(list);
-                        return null;
-                    }
+                AccessController.doPrivileged((PrivilegedExceptionAction<Void>) () -> {
+                    storeRepoRoots(list);
+                    return null;
                 });
             } catch (PrivilegedActionException e) {
 
@@ -179,34 +176,26 @@ public class ModuleLoadingResourceDefinition extends SimpleResourceDefinition {
         /** {@inheritDoc} */
         @Override
         public void execute(OperationContext context, ModelNode operation) throws OperationFailedException {
-            context.addStep(new OperationStepHandler() {
-                @Override
-                public void execute(OperationContext context, ModelNode operation) throws OperationFailedException {
+            context.addStep((context1, operation1) -> {
 
-                    final String moduleName = MODULE_NAME.resolveModelAttribute(context, operation).asString();
+                final String moduleName = MODULE_NAME.resolveModelAttribute(context1, operation1).asString();
 
-                    try {
-                        List<String> paths = AccessController.doPrivileged(new PrivilegedExceptionAction<List<String>>() {
-                            @Override
-                            public List<String> run() throws Exception {
-                                return findResourcePaths(moduleName);
-                            }
-                        });
+                try {
+                    List<String> paths = AccessController.doPrivileged((PrivilegedExceptionAction<List<String>>) () -> findResourcePaths(moduleName));
 
-                        ModelNode list = context.getResult().setEmptyList();
-                        for (String path : paths) {
-                            list.add(path);
-                        }
-
-                    } catch (PrivilegedActionException e) {
-
-                        if ( e.getCause() instanceof OperationFailedException
-                                || e.getCause() instanceof ModuleNotFoundException ){
-                            throw new OperationFailedException(e.getCause());
-                        }
-
-                        throw new RuntimeException(e.getCause());
+                    ModelNode list = context1.getResult().setEmptyList();
+                    for (String path : paths) {
+                        list.add(path);
                     }
+
+                } catch (PrivilegedActionException e) {
+
+                    if ( e.getCause() instanceof OperationFailedException
+                            || e.getCause() instanceof ModuleNotFoundException ){
+                        throw new OperationFailedException(e.getCause());
+                    }
+
+                    throw new RuntimeException(e.getCause());
                 }
             }, OperationContext.Stage.RUNTIME);
         }

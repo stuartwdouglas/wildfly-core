@@ -128,15 +128,12 @@ public class CustomContextExtension implements Extension {
             httpManagement.addStaticContext("static", rm);
             log.info("Added context 'static'");
 
-            ExtensibleHttpManagement.PathRemapper remapper = new ExtensibleHttpManagement.PathRemapper() {
-                @Override
-                public String remapPath(String originalPath) {
-                    if ("/foo".equals(originalPath)) {
-                        String prefix = forServer ? "" : "/host/master";
-                        return prefix + "/extension/" + EXTENSION_NAME;
-                    }
-                    return null;
+            ExtensibleHttpManagement.PathRemapper remapper = originalPath -> {
+                if ("/foo".equals(originalPath)) {
+                    String prefix = forServer ? "" : "/host/master";
+                    return prefix + "/extension/" + EXTENSION_NAME;
                 }
+                return null;
             };
             httpManagement.addManagementGetRemapContext("remap", remapper);
             log.info("Added context 'remap'");

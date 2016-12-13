@@ -176,27 +176,16 @@ public class CapabilityRegistryTestCase extends AbstractControllerTestBase {
             .addCapability(IO_WORKER_RUNTIME_CAPABILITY)
             .build();
 
-    private static final OperationStepHandler RELOAD_HANDLER = new OperationStepHandler() {
-        @Override
-        public void execute(OperationContext context, ModelNode operation) throws OperationFailedException {
-            context.reloadRequired();
-            context.completeStep(OperationContext.RollbackHandler.REVERT_RELOAD_REQUIRED_ROLLBACK_HANDLER);
-        }
+    private static final OperationStepHandler RELOAD_HANDLER = (context, operation) -> {
+        context.reloadRequired();
+        context.completeStep(OperationContext.RollbackHandler.REVERT_RELOAD_REQUIRED_ROLLBACK_HANDLER);
     };
     private static final OperationDefinition RELOAD_DEFINITION = new SimpleOperationDefinition("reload", NonResolvingResourceDescriptionResolver.INSTANCE);
 
-    private static final OperationStepHandler RUNTIME_MOD_HANDLER = new OperationStepHandler() {
-        @Override
-        public void execute(OperationContext context, ModelNode operation) throws OperationFailedException {
-            context.addStep(new OperationStepHandler() {
-                @Override
-                public void execute(OperationContext context, ModelNode operation) throws OperationFailedException {
-                    // If we execute, the result is now defined
-                    context.getResult().set(true);
-                }
-            }, OperationContext.Stage.RUNTIME);
-        }
-    };
+    private static final OperationStepHandler RUNTIME_MOD_HANDLER = (context, operation) -> context.addStep((context1, operation1) -> {
+        // If we execute, the result is now defined
+        context1.getResult().set(true);
+    }, OperationContext.Stage.RUNTIME);
 
     private static final OperationDefinition RUNTIME_MOD_DEFINITION = new SimpleOperationDefinition("runtime-mod", NonResolvingResourceDescriptionResolver.INSTANCE);
     private static final OperationDefinition RUNTIME_ONLY_DEFINITION = new SimpleOperationDefinitionBuilder("runtime-only", NonResolvingResourceDescriptionResolver.INSTANCE)
@@ -326,19 +315,9 @@ public class CapabilityRegistryTestCase extends AbstractControllerTestBase {
             mrr.registerSubModel(DEP_CAP_RESOURCE);
         });
         rootRegistration.registerOperationHandler(new SimpleOperationDefinition("root-cap", NonResolvingResourceDescriptionResolver.INSTANCE),
-                new OperationStepHandler() {
-                    @Override
-                    public void execute(OperationContext context, ModelNode operation) throws OperationFailedException {
-                        context.registerCapability(ROOT_CAPABILITY);
-                    }
-                });
+                (context, operation) -> context.registerCapability(ROOT_CAPABILITY));
         rootRegistration.registerOperationHandler(new SimpleOperationDefinition("no-root-cap", NonResolvingResourceDescriptionResolver.INSTANCE),
-                new OperationStepHandler() {
-                    @Override
-                    public void execute(OperationContext context, ModelNode operation) throws OperationFailedException {
-                        context.deregisterCapability(ROOT_CAPABILITY.getName());
-                    }
-                });
+                (context, operation) -> context.deregisterCapability(ROOT_CAPABILITY.getName()));
         rootRegistration.registerOperationHandler(RELOAD_DEFINITION, RELOAD_HANDLER);
         rootRegistration.registerOperationHandler(RUNTIME_MOD_DEFINITION, RUNTIME_MOD_HANDLER);
         rootRegistration.registerOperationHandler(RUNTIME_ONLY_DEFINITION, RUNTIME_MOD_HANDLER);

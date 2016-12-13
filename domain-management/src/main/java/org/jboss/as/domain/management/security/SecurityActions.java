@@ -44,11 +44,7 @@ final class SecurityActions {
         if (System.getSecurityManager() == null) {
             return Thread.currentThread().getContextClassLoader();
         } else {
-            return AccessController.doPrivileged(new PrivilegedAction<ClassLoader>() {
-                public ClassLoader run() {
-                    return Thread.currentThread().getContextClassLoader();
-                }
-            });
+            return AccessController.doPrivileged((PrivilegedAction<ClassLoader>) () -> Thread.currentThread().getContextClassLoader());
         }
     }
 
@@ -70,11 +66,9 @@ final class SecurityActions {
         if (System.getSecurityManager() == null) {
             Thread.currentThread().setContextClassLoader(classLoader);
         } else {
-            AccessController.doPrivileged(new PrivilegedAction<Object>() {
-                public Object run() {
-                    Thread.currentThread().setContextClassLoader(classLoader);
-                    return null;
-                }
+            AccessController.doPrivileged((PrivilegedAction<Object>) () -> {
+                Thread.currentThread().setContextClassLoader(classLoader);
+                return null;
             });
         }
     }
@@ -87,11 +81,7 @@ final class SecurityActions {
      */
     static String getSystemProperty(final String name, final String defaultValue) {
         if (System.getSecurityManager() != null) {
-            return AccessController.doPrivileged(new PrivilegedAction<String>() {
-                public String run() {
-                    return System.getProperty(name, defaultValue);
-                }
-            });
+            return AccessController.doPrivileged((PrivilegedAction<String>) () -> System.getProperty(name, defaultValue));
         } else {
             return System.getProperty(name, defaultValue);
         }

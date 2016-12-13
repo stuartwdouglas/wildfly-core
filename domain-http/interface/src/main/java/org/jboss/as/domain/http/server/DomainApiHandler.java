@@ -200,15 +200,12 @@ class DomainApiHandler implements HttpHandler {
         };
 
         final boolean sendPreparedResponse = sendPreparedResponse(dmr);
-        final ModelController.OperationTransactionControl control = sendPreparedResponse ? new ModelController.OperationTransactionControl() {
-            @Override
-            public void operationPrepared(final ModelController.OperationTransaction transaction, final ModelNode result) {
-                transaction.commit();
-                // Fix prepared result
-                result.get(OUTCOME).set(SUCCESS);
-                result.get(RESULT);
-                callback.sendResponse(OperationResponse.Factory.createSimple(result));
-            }
+        final ModelController.OperationTransactionControl control = sendPreparedResponse ? (transaction, result) -> {
+            transaction.commit();
+            // Fix prepared result
+            result.get(OUTCOME).set(SUCCESS);
+            result.get(RESULT);
+            callback.sendResponse(OperationResponse.Factory.createSimple(result));
         } : ModelController.OperationTransactionControl.COMMIT;
 
         try {

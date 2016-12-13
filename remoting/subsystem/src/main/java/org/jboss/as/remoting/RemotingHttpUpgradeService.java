@@ -53,7 +53,6 @@ import org.wildfly.security.auth.server.SaslAuthenticationFactory;
 import org.wildfly.security.auth.server.SecurityDomain;
 import org.wildfly.security.auth.server.SecurityRealm;
 import org.wildfly.security.sasl.anonymous.AnonymousServerFactory;
-import org.xnio.ChannelListener;
 import org.xnio.OptionMap;
 import org.xnio.StreamConnection;
 
@@ -173,16 +172,13 @@ public class RemotingHttpUpgradeService implements Service<RemotingHttpUpgradeSe
 
             final Consumer<StreamConnection> adaptor = provider.createConnectionAdaptor(resultingMap, saslAuthenticationFactory);
 
-            injectedRegistry.getValue().addProtocol(JBOSS_REMOTING, new ChannelListener<StreamConnection>() {
-                @Override
-                public void handleEvent(final StreamConnection channel) {
-                    adaptor.accept(channel);
-                    /*if (channel instanceof SslConnection) {
-                        adaptor.accept(new AssembledConnectedSslStreamChannel((SslConnection) channel, channel.getSourceChannel(), channel.getSinkChannel()));
-                    } else {
-                        adaptor.adapt(new AssembledConnectedStreamChannel(channel, channel.getSourceChannel(), channel.getSinkChannel()));
-                    }*/
-                }
+            injectedRegistry.getValue().addProtocol(JBOSS_REMOTING, channel -> {
+                adaptor.accept(channel);
+                /*if (channel instanceof SslConnection) {
+                    adaptor.accept(new AssembledConnectedSslStreamChannel((SslConnection) channel, channel.getSourceChannel(), channel.getSinkChannel()));
+                } else {
+                    adaptor.adapt(new AssembledConnectedStreamChannel(channel, channel.getSourceChannel(), channel.getSinkChannel()));
+                }*/
             }, new SimpleHttpUpgradeHandshake(MAGIC_NUMBER, SEC_JBOSS_REMOTING_KEY, SEC_JBOSS_REMOTING_ACCEPT));
 
         } catch (UnknownURISchemeException e) {

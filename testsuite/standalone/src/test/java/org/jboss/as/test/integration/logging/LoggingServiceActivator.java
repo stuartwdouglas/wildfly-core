@@ -34,7 +34,6 @@ import java.util.Locale;
 import java.util.Map;
 
 import io.undertow.server.HttpHandler;
-import io.undertow.server.HttpServerExchange;
 import org.jboss.logging.Logger;
 import org.wildfly.test.undertow.UndertowServiceActivator;
 
@@ -51,35 +50,32 @@ public class LoggingServiceActivator extends UndertowServiceActivator {
 
     @Override
     protected HttpHandler getHttpHandler() {
-        return new HttpHandler() {
-            @Override
-            public void handleRequest(final HttpServerExchange exchange) throws Exception {
-                final Map<String, Deque<String>> params = exchange.getQueryParameters();
-                String msg = DEFAULT_MESSAGE;
-                if (params.containsKey(MSG_KEY)) {
-                    msg = getFirstValue(params, MSG_KEY);
-                }
-                boolean includeLevel = false;
-                if (params.containsKey(INCLUDE_LEVEL_KEY)) {
-                    includeLevel = Boolean.parseBoolean(getFirstValue(params, INCLUDE_LEVEL_KEY));
-                }
-                boolean logInfoOnly = false;
-                if (params.containsKey(LOG_INFO_ONLY_KEY)) {
-                    logInfoOnly = Boolean.parseBoolean(getFirstValue(params, LOG_INFO_ONLY_KEY));
-                }
-                if (logInfoOnly) {
-                    LOGGER.info(msg);
-                } else {
-                    for (Logger.Level level : LOG_LEVELS) {
-                        if (includeLevel) {
-                            LOGGER.log(level, formatMessage(msg, level));
-                        } else {
-                            LOGGER.log(level, msg);
-                        }
+        return exchange -> {
+            final Map<String, Deque<String>> params = exchange.getQueryParameters();
+            String msg = DEFAULT_MESSAGE;
+            if (params.containsKey(MSG_KEY)) {
+                msg = getFirstValue(params, MSG_KEY);
+            }
+            boolean includeLevel = false;
+            if (params.containsKey(INCLUDE_LEVEL_KEY)) {
+                includeLevel = Boolean.parseBoolean(getFirstValue(params, INCLUDE_LEVEL_KEY));
+            }
+            boolean logInfoOnly = false;
+            if (params.containsKey(LOG_INFO_ONLY_KEY)) {
+                logInfoOnly = Boolean.parseBoolean(getFirstValue(params, LOG_INFO_ONLY_KEY));
+            }
+            if (logInfoOnly) {
+                LOGGER.info(msg);
+            } else {
+                for (Logger.Level level : LOG_LEVELS) {
+                    if (includeLevel) {
+                        LOGGER.log(level, formatMessage(msg, level));
+                    } else {
+                        LOGGER.log(level, msg);
                     }
                 }
-                exchange.getResponseSender().send("Response sent");
             }
+            exchange.getResponseSender().send("Response sent");
         };
     }
 

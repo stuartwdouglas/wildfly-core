@@ -266,17 +266,13 @@ public class ProtocolConnectionUtils {
         public void handle(final Callback[] callbacks) throws IOException, UnsupportedCallbackException {
 
             try {
-                timeoutHandler.suspendAndExecute(new Runnable() {
-
-                    @Override
-                    public void run() {
-                        try {
-                            wrapped.handle(callbacks);
-                        } catch (IOException e) {
-                            throw new RuntimeException(e);
-                        } catch (UnsupportedCallbackException e) {
-                            throw new RuntimeException(e);
-                        }
+                timeoutHandler.suspendAndExecute(() -> {
+                    try {
+                        wrapped.handle(callbacks);
+                    } catch (IOException e) {
+                        throw new RuntimeException(e);
+                    } catch (UnsupportedCallbackException e) {
+                        throw new RuntimeException(e);
                     }
                 });
             } catch (RuntimeException e) {

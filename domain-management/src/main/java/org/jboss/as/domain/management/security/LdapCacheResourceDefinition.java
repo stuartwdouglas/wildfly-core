@@ -261,17 +261,13 @@ public class LdapCacheResourceDefinition extends SimpleResourceDefinition {
         public void execute(OperationContext context, ModelNode operation) throws OperationFailedException {
             final String operationName = operation.get(OP).asString();
             if (VALID_OPS.contains(operationName)) {
-                context.addStep(new OperationStepHandler() {
-
-                    @Override
-                    public void execute(OperationContext context, ModelNode operation) throws OperationFailedException {
-                        if (READ_ATTRIBUTE_OPERATION.equals(operationName)) {
-                            readAttribute(context, operation);
-                        } else if (FLUSH_CACHE.equals(operationName)) {
-                            flushCache(context, operation);
-                        } else if (CONTAINS.equals(operationName)) {
-                            contains(context, operation);
-                        }
+                context.addStep((context1, operation1) -> {
+                    if (READ_ATTRIBUTE_OPERATION.equals(operationName)) {
+                        readAttribute(context1, operation1);
+                    } else if (FLUSH_CACHE.equals(operationName)) {
+                        flushCache(context1, operation1);
+                    } else if (CONTAINS.equals(operationName)) {
+                        contains(context1, operation1);
                     }
                 }, Stage.RUNTIME);
             }

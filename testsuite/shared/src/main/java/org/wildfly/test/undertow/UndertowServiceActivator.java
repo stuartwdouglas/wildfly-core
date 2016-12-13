@@ -23,7 +23,6 @@
 package org.wildfly.test.undertow;
 
 import io.undertow.server.HttpHandler;
-import io.undertow.server.HttpServerExchange;
 import org.jboss.as.test.shared.TestSuiteEnvironment;
 import org.jboss.msc.service.ServiceActivator;
 import org.jboss.msc.service.ServiceActivatorContext;
@@ -54,12 +53,7 @@ public class UndertowServiceActivator implements ServiceActivator {
     };
 
     public static final String DEFAULT_RESPONSE = "Response sent";
-    private static final HttpHandler DEFAULT_HANDLER = new HttpHandler() {
-        @Override
-        public void handleRequest(final HttpServerExchange exchange) throws Exception {
-            exchange.getResponseSender().send(DEFAULT_RESPONSE);
-        }
-    };
+    private static final HttpHandler DEFAULT_HANDLER = exchange -> exchange.getResponseSender().send(DEFAULT_RESPONSE);
 
     @Override
     public final void activate(final ServiceActivatorContext serviceActivatorContext) throws ServiceRegistryException {

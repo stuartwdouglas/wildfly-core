@@ -64,20 +64,14 @@ class SecurityActions {
 
             @Override
             public String getSystemProperty(final String name) {
-                return (String) AccessController.doPrivileged(new PrivilegedAction<Object>() {
-                    public Object run() {
-                        return System.getProperty(name);
-                    }
-                });
+                return (String) AccessController.doPrivileged((PrivilegedAction<Object>) () -> System.getProperty(name));
             }
 
             @Override
             public void setSystemProperty(final String name, final String value) {
-                AccessController.doPrivileged(new PrivilegedAction<Object>() {
-                    public Object run() {
-                        System.setProperty(name, value);
-                        return null;
-                    }
+                AccessController.doPrivileged((PrivilegedAction<Object>) () -> {
+                    System.setProperty(name, value);
+                    return null;
                 });
             }
         };

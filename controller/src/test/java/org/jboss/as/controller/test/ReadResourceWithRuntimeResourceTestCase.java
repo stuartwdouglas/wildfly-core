@@ -33,9 +33,6 @@ import org.jboss.as.controller.AttributeDefinition;
 import org.jboss.as.controller.BlockingTimeout;
 import org.jboss.as.controller.ManagementModel;
 import org.jboss.as.controller.ModelController;
-import org.jboss.as.controller.OperationContext;
-import org.jboss.as.controller.OperationFailedException;
-import org.jboss.as.controller.OperationStepHandler;
 import org.jboss.as.controller.PathAddress;
 import org.jboss.as.controller.PathElement;
 import org.jboss.as.controller.ProxyController;
@@ -128,26 +125,18 @@ public class ReadResourceWithRuntimeResourceTestCase extends AbstractControllerT
         ManagementResourceRegistration runtimeResource = subsystemRegistration.registerSubModel(
                 new SimpleResourceDefinition(new SimpleResourceDefinition.Parameters(PathElement.pathElement("resource", "B"), new NonResolvingResourceDescriptionResolver()).setRuntime()));
         AttributeDefinition runtimeAttr = TestUtils.createAttribute("attr", ModelType.LONG);
-        runtimeResource.registerReadOnlyAttribute(runtimeAttr, new OperationStepHandler() {
-            @Override
-            public void execute(OperationContext context, ModelNode operation) throws OperationFailedException {
-                context.getResult().set(-1);
-            }
-        });
+        runtimeResource.registerReadOnlyAttribute(runtimeAttr, (context, operation) -> context.getResult().set(-1));
 
         subsystemRegistration.registerProxyController(MockProxyController.ADDRESS.getLastElement(), new MockProxyController());
 
-        registration.registerOperationHandler(TestUtils.SETUP_OPERATION_DEF, new OperationStepHandler() {
-            @Override
-            public void execute(OperationContext context, ModelNode operation) throws OperationFailedException {
-                final ModelNode model = new ModelNode();
+        registration.registerOperationHandler(TestUtils.SETUP_OPERATION_DEF, (context, operation) -> {
+            final ModelNode model = new ModelNode();
 
-                // create a model with the resource=A child
-                // but *no* runtime resource=B child
-                model.get("subsystem", "mysubsystem", "resource", "A").setEmptyObject();
+            // create a model with the resource=A child
+            // but *no* runtime resource=B child
+            model.get("subsystem", "mysubsystem", "resource", "A").setEmptyObject();
 
-                createModel(context, model);
-            }
+            createModel(context, model);
         });
     }
 

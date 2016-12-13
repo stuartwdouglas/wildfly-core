@@ -112,26 +112,21 @@ public class JmxAuditLoggerResourceDefinition extends SimpleResourceDefinition {
             }
 
 
-            context.addStep(new OperationStepHandler() {
-                public void execute(final OperationContext context, final ModelNode operation) throws OperationFailedException {
-                    final boolean wasReadOnly = auditLoggerProvider.isLogReadOnly();
-                    final boolean wasLogBoot = auditLoggerProvider.isLogBoot();
-                    final AuditLogger.Status oldStatus = auditLoggerProvider.getLoggerStatus();
+            context.addStep((context12, operation12) -> {
+                final boolean wasReadOnly = auditLoggerProvider.isLogReadOnly();
+                final boolean wasLogBoot = auditLoggerProvider.isLogBoot();
+                final AuditLogger.Status oldStatus = auditLoggerProvider.getLoggerStatus();
 
-                    auditLoggerProvider.setLogReadOnly(JmxAuditLoggerResourceDefinition.LOG_READ_ONLY.resolveModelAttribute(context, model).asBoolean());
-                    auditLoggerProvider.setLogBoot(JmxAuditLoggerResourceDefinition.LOG_BOOT.resolveModelAttribute(context, model).asBoolean());
-                    boolean enabled = JmxAuditLoggerResourceDefinition.ENABLED.resolveModelAttribute(context, model).asBoolean();
-                    auditLoggerProvider.setLoggerStatus(enabled ? AuditLogger.Status.LOGGING : AuditLogger.Status.DISABLED);
+                auditLoggerProvider.setLogReadOnly(JmxAuditLoggerResourceDefinition.LOG_READ_ONLY.resolveModelAttribute(context12, model).asBoolean());
+                auditLoggerProvider.setLogBoot(JmxAuditLoggerResourceDefinition.LOG_BOOT.resolveModelAttribute(context12, model).asBoolean());
+                boolean enabled = JmxAuditLoggerResourceDefinition.ENABLED.resolveModelAttribute(context12, model).asBoolean();
+                auditLoggerProvider.setLoggerStatus(enabled ? AuditLogger.Status.LOGGING : AuditLogger.Status.DISABLED);
 
-                    context.completeStep(new OperationContext.RollbackHandler() {
-                        @Override
-                        public void handleRollback(OperationContext context, ModelNode operation) {
-                            auditLoggerProvider.setLogReadOnly(wasReadOnly);
-                            auditLoggerProvider.setLoggerStatus(oldStatus);
-                            auditLoggerProvider.setLogBoot(wasLogBoot);
-                        }
-                    });
-                }
+                context12.completeStep((context1, operation1) -> {
+                    auditLoggerProvider.setLogReadOnly(wasReadOnly);
+                    auditLoggerProvider.setLoggerStatus(oldStatus);
+                    auditLoggerProvider.setLogBoot(wasLogBoot);
+                });
             }, OperationContext.Stage.RUNTIME);
 
             context.completeStep(OperationContext.RollbackHandler.NOOP_ROLLBACK_HANDLER);
@@ -152,22 +147,17 @@ public class JmxAuditLoggerResourceDefinition extends SimpleResourceDefinition {
 
             context.removeResource(PathAddress.EMPTY_ADDRESS);
 
-            context.addStep(new OperationStepHandler() {
-                public void execute(OperationContext context, ModelNode operation) throws OperationFailedException {
+            context.addStep((context12, operation12) -> {
 
-                    final boolean wasReadOnly = auditLogger.isLogReadOnly();
-                    final AuditLogger.Status oldStatus = auditLogger.getLoggerStatus();
+                final boolean wasReadOnly = auditLogger.isLogReadOnly();
+                final AuditLogger.Status oldStatus = auditLogger.getLoggerStatus();
 
-                    auditLogger.setLoggerStatus(AuditLogger.Status.DISABLE_NEXT);
+                auditLogger.setLoggerStatus(AuditLogger.Status.DISABLE_NEXT);
 
-                    context.completeStep(new OperationContext.RollbackHandler() {
-                        @Override
-                        public void handleRollback(OperationContext context, ModelNode operation) {
-                            auditLogger.setLogReadOnly(wasReadOnly);
-                            auditLogger.setLoggerStatus(oldStatus);
-                        }
-                    });
-                }
+                context12.completeStep((context1, operation1) -> {
+                    auditLogger.setLogReadOnly(wasReadOnly);
+                    auditLogger.setLoggerStatus(oldStatus);
+                });
             }, OperationContext.Stage.RUNTIME);
 
             context.completeStep(OperationContext.RollbackHandler.NOOP_ROLLBACK_HANDLER);

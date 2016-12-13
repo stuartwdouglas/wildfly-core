@@ -79,17 +79,8 @@ public abstract class AbstractKernelServicesImpl extends ModelTestKernelServices
         controllerExtensionRegistry.setPathManager(pathManager);
 
         //Use the default implementation of test controller for the main controller, and for tests that don't have another one set up on the classpath
-        TestModelControllerFactory testModelControllerFactory = new TestModelControllerFactory() {
-            @Override
-            public ModelTestModelControllerService create (Extension mainExtension, ControllerInitializer
-                    controllerInitializer,
-                                                           AdditionalInitialization additionalInit, ExtensionRegistry extensionRegistry,
-                                                           StringConfigurationPersister persister, ModelTestOperationValidatorFilter validateOpsFilter,
-                                                           boolean registerTransformers){
-                return TestModelControllerService.create(mainExtension, controllerInitializer, additionalInit, extensionRegistry,
-                        persister, validateOpsFilter, registerTransformers);
-            }
-        };
+        TestModelControllerFactory testModelControllerFactory = (mainExtension1, controllerInitializer1, additionalInit1, extensionRegistry, persister1, validateOpsFilter1, registerTransformers1) -> TestModelControllerService.create(mainExtension1, controllerInitializer1, additionalInit1, extensionRegistry,
+                persister1, validateOpsFilter1, registerTransformers1);
         if (legacyModelVersion != null) {
             ServiceLoader<TestModelControllerFactory> factoryLoader = ServiceLoader.load(TestModelControllerFactory.class, AbstractKernelServicesImpl.class.getClassLoader());
             for (TestModelControllerFactory factory : factoryLoader) {

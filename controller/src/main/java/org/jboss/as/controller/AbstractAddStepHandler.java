@@ -146,17 +146,10 @@ public class AbstractAddStepHandler implements OperationStepHandler {
         recordCapabilitiesAndRequirements(context, operation, resource);
         //verify model for alternatives & requires
         if (requiresRuntime(context)) {
-            context.addStep(new OperationStepHandler() {
-                public void execute(final OperationContext context, final ModelNode operation) throws OperationFailedException {
-                    performRuntime(context, operation, resource);
+            context.addStep((context12, operation12) -> {
+                performRuntime(context12, operation12, resource);
 
-                    context.completeStep(new OperationContext.RollbackHandler() {
-                        @Override
-                        public void handleRollback(OperationContext context, ModelNode operation) {
-                            rollbackRuntime(context, operation, resource);
-                        }
-                    });
-                }
+                context12.completeStep((context1, operation1) -> rollbackRuntime(context1, operation1, resource));
             }, OperationContext.Stage.RUNTIME);
         }
     }

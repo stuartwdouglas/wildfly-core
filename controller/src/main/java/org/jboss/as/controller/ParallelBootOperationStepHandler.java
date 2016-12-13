@@ -185,19 +185,16 @@ public class ParallelBootOperationStepHandler implements OperationStepHandler {
         }
 
         // Continue boot
-        context.completeStep(new OperationContext.ResultHandler() {
-            @Override
-            public void handleResult(OperationContext.ResultAction resultAction, OperationContext context, ModelNode operation) {
+        context.completeStep((resultAction, context1, operation1) -> {
 
-                // Tell all the subsystem tasks the result of the operations
-                notifySubsystemTransactions(transactionControls, resultAction == OperationContext.ResultAction.ROLLBACK, committedLatch, OperationContext.Stage.RUNTIME);
+            // Tell all the subsystem tasks the result of the operations
+            notifySubsystemTransactions(transactionControls, resultAction == OperationContext.ResultAction.ROLLBACK, committedLatch, OperationContext.Stage.RUNTIME);
 
-                // Make sure all the subsystems have completed the out path before we return
-                try {
-                    completeLatch.await();
-                } catch (InterruptedException e) {
-                    Thread.currentThread().interrupt();
-                }
+            // Make sure all the subsystems have completed the out path before we return
+            try {
+                completeLatch.await();
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
             }
         });
 
@@ -246,71 +243,65 @@ public class ParallelBootOperationStepHandler implements OperationStepHandler {
 
     private OperationStepHandler getRuntimeStep(final Map<String, List<ParsedBootOp>> runtimeOpsBySubsystem) {
 
-        return new OperationStepHandler() {
-            @Override
-            public void execute(OperationContext context, ModelNode operation) throws OperationFailedException {
+        return (context, operation) -> {
 
-                long start = System.currentTimeMillis();
-                // make sure the registry lock is held
-                context.getServiceRegistry(true);
+            long start = System.currentTimeMillis();
+            // make sure the registry lock is held
+            context.getServiceRegistry(true);
 
-                final Map<String, ParallelBootTransactionControl> transactionControls = new LinkedHashMap<String, ParallelBootTransactionControl>();
+            final Map<String, ParallelBootTransactionControl> transactionControls = new LinkedHashMap<String, ParallelBootTransactionControl>();
 
-                final CountDownLatch preparedLatch = new CountDownLatch(runtimeOpsBySubsystem.size());
-                final CountDownLatch committedLatch = new CountDownLatch(1);
-                final CountDownLatch completeLatch = new CountDownLatch(runtimeOpsBySubsystem.size());
-                final Thread controllingThread = Thread.currentThread();
+            final CountDownLatch preparedLatch = new CountDownLatch(runtimeOpsBySubsystem.size());
+            final CountDownLatch committedLatch = new CountDownLatch(1);
+            final CountDownLatch completeLatch = new CountDownLatch(runtimeOpsBySubsystem.size());
+            final Thread controllingThread = Thread.currentThread();
 
-                if (!(context instanceof AbstractOperationContext)) {
-                    throw ControllerLogger.ROOT_LOGGER.operationContextIsNotAbstractOperationContext();
-                }
+            if (!(context instanceof AbstractOperationContext)) {
+                throw ControllerLogger.ROOT_LOGGER.operationContextIsNotAbstractOperationContext();
+            }
 
 
-                for (Map.Entry<String, List<ParsedBootOp>> entry : runtimeOpsBySubsystem.entrySet()) {
-                    String subsystemName = entry.getKey();
-                    final ParallelBootTransactionControl txControl = new ParallelBootTransactionControl(preparedLatch, committedLatch, completeLatch);
-                    transactionControls.put(subsystemName, txControl);
+            for (Map.Entry<String, List<ParsedBootOp>> entry : runtimeOpsBySubsystem.entrySet()) {
+                String subsystemName = entry.getKey();
+                final ParallelBootTransactionControl txControl = new ParallelBootTransactionControl(preparedLatch, committedLatch, completeLatch);
+                transactionControls.put(subsystemName, txControl);
 
-                    // Execute the subsystem's ops in another thread
-                    ParallelBootTask subsystemTask = new ParallelBootTask(subsystemName, entry.getValue(), (OperationContextImpl)context, txControl, null, controllingThread, controller, operationId);
-                    executor.execute(subsystemTask);
-                }
+                // Execute the subsystem's ops in another thread
+                ParallelBootTask subsystemTask = new ParallelBootTask(subsystemName, entry.getValue(), (OperationContextImpl)context, txControl, null, controllingThread, controller, operationId);
+                executor.execute(subsystemTask);
+            }
 
-                // Wait for all subsystem ops to complete
+            // Wait for all subsystem ops to complete
+            try {
+                preparedLatch.await();
+
+                // See if all subsystems succeeded; if not report a failure to context
+                checkForSubsystemFailures(context, transactionControls, OperationContext.Stage.RUNTIME);
+
+            } catch (InterruptedException e) {
+                context.getFailureDescription().set(new ModelNode().set(ControllerLogger.ROOT_LOGGER.subsystemBootInterrupted()));
+                Thread.currentThread().interrupt();
+            }
+
+            if (MGMT_OP_LOGGER.isDebugEnabled()) {
+                long elapsed = System.currentTimeMillis() - start;
+                MGMT_OP_LOGGER.debugf("Ran subsystem runtime operations in [%d] ms", elapsed);
+            }
+
+
+            // Continue boot
+            context.completeStep((resultAction, context1, operation1) -> {
+
+                // Tell all the subsystem tasks the result of the operations
+                notifySubsystemTransactions(transactionControls, resultAction == OperationContext.ResultAction.ROLLBACK, committedLatch, OperationContext.Stage.MODEL);
+
+                // Make sure all the subsystems have completed the out path before we return
                 try {
-                    preparedLatch.await();
-
-                    // See if all subsystems succeeded; if not report a failure to context
-                    checkForSubsystemFailures(context, transactionControls, OperationContext.Stage.RUNTIME);
-
+                    completeLatch.await();
                 } catch (InterruptedException e) {
-                    context.getFailureDescription().set(new ModelNode().set(ControllerLogger.ROOT_LOGGER.subsystemBootInterrupted()));
                     Thread.currentThread().interrupt();
                 }
-
-                if (MGMT_OP_LOGGER.isDebugEnabled()) {
-                    long elapsed = System.currentTimeMillis() - start;
-                    MGMT_OP_LOGGER.debugf("Ran subsystem runtime operations in [%d] ms", elapsed);
-                }
-
-
-                // Continue boot
-                context.completeStep(new OperationContext.ResultHandler() {
-                    @Override
-                    public void handleResult(OperationContext.ResultAction resultAction, OperationContext context, ModelNode operation) {
-
-                        // Tell all the subsystem tasks the result of the operations
-                        notifySubsystemTransactions(transactionControls, resultAction == OperationContext.ResultAction.ROLLBACK, committedLatch, OperationContext.Stage.MODEL);
-
-                        // Make sure all the subsystems have completed the out path before we return
-                        try {
-                            completeLatch.await();
-                        } catch (InterruptedException e) {
-                            Thread.currentThread().interrupt();
-                        }
-                    }
-                });
-            }
+            });
         };
     }
 

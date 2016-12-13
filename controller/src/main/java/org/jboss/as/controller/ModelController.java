@@ -114,11 +114,7 @@ public interface ModelController {
         /**
          * An operation transaction control implementation which always commits the operation.
          */
-        OperationTransactionControl COMMIT = new OperationTransactionControl() {
-            public void operationPrepared(final OperationTransaction transaction, final ModelNode result) {
-                transaction.commit();
-            }
-        };
+        OperationTransactionControl COMMIT = (transaction, result) -> transaction.commit();
     }
 
     /**

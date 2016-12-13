@@ -22,7 +22,6 @@
 package org.jboss.as.cli.parsing.operation;
 
 import org.jboss.as.cli.CommandFormatException;
-import org.jboss.as.cli.parsing.CharacterHandler;
 import org.jboss.as.cli.parsing.DefaultParsingState;
 import org.jboss.as.cli.parsing.GlobalCharacterHandlers;
 import org.jboss.as.cli.parsing.LineBreakHandler;
@@ -55,13 +54,11 @@ public class PropertyListState extends DefaultParsingState {
         for(int i = 0; i < listEnd.length; ++i) {
             putHandler(listEnd[i], GlobalCharacterHandlers.LEAVE_STATE_HANDLER);
         }
-        setEnterHandler(new CharacterHandler(){
-            @Override
-            public void handle(ParsingContext ctx) throws CommandFormatException {
-                if(ctx.getCharacter() != listStart) {
-                    ctx.enterState(propState);
-                }
-            }});
+        setEnterHandler(ctx -> {
+            if(ctx.getCharacter() != listStart) {
+                ctx.enterState(propState);
+            }
+        });
         setDefaultHandler(new LineBreakHandler(false){
             @Override
             protected void doHandle(ParsingContext ctx) throws CommandFormatException {
@@ -69,14 +66,12 @@ public class PropertyListState extends DefaultParsingState {
             }
         });
         putHandler(propSeparator, GlobalCharacterHandlers.NOOP_CHARACTER_HANDLER);
-        setReturnHandler(new CharacterHandler(){
-            @Override
-            public void handle(ParsingContext ctx) throws CommandFormatException {
-                if(ctx.isEndOfContent()) {
-                    return;
-                }
-                getHandler(ctx.getCharacter()).handle(ctx);
-            }});
+        setReturnHandler(ctx -> {
+            if(ctx.isEndOfContent()) {
+                return;
+            }
+            getHandler(ctx.getCharacter()).handle(ctx);
+        });
         //this.setEndContentHandler(new ErrorCharacterHandler("')' is missing"));
         setIgnoreWhitespaces(true);
     }

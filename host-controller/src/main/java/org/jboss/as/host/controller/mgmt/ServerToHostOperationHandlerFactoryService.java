@@ -66,11 +66,7 @@ public class ServerToHostOperationHandlerFactoryService implements ManagementCha
     private final ExpressionResolver expressionResolver;
     private final File tempDir;
 
-    private final ThreadFactory threadFactory = doPrivileged(new PrivilegedAction<JBossThreadFactory>() {
-        public JBossThreadFactory run() {
-            return new JBossThreadFactory(new ThreadGroup("server-registration-threads"), Boolean.FALSE, null, "%G - %t", null, null);
-        }
-    });
+    private final ThreadFactory threadFactory = doPrivileged((PrivilegedAction<JBossThreadFactory>) () -> new JBossThreadFactory(new ThreadGroup("server-registration-threads"), Boolean.FALSE, null, "%G - %t", null, null));
     private volatile ExecutorService registrations;
 
     ServerToHostOperationHandlerFactoryService(ExecutorService executorService, ServerToHostProtocolHandler.OperationExecutor operationExecutor, DomainController domainController, ExpressionResolver expressionResolver, File tempDir) {

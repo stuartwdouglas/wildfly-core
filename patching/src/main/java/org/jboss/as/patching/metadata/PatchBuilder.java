@@ -130,21 +130,18 @@ public class PatchBuilder extends ModificationBuilderTarget<PatchBuilder> implem
     }
 
     public PatchBuilder addElement(final PatchElement element) {
-        addElement(element.getId(), new PatchElementHolder() {
-            @Override
-            public PatchElement createElement(PatchType patchType) {
-                final PatchType type = element.getProvider().getPatchType();
-                if (type == null) {
-                    if (patchType == PatchType.CUMULATIVE) {
-                        ((PatchElementProviderImpl)element.getProvider()).upgrade();
-                    } else {
-                        ((PatchElementProviderImpl)element.getProvider()).oneOffPatch();
-                    }
-                } else if (patchType != PatchBuilder.this.patchType) {
-                    throw PatchLogger.ROOT_LOGGER.patchTypesDontMatch();
+        addElement(element.getId(), patchType -> {
+            final PatchType type = element.getProvider().getPatchType();
+            if (type == null) {
+                if (patchType == PatchType.CUMULATIVE) {
+                    ((PatchElementProviderImpl)element.getProvider()).upgrade();
+                } else {
+                    ((PatchElementProviderImpl)element.getProvider()).oneOffPatch();
                 }
-                return element;
+            } else if (patchType != PatchBuilder.this.patchType) {
+                throw PatchLogger.ROOT_LOGGER.patchTypesDontMatch();
             }
+            return element;
         });
         return this;
     }

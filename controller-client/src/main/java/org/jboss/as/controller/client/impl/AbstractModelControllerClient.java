@@ -208,32 +208,29 @@ public abstract class AbstractModelControllerClient implements ModelControllerCl
             // Read the inputStream index
             expectHeader(input, ModelControllerProtocol.PARAM_INPUTSTREAM_INDEX);
             final int index = input.readInt();
-            context.executeAsync(new ManagementRequestContext.AsyncTask<OperationExecutionContext>() {
-                @Override
-                public void execute(final ManagementRequestContext<OperationExecutionContext> context) throws Exception {
-                    final OperationExecutionContext exec = context.getAttachment();
-                    final ManagementRequestHeader header = ManagementRequestHeader.class.cast(context.getRequestHeader());
-                    final ManagementResponseHeader response = new ManagementResponseHeader(header.getVersion(), header.getRequestId(), null);
-                    final InputStreamEntry entry = exec.getStream(index);
-                    synchronized (entry) {
-                        // Initialize the stream entry
-                        final int size = entry.initialize();
+            context.executeAsync(context1 -> {
+                final OperationExecutionContext exec = context1.getAttachment();
+                final ManagementRequestHeader header = ManagementRequestHeader.class.cast(context1.getRequestHeader());
+                final ManagementResponseHeader response = new ManagementResponseHeader(header.getVersion(), header.getRequestId(), null);
+                final InputStreamEntry entry = exec.getStream(index);
+                synchronized (entry) {
+                    // Initialize the stream entry
+                    final int size = entry.initialize();
+                    try {
+                        final FlushableDataOutput output = context1.writeMessage(response);
                         try {
-                            final FlushableDataOutput output = context.writeMessage(response);
-                            try {
-                                output.writeByte(ModelControllerProtocol.PARAM_INPUTSTREAM_LENGTH);
-                                output.writeInt(size);
-                                output.writeByte(ModelControllerProtocol.PARAM_INPUTSTREAM_CONTENTS);
-                                entry.copyStream(output);
-                                output.writeByte(ManagementProtocol.RESPONSE_END);
-                                output.close();
-                            } finally {
-                                StreamUtils.safeClose(output);
-                            }
+                            output.writeByte(ModelControllerProtocol.PARAM_INPUTSTREAM_LENGTH);
+                            output.writeInt(size);
+                            output.writeByte(ModelControllerProtocol.PARAM_INPUTSTREAM_CONTENTS);
+                            entry.copyStream(output);
+                            output.writeByte(ManagementProtocol.RESPONSE_END);
+                            output.close();
                         } finally {
-                            // the caller is responsible for closing the input streams
-                            // StreamUtils.safeClose(is);
+                            StreamUtils.safeClose(output);
                         }
+                    } finally {
+                        // the caller is responsible for closing the input streams
+                        // StreamUtils.safeClose(is);
                     }
                 }
             });

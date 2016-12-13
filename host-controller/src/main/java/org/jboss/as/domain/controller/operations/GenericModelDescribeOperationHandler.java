@@ -99,37 +99,34 @@ public class GenericModelDescribeOperationHandler implements OperationStepHandle
         final Map<String, ModelNode> includeResults = new HashMap<String, ModelNode>();
 
         // Step to handle failed operations
-        context.addStep(new OperationStepHandler() {
-            @Override
-            public void execute(OperationContext context, ModelNode operation) throws OperationFailedException {
-                boolean failed = false;
-                if (failureRef.get() != null) {
-                    // One of our subsystems failed
-                    context.getFailureDescription().set(failureRef.get());
-                    failed = true;
-                } else {
-                    for (final ModelNode includeRsp : includeResults.values()) {
-                        if (includeRsp.hasDefined(FAILURE_DESCRIPTION)) {
-                            context.getFailureDescription().set(includeRsp.get(FAILURE_DESCRIPTION));
-                            failed = true;
-                            break;
-                        }
-                        final ModelNode includeResult = includeRsp.get(RESULT);
-                        if (includeResult.isDefined()) {
-                            for (ModelNode op : includeResult.asList()) {
-                                addOrderedChildTypeInfo(context, resource, op);
-                                result.add(op);
-                            }
+        context.addStep((context12, operation12) -> {
+            boolean failed = false;
+            if (failureRef.get() != null) {
+                // One of our subsystems failed
+                context12.getFailureDescription().set(failureRef.get());
+                failed = true;
+            } else {
+                for (final ModelNode includeRsp : includeResults.values()) {
+                    if (includeRsp.hasDefined(FAILURE_DESCRIPTION)) {
+                        context12.getFailureDescription().set(includeRsp.get(FAILURE_DESCRIPTION));
+                        failed = true;
+                        break;
+                    }
+                    final ModelNode includeResult = includeRsp.get(RESULT);
+                    if (includeResult.isDefined()) {
+                        for (ModelNode op : includeResult.asList()) {
+                            addOrderedChildTypeInfo(context12, resource, op);
+                            result.add(op);
                         }
                     }
                 }
-                if (!failed) {
-                    for (final ModelNode childRsp : results.asList()) {
-                        addOrderedChildTypeInfo(context, resource, childRsp);
-                        result.add(childRsp);
-                    }
-                    context.getResult().set(result);
+            }
+            if (!failed) {
+                for (final ModelNode childRsp : results.asList()) {
+                    addOrderedChildTypeInfo(context12, resource, childRsp);
+                    result.add(childRsp);
                 }
+                context12.getResult().set(result);
             }
         }, OperationContext.Stage.MODEL, true);
 
@@ -157,15 +154,12 @@ public class GenericModelDescribeOperationHandler implements OperationStepHandle
                 final OperationStepHandler stepHandler = childRegistration.getOperationHandler(PathAddress.EMPTY_ADDRESS, operationName);
                 final ModelNode childRsp = new ModelNode();
 
-                context.addStep(new OperationStepHandler() {
-                    @Override
-                    public void execute(OperationContext context, ModelNode operation) throws OperationFailedException {
-                        if (failureRef.get() == null) {
-                            if (childRsp.hasDefined(FAILURE_DESCRIPTION)) {
-                                failureRef.set(childRsp.get(FAILURE_DESCRIPTION));
-                            } else if (childRsp.hasDefined(RESULT)) {
-                                addChildOperation(address, childRsp.require(RESULT).asList(), results);
-                            }
+                context.addStep((context1, operation1) -> {
+                    if (failureRef.get() == null) {
+                        if (childRsp.hasDefined(FAILURE_DESCRIPTION)) {
+                            failureRef.set(childRsp.get(FAILURE_DESCRIPTION));
+                        } else if (childRsp.hasDefined(RESULT)) {
+                            addChildOperation(address, childRsp.require(RESULT).asList(), results);
                         }
                     }
                 }, OperationContext.Stage.MODEL, true);

@@ -41,7 +41,6 @@ import org.jboss.as.cli.accesscontrol.AccessRequirementBuilder;
 import org.jboss.as.cli.accesscontrol.AccessRequirementBuilder.RequirementSetBuilder;
 import org.jboss.as.cli.impl.ArgumentWithValue;
 import org.jboss.as.cli.impl.DefaultCompleter;
-import org.jboss.as.cli.impl.DefaultCompleter.CandidatesProvider;
 import org.jboss.as.cli.operation.OperationFormatException;
 import org.jboss.as.cli.operation.OperationRequestAddress;
 import org.jboss.as.cli.operation.ParsedCommandLine;
@@ -95,11 +94,7 @@ public class ResourceCompositeOperationHandler extends BaseOperationCommand {
 
         addRequiredPath(nodeType);
 
-        profile = new ArgumentWithValue(this, new DefaultCompleter(new CandidatesProvider(){
-            @Override
-            public List<String> getAllCandidates(CommandContext ctx) {
-                return Util.getNodeNames(ctx.getModelControllerClient(), null, Util.PROFILE);
-            }}), "--profile") {
+        profile = new ArgumentWithValue(this, new DefaultCompleter(ctx12 -> Util.getNodeNames(ctx12.getModelControllerClient(), null, Util.PROFILE)), "--profile") {
             @Override
             public boolean canAppearNext(CommandContext ctx) throws CommandFormatException {
                 if(!isDependsOnProfile()) {
@@ -112,26 +107,23 @@ public class ResourceCompositeOperationHandler extends BaseOperationCommand {
             }
         };
 
-        name = new ArgumentWithValue(this, new DefaultCompleter(new DefaultCompleter.CandidatesProvider() {
-            @Override
-            public List<String> getAllCandidates(CommandContext ctx) {
-                ModelControllerClient client = ctx.getModelControllerClient();
-                if (client == null) {
+        name = new ArgumentWithValue(this, new DefaultCompleter(ctx1 -> {
+            ModelControllerClient client = ctx1.getModelControllerClient();
+            if (client == null) {
+                return Collections.emptyList();
+            }
+            DefaultOperationRequestAddress address = new DefaultOperationRequestAddress();
+            if(isDependsOnProfile() && ctx1.isDomainMode()) {
+                final String profileName = profile.getValue(ctx1.getParsedCommandLine());
+                if(profile == null) {
                     return Collections.emptyList();
                 }
-                DefaultOperationRequestAddress address = new DefaultOperationRequestAddress();
-                if(isDependsOnProfile() && ctx.isDomainMode()) {
-                    final String profileName = profile.getValue(ctx.getParsedCommandLine());
-                    if(profile == null) {
-                        return Collections.emptyList();
-                    }
-                    address.toNode(Util.PROFILE, profileName);
-                }
-                for(OperationRequestAddress.Node node : getRequiredAddress()) {
-                    address.toNode(node.getType(), node.getName());
-                }
-                return Util.getNodeNames(ctx.getModelControllerClient(), address, getRequiredType());
-                }
+                address.toNode(Util.PROFILE, profileName);
+            }
+            for(OperationRequestAddress.Node node : getRequiredAddress()) {
+                address.toNode(node.getType(), node.getName());
+            }
+            return Util.getNodeNames(ctx1.getModelControllerClient(), address, getRequiredType());
             }), (idProperty == null ? "--name" : "--" + idProperty)) {
             @Override
             public boolean canAppearNext(CommandContext ctx) throws CommandFormatException {

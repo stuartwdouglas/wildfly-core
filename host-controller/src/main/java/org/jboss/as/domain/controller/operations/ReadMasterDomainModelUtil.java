@@ -370,44 +370,41 @@ public class ReadMasterDomainModelUtil {
      * @return
      */
     public static Transformers.ResourceIgnoredTransformationRegistry createHostIgnoredRegistry(final HostInfo hostInfo, final RequiredConfigurationHolder rc) {
-        return new Transformers.ResourceIgnoredTransformationRegistry() {
-            @Override
-            public boolean isResourceTransformationIgnored(PathAddress address) {
-                if (hostInfo.isResourceTransformationIgnored(address)) {
-                    return true;
-                }
-                if (address.size() == 1 && hostInfo.isIgnoreUnaffectedConfig()) {
-                    final PathElement element = address.getElement(0);
-                    final String type = element.getKey();
-                    switch (type) {
-                        case ModelDescriptionConstants.EXTENSION:
-                            // Don't ignore extensions for now
-                            return false;
+        return address -> {
+            if (hostInfo.isResourceTransformationIgnored(address)) {
+                return true;
+            }
+            if (address.size() == 1 && hostInfo.isIgnoreUnaffectedConfig()) {
+                final PathElement element = address.getElement(0);
+                final String type = element.getKey();
+                switch (type) {
+                    case ModelDescriptionConstants.EXTENSION:
+                        // Don't ignore extensions for now
+                        return false;
 //                            if (local) {
 //                                return false; // Always include all local extensions
 //                            } else if (!rc.getExtensions().contains(element.getValue())) {
 //                                return true;
 //                            }
 //                            break;
-                        case PROFILE:
-                            if (!rc.getProfiles().contains(element.getValue())) {
-                                return true;
-                            }
-                            break;
-                        case SERVER_GROUP:
-                            if (!rc.getServerGroups().contains(element.getValue())) {
-                                return true;
-                            }
-                            break;
-                        case SOCKET_BINDING_GROUP:
-                            if (!rc.getSocketBindings().contains(element.getValue())) {
-                                return true;
-                            }
-                            break;
-                    }
+                    case PROFILE:
+                        if (!rc.getProfiles().contains(element.getValue())) {
+                            return true;
+                        }
+                        break;
+                    case SERVER_GROUP:
+                        if (!rc.getServerGroups().contains(element.getValue())) {
+                            return true;
+                        }
+                        break;
+                    case SOCKET_BINDING_GROUP:
+                        if (!rc.getSocketBindings().contains(element.getValue())) {
+                            return true;
+                        }
+                        break;
                 }
-                return false;
             }
+            return false;
         };
     }
 
@@ -420,48 +417,45 @@ public class ReadMasterDomainModelUtil {
      * @return
      */
     public static Transformers.ResourceIgnoredTransformationRegistry createServerIgnoredRegistry(final RequiredConfigurationHolder rc, final Transformers.ResourceIgnoredTransformationRegistry delegate) {
-        return new Transformers.ResourceIgnoredTransformationRegistry() {
-            @Override
-            public boolean isResourceTransformationIgnored(PathAddress address) {
-                final int length = address.size();
-                if (length == 0) {
-                    return false;
-                } else if (length >= 1) {
-                    if (delegate.isResourceTransformationIgnored(address)) {
-                        return true;
-                    }
+        return address -> {
+            final int length = address.size();
+            if (length == 0) {
+                return false;
+            } else if (length >= 1) {
+                if (delegate.isResourceTransformationIgnored(address)) {
+                    return true;
+                }
 
-                    final PathElement element = address.getElement(0);
-                    final String type = element.getKey();
-                    switch (type) {
-                        case ModelDescriptionConstants.EXTENSION:
-                            // Don't ignore extensions for now
-                            return false;
+                final PathElement element = address.getElement(0);
+                final String type = element.getKey();
+                switch (type) {
+                    case ModelDescriptionConstants.EXTENSION:
+                        // Don't ignore extensions for now
+                        return false;
 //                            if (local) {
 //                                return false; // Always include all local extensions
 //                            } else if (rc.getExtensions().contains(element.getValue())) {
 //                                return false;
 //                            }
 //                            break;
-                        case ModelDescriptionConstants.PROFILE:
-                            if (rc.getProfiles().contains(element.getValue())) {
-                                return false;
-                            }
-                            break;
-                        case ModelDescriptionConstants.SERVER_GROUP:
-                            if (rc.getServerGroups().contains(element.getValue())) {
-                                return false;
-                            }
-                            break;
-                        case ModelDescriptionConstants.SOCKET_BINDING_GROUP:
-                            if (rc.getSocketBindings().contains(element.getValue())) {
-                                return false;
-                            }
-                            break;
-                    }
+                    case ModelDescriptionConstants.PROFILE:
+                        if (rc.getProfiles().contains(element.getValue())) {
+                            return false;
+                        }
+                        break;
+                    case ModelDescriptionConstants.SERVER_GROUP:
+                        if (rc.getServerGroups().contains(element.getValue())) {
+                            return false;
+                        }
+                        break;
+                    case ModelDescriptionConstants.SOCKET_BINDING_GROUP:
+                        if (rc.getSocketBindings().contains(element.getValue())) {
+                            return false;
+                        }
+                        break;
                 }
-                return true;
             }
+            return true;
         };
     }
 

@@ -178,16 +178,9 @@ public class ServerShutdownHandler implements OperationStepHandler {
         void shutdown() {
             if(compareAndSet(false, true)) {
                 processState.setStopping();
-                final Thread thread = new Thread(new Runnable() {
-                    public void run() {
-                        int exitCode = restart ? ExitCodes.RESTART_PROCESS_FROM_STARTUP_SCRIPT : ExitCodes.NORMAL;
-                        SystemExiter.logAndExit(new SystemExiter.ExitLogger() {
-                            @Override
-                            public void logExit() {
-                                ServerLogger.ROOT_LOGGER.shuttingDownInResponseToManagementRequest(op);
-                            }
-                        }, exitCode);
-                    }
+                final Thread thread = new Thread(() -> {
+                    int exitCode = restart ? ExitCodes.RESTART_PROCESS_FROM_STARTUP_SCRIPT : ExitCodes.NORMAL;
+                    SystemExiter.logAndExit(() -> ServerLogger.ROOT_LOGGER.shuttingDownInResponseToManagementRequest(op), exitCode);
                 });
                 // The intention is that this shutdown is graceful, and so the client gets a reply.
                 // At the time of writing we did not yet have graceful shutdown.

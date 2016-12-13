@@ -46,14 +46,12 @@ public class ArgumentListState extends DefaultParsingState {
 
     ArgumentListState(ArgumentState argState, final ArgumentValueState valueState, OutputTargetState outputTarget) {
         super(ID);
-        setEnterHandler(new CharacterHandler(){
-            @Override
-            public void handle(ParsingContext ctx) throws CommandFormatException {
-                final CharacterHandler handler = getHandler(ctx.getCharacter());
-                if(handler != null) {
-                    handler.handle(ctx);
-                }
-            }});
+        setEnterHandler(ctx -> {
+            final CharacterHandler handler = getHandler(ctx.getCharacter());
+            if(handler != null) {
+                handler.handle(ctx);
+            }
+        });
         enterState('-', argState);
         setDefaultHandler(new LineBreakHandler(false){
             @Override
@@ -63,14 +61,12 @@ public class ArgumentListState extends DefaultParsingState {
         });
         putHandler(OutputTargetState.OUTPUT_REDIRECT_CHAR, GlobalCharacterHandlers.LEAVE_STATE_HANDLER);
         setIgnoreWhitespaces(true);
-        setReturnHandler(new CharacterHandler(){
-            @Override
-            public void handle(ParsingContext ctx) throws CommandFormatException {
-                if(ctx.isEndOfContent()) {
-                    ctx.leaveState();
-                } else {
-                    getHandler(ctx.getCharacter()).handle(ctx);
-                }
-            }});
+        setReturnHandler(ctx -> {
+            if(ctx.isEndOfContent()) {
+                ctx.leaveState();
+            } else {
+                getHandler(ctx.getCharacter()).handle(ctx);
+            }
+        });
     }
 }

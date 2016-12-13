@@ -71,14 +71,11 @@ public class ServerGroupDeploymentRemoveHandler implements OperationStepHandler 
             hash = null;
         }
         context.removeResource(PathAddress.EMPTY_ADDRESS);
-        context.completeStep(new OperationContext.ResultHandler() {
-            @Override
-            public void handleResult(OperationContext.ResultAction resultAction, OperationContext context, ModelNode operation) {
-                if (resultAction != OperationContext.ResultAction.ROLLBACK) {
-                    if (contentRepository != null && hash != null) {
-                        PathAddress operationAddress = PathAddress.pathAddress(operation.require(OP_ADDR));
-                        contentRepository.removeContent(ModelContentReference.fromModelAddress(operationAddress, hash));
-                    }
+        context.completeStep((resultAction, context1, operation1) -> {
+            if (resultAction != OperationContext.ResultAction.ROLLBACK) {
+                if (contentRepository != null && hash != null) {
+                    PathAddress operationAddress1 = PathAddress.pathAddress(operation1.require(OP_ADDR));
+                    contentRepository.removeContent(ModelContentReference.fromModelAddress(operationAddress1, hash));
                 }
             }
         });

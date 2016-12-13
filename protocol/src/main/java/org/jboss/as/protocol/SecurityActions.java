@@ -40,11 +40,6 @@ final class SecurityActions {
     }
 
     static String getSystemProperty(final String key) {
-        return getSecurityManager() == null ? getProperty(key) : doPrivileged(new PrivilegedAction<String>() {
-            @Override
-            public String run() {
-                return getProperty(key);
-            }
-        });
+        return getSecurityManager() == null ? getProperty(key) : doPrivileged((PrivilegedAction<String>) () -> getProperty(key));
     }
 }

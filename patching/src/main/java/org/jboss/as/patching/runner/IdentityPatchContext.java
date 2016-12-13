@@ -995,13 +995,7 @@ class IdentityPatchContext implements PatchContentProvider {
 
     }
 
-    static final FileFilter CONFIG_FILTER = new FileFilter() {
-
-        @Override
-        public boolean accept(File pathName) {
-            return pathName.isFile() && pathName.getName().endsWith(".xml");
-        }
-    };
+    static final FileFilter CONFIG_FILTER = pathName -> pathName.isFile() && pathName.getName().endsWith(".xml");
 
     /**
      * Backup all xml files in a given directory.

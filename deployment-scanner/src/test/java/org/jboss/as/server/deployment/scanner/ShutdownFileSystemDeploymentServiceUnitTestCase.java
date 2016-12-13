@@ -150,26 +150,23 @@ public class ShutdownFileSystemDeploymentServiceUnitTestCase {
         testee.setAutoDeployZippedContent(true);
         sc.addCompositeSuccessResponse(1);
         testSupport.createZip(deployment, 0, false, false, true, true);
-        Future<Boolean> lockDone = Executors.newSingleThreadExecutor().submit(new Callable<Boolean>() {
-            @Override
-            public Boolean call() throws Exception {
-                try {
-                    synchronized (ops.lock) {
-                        logger.info("Executor service should be locked");
-                        while (!ops.ready) {//Waiting for deployment to start.
-                            Thread.sleep(100);
-                        }
-                        logger.info("About to stop the scanner");
-                        testee.stopScanner();
-                        logger.info("Closing executor service " + myExecutor);
-                        myExecutor.shutdown();
-                        logger.info("Executor service should be closed");
+        Future<Boolean> lockDone = Executors.newSingleThreadExecutor().submit(() -> {
+            try {
+                synchronized (ops.lock) {
+                    logger.info("Executor service should be locked");
+                    while (!ops.ready) {//Waiting for deployment to start.
+                        Thread.sleep(100);
                     }
-                    return true;
-                } catch (InterruptedException ex) {
-                    ex.printStackTrace();
-                    throw new RuntimeException(ex);
+                    logger.info("About to stop the scanner");
+                    testee.stopScanner();
+                    logger.info("Closing executor service " + myExecutor);
+                    myExecutor.shutdown();
+                    logger.info("Executor service should be closed");
                 }
+                return true;
+            } catch (InterruptedException ex) {
+                ex.printStackTrace();
+                throw new RuntimeException(ex);
             }
         });
         final File dodeploy = new File(tmpDir, "foo.war" + FileSystemDeploymentService.DO_DEPLOY);
@@ -217,12 +214,7 @@ public class ShutdownFileSystemDeploymentServiceUnitTestCase {
         @Override
         public AsyncFuture<ModelNode> executeAsync(final ModelNode operation, OperationMessageHandler messageHandler) {
             logger.info("Executing deploy command from MockServerController, its executor service should be closed");
-            return executorService.submit(new Callable<ModelNode>() {
-                @Override
-                public ModelNode call() throws Exception {
-                    return execute(operation);
-                }
-            });
+            return executorService.submit(() -> execute(operation));
         }
 
         @Override

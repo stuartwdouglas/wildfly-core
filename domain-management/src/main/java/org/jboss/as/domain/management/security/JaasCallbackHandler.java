@@ -215,19 +215,16 @@ public class JaasCallbackHandler implements Service<CallbackHandlerService>, Cal
 
         } else {
             try {
-                LoginContext ctx = new LoginContext(name, subject, new CallbackHandler() {
-
-                    public void handle(Callback[] callbacks) throws IOException, UnsupportedCallbackException {
-                        for (Callback current : callbacks) {
-                            if (current instanceof NameCallback) {
-                                NameCallback ncb = (NameCallback) current;
-                                ncb.setName(userName);
-                            } else if (current instanceof PasswordCallback) {
-                                PasswordCallback pcb = (PasswordCallback) current;
-                                pcb.setPassword(password);
-                            } else {
-                                throw new UnsupportedCallbackException(current);
-                            }
+                LoginContext ctx = new LoginContext(name, subject, callbacks1 -> {
+                    for (Callback current : callbacks1) {
+                        if (current instanceof NameCallback) {
+                            NameCallback ncb = (NameCallback) current;
+                            ncb.setName(userName);
+                        } else if (current instanceof PasswordCallback) {
+                            PasswordCallback pcb = (PasswordCallback) current;
+                            pcb.setPassword(password);
+                        } else {
+                            throw new UnsupportedCallbackException(current);
                         }
                     }
                 });

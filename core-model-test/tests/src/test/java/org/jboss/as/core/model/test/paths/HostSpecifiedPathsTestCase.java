@@ -56,13 +56,10 @@ public class HostSpecifiedPathsTestCase extends AbstractSpecifiedPathsTestCase {
 
     @Override
     protected ModelInitializer createEmptyModelInitalizer() {
-        return new ModelInitializer() {
-            @Override
-            public void populateModel(Resource rootResource) {
-                PathElement pe = PathElement.pathElement("host", "test");
-                Resource res = new PlaceholderResource.PlaceholderResourceEntry(pe);
-                rootResource.registerChild(pe, res);
-            }
+        return rootResource -> {
+            PathElement pe = PathElement.pathElement("host", "test");
+            Resource res = new PlaceholderResource.PlaceholderResourceEntry(pe);
+            rootResource.registerChild(pe, res);
         };
     }
 

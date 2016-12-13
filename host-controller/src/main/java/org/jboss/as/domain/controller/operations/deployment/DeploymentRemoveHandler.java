@@ -81,26 +81,17 @@ public abstract class DeploymentRemoveHandler implements OperationStepHandler {
 
         context.removeResource(PathAddress.EMPTY_ADDRESS);
 
-        context.addStep(new OperationStepHandler() {
-            @Override
-            public void execute(OperationContext context, ModelNode operation) throws OperationFailedException {
-
-                context.completeStep(new OperationContext.ResultHandler() {
-                    @Override
-                    public void handleResult(ResultAction resultAction, OperationContext context, ModelNode operation) {
-                        if (resultAction != ResultAction.ROLLBACK) {
-                            Set<String> newHashes;
-                            try {
-                                newHashes = DeploymentUtils.getDeploymentHexHash(context.readResource(PathAddress.EMPTY_ADDRESS, false).getModel());
-                            } catch (Resource.NoSuchResourceException ex) {
-                                newHashes = Collections.emptySet();
-                            }
-                            removeContent(address, newHashes, deploymentHashes);
-                        }
-                    }
-                });
+        context.addStep((context12, operation12) -> context12.completeStep((resultAction, context1, operation1) -> {
+            if (resultAction != ResultAction.ROLLBACK) {
+                Set<String> newHashes;
+                try {
+                    newHashes = DeploymentUtils.getDeploymentHexHash(context1.readResource(PathAddress.EMPTY_ADDRESS, false).getModel());
+                } catch (Resource.NoSuchResourceException ex) {
+                    newHashes = Collections.emptySet();
+                }
+                removeContent(address, newHashes, deploymentHashes);
             }
-        }, OperationContext.Stage.RUNTIME);
+        }), OperationContext.Stage.RUNTIME);
     }
 
     protected void checkCanRemove(OperationContext context, ModelNode operation) throws OperationFailedException {

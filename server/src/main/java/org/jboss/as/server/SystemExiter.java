@@ -51,20 +51,12 @@ public class SystemExiter {
      * @param status the status code to provide to the exiter
      */
     public static void abort(final int status) {
-        logAndExit(new ExitLogger() {
-            @Override
-            public void logExit() {
-                ServerLogger.ROOT_LOGGER.aborting(status);
-            }
-        }, status);
+        logAndExit(() -> ServerLogger.ROOT_LOGGER.aborting(status), status);
     }
 
     public static void safeAbort() {
-        logAndExit(new ExitLogger() {
-            @Override
-            public void logExit() {
-                // no-op
-            }
+        logAndExit(() -> {
+            // no-op
         }, 0);
     }
 

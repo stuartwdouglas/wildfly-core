@@ -59,16 +59,13 @@ public class LocalPatchRollbackHandler extends PatchStreamResourceOperationStepH
             final PatchingResult result = runner.rollback(patchStream, patchId, policy, rollbackTo, restoreConfiguration);
             installationManager.restartRequired();
             context.restartRequired();
-            context.completeStep(new OperationContext.ResultHandler() {
-                @Override
-                public void handleResult(OperationContext.ResultAction resultAction, OperationContext context, ModelNode operation) {
-                    if(resultAction == OperationContext.ResultAction.KEEP) {
-                        result.commit();
-                    } else {
-                        installationManager.clearRestartRequired();
-                        context.revertRestartRequired();
-                        result.rollback();
-                    }
+            context.completeStep((resultAction, context1, operation1) -> {
+                if(resultAction == OperationContext.ResultAction.KEEP) {
+                    result.commit();
+                } else {
+                    installationManager.clearRestartRequired();
+                    context1.revertRestartRequired();
+                    result.rollback();
                 }
             });
         } catch (PatchingException e) {

@@ -22,12 +22,10 @@
 package org.jboss.as.cli.handlers;
 
 import java.io.IOException;
-import java.util.List;
 import java.util.Set;
 
 import org.jboss.as.cli.CommandContext;
 import org.jboss.as.cli.CommandFormatException;
-import org.jboss.as.cli.CommandLineCompleter;
 import org.jboss.as.cli.ModelNodeFormatter;
 import org.jboss.as.cli.Util;
 import org.jboss.as.cli.impl.ArgumentWithValue;
@@ -61,42 +59,40 @@ public class ReadAttributeHandler extends BaseOperationCommand {
         node = new ArgumentWithValue(this, OperationRequestCompleter.ARG_VALUE_COMPLETER, "--node");
 
         name = new ArgumentWithValue(this,
-                new CommandLineCompleter() {
-                    @Override
-                    public int complete(CommandContext ctx, String buffer, int cursor, List<String> candidates) {
-                        try {
-                        final OperationRequestAddress address = getAddress(ctx, true);
-                        final ModelNode req = new ModelNode();
-                        if(address.isEmpty()) {
-                            req.get(Util.ADDRESS).setEmptyList();
-                        } else {
-                            if(address.endsOnType()) {
-                                return -1;
-                            }
-                            final ModelNode addrNode = req.get(Util.ADDRESS);
-                            for(OperationRequestAddress.Node node : address) {
-                                addrNode.add(node.getType(), node.getName());
-                            }
+                (ctx1, buffer, cursor, candidates) -> {
+                    try {
+                    final OperationRequestAddress address = getAddress(ctx1, true);
+                    final ModelNode req = new ModelNode();
+                    if(address.isEmpty()) {
+                        req.get(Util.ADDRESS).setEmptyList();
+                    } else {
+                        if(address.endsOnType()) {
+                            return -1;
                         }
-                        req.get(Util.OPERATION).set(Util.READ_RESOURCE_DESCRIPTION);
-                        try {
-                            final ModelNode response = ctx.getModelControllerClient().execute(req);
-                            if(Util.isSuccess(response)) {
-                                if(response.hasDefined(Util.RESULT)) {
-                                    final ModelNode result = response.get(Util.RESULT);
-                                    if(result.hasDefined(Util.ATTRIBUTES)) {
-                                        return AttributeNamePathCompleter.INSTANCE.complete(buffer, candidates, result.get(Util.ATTRIBUTES));
-                                    }
+                        final ModelNode addrNode = req.get(Util.ADDRESS);
+                        for(OperationRequestAddress.Node node : address) {
+                            addrNode.add(node.getType(), node.getName());
+                        }
+                    }
+                    req.get(Util.OPERATION).set(Util.READ_RESOURCE_DESCRIPTION);
+                    try {
+                        final ModelNode response = ctx1.getModelControllerClient().execute(req);
+                        if(Util.isSuccess(response)) {
+                            if(response.hasDefined(Util.RESULT)) {
+                                final ModelNode result = response.get(Util.RESULT);
+                                if(result.hasDefined(Util.ATTRIBUTES)) {
+                                    return AttributeNamePathCompleter.INSTANCE.complete(buffer, candidates, result.get(Util.ATTRIBUTES));
                                 }
                             }
-                        } catch (IOException e) {
-                            e.printStackTrace();
                         }
-                    } catch (CommandFormatException e) {
-                        return -1;
+                    } catch (IOException e) {
+                        e.printStackTrace();
                     }
+                } catch (CommandFormatException e) {
                     return -1;
-                    }}, 0, "--name");
+                }
+                return -1;
+                }, 0, "--name");
 
         includeDefaults = new ArgumentWithValue(this, SimpleTabCompleter.BOOLEAN, "--include-defaults");
 

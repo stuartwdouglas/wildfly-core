@@ -349,12 +349,7 @@ public class LoggingExtension implements Extension {
 
     private static boolean getBooleanProperty(final String property) {
         if (WildFlySecurityManager.isChecking()) {
-            return AccessController.doPrivileged(new PrivilegedAction<Boolean>() {
-                @Override
-                public Boolean run() {
-                    return Boolean.getBoolean(property);
-                }
-            });
+            return AccessController.doPrivileged((PrivilegedAction<Boolean>) () -> Boolean.getBoolean(property));
         }
         return Boolean.getBoolean(property);
     }

@@ -164,24 +164,20 @@ public class ValidateUserState extends AbstractValidationState {
     }
 
     private State getCommonNamesCheckState() {
-        return new State() {
+        return () -> {
+            // If this is updating an existing user then the name is already accepted.
+            if (stateValues.isExistingUser() == false && stateValues.isSilentOrNonInteractive() == false) {
+                for (String current : BAD_USER_NAMES) {
+                    if (current.equals(stateValues.getUserName().toLowerCase(Locale.ENGLISH))) {
+                        String message = DomainManagementLogger.ROOT_LOGGER.usernameEasyToGuess(stateValues.getUserName());
+                        String prompt = DomainManagementLogger.ROOT_LOGGER.sureToAddUser(stateValues.getUserName());
 
-            @Override
-            public State execute() {
-                // If this is updating an existing user then the name is already accepted.
-                if (stateValues.isExistingUser() == false && stateValues.isSilentOrNonInteractive() == false) {
-                    for (String current : BAD_USER_NAMES) {
-                        if (current.equals(stateValues.getUserName().toLowerCase(Locale.ENGLISH))) {
-                            String message = DomainManagementLogger.ROOT_LOGGER.usernameEasyToGuess(stateValues.getUserName());
-                            String prompt = DomainManagementLogger.ROOT_LOGGER.sureToAddUser(stateValues.getUserName());
-
-                            return new ConfirmationChoice(theConsole, message, prompt, ValidateUserState.this, getRetryState());
-                        }
+                        return new ConfirmationChoice(theConsole, message, prompt, ValidateUserState.this, getRetryState());
                     }
                 }
-
-                return ValidateUserState.this;
             }
+
+            return ValidateUserState.this;
         };
     }
 

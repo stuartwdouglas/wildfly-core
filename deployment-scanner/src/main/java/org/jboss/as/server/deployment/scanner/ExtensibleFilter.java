@@ -44,15 +44,13 @@ class ExtensibleFilter implements DirectoryStream.Filter<Path> {
     /**
      * Compare the strings backwards.  This assists in suffix comparisons.
      */
-    private static final Comparator<String> reverseComparator = new Comparator<String>() {
-        public int compare(String o1, String o2) {
-            int idx1 = o1.length();
-            int idx2 = o2.length();
-            int comp = 0;
-            while (comp == 0 && idx1 > 0 && idx2 > 0)
-                comp = o1.charAt(--idx1) - o2.charAt(--idx2);
-            return (comp == 0) ? (idx1 - idx2) : comp;
-        }
+    private static final Comparator<String> reverseComparator = (o1, o2) -> {
+        int idx1 = o1.length();
+        int idx2 = o2.length();
+        int comp = 0;
+        while (comp == 0 && idx1 > 0 && idx2 > 0)
+            comp = o1.charAt(--idx1) - o2.charAt(--idx2);
+        return (comp == 0) ? (idx1 - idx2) : comp;
     };
 
     /**

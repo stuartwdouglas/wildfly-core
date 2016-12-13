@@ -293,14 +293,11 @@ public class SyslogAuditLogHandlerResourceDefinition extends AuditLogHandlerReso
 
             // Cross-resource model validation in a separate step to give
             // other ops included with this one a chance to execute before we validate
-            context.addStep(new OperationStepHandler() {
-                @Override
-                public void execute(OperationContext context, ModelNode operation) throws OperationFailedException {
-                    HandlerUtil.checkNoOtherHandlerWithTheSameName(context);
-                    String formatterName = resource.getModel().get(FORMATTER.getName()).asString();
-                    if (!HandlerUtil.lookForFormatter(context, context.getCurrentAddress(), formatterName)) {
-                        throw DomainManagementLogger.ROOT_LOGGER.noFormatterCalled(formatterName);
-                    }
+            context.addStep((context1, operation1) -> {
+                HandlerUtil.checkNoOtherHandlerWithTheSameName(context1);
+                String formatterName = resource.getModel().get(FORMATTER.getName()).asString();
+                if (!HandlerUtil.lookForFormatter(context1, context1.getCurrentAddress(), formatterName)) {
+                    throw DomainManagementLogger.ROOT_LOGGER.noFormatterCalled(formatterName);
                 }
             }, OperationContext.Stage.MODEL);
 

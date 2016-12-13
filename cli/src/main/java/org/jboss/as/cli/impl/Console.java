@@ -28,8 +28,6 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 
-import org.jboss.aesh.complete.CompleteOperation;
-import org.jboss.aesh.complete.Completion;
 import org.jboss.aesh.console.ConsoleCallback;
 import org.jboss.aesh.console.Prompt;
 import org.jboss.aesh.console.settings.Settings;
@@ -136,21 +134,18 @@ public interface Console {
 
                 @Override
                 public void addCompleter(final CommandLineCompleter completer) {
-                    console.addCompletion(new Completion() {
-                        @Override
-                        public void complete(CompleteOperation co) {
-                            List<String> candidates = new ArrayList<>();
-                            int offset = completer.complete(cmdCtx,
-                                    co.getBuffer(), co.getCursor(), candidates);
-                            co.setOffset(offset);
-                            co.setCompletionCandidates(candidates);
-                            String buffer = cmdCtx.getArgumentsString() == null ? co.getBuffer() : ctx.getArgumentsString() + co.getBuffer();
-                            if (co.getCompletionCandidates().size() == 1
-                                    && co.getCompletionCandidates().get(0).getCharacters().startsWith(buffer))
-                                co.doAppendSeparator(true);
-                            else
-                                co.doAppendSeparator(false);
-                        }
+                    console.addCompletion(co -> {
+                        List<String> candidates = new ArrayList<>();
+                        int offset = completer.complete(cmdCtx,
+                                co.getBuffer(), co.getCursor(), candidates);
+                        co.setOffset(offset);
+                        co.setCompletionCandidates(candidates);
+                        String buffer = cmdCtx.getArgumentsString() == null ? co.getBuffer() : ctx.getArgumentsString() + co.getBuffer();
+                        if (co.getCompletionCandidates().size() == 1
+                                && co.getCompletionCandidates().get(0).getCharacters().startsWith(buffer))
+                            co.doAppendSeparator(true);
+                        else
+                            co.doAppendSeparator(false);
                     });
                 }
 

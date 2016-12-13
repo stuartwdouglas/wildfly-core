@@ -35,12 +35,7 @@ import org.jboss.as.host.controller.logging.HostControllerLogger;
 public class SystemExiter extends org.jboss.as.server.SystemExiter {
 
     public static void abort(final int status) {
-        logAndExit(new ExitLogger() {
-            @Override
-            public void logExit() {
-                HostControllerLogger.ROOT_LOGGER.aborting(status);
-            }
-        }, status);
+        logAndExit(() -> HostControllerLogger.ROOT_LOGGER.aborting(status), status);
     }
 
     /** @deprecated use {@link org.jboss.as.server.SystemExiter.Exiter}*/

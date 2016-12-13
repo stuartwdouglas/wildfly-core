@@ -148,23 +148,17 @@ public class ModelControllerClientOperationHandler implements ManagementRequestH
 
             ProtocolUtils.expectHeader(input, ModelControllerProtocol.PARAM_INPUTSTREAMS_LENGTH);
             final int attachmentsLength = input.readInt();
-            context.executeAsync(new ManagementRequestContext.AsyncTask<Void>() {
-                @Override
-                public void execute(final ManagementRequestContext<Void> context) throws Exception {
-                    final ManagementResponseHeader response = ManagementResponseHeader.create(context.getRequestHeader());
+            context.executeAsync(context1 -> {
+                final ManagementResponseHeader response = ManagementResponseHeader.create(context1.getRequestHeader());
 
-                    try {
-                        AccessAuditContext.doAs(connectionIdentity, remoteAddress, new PrivilegedExceptionAction<Void>() {
-                            @Override
-                            public Void run() throws Exception {
-                                final CompletedCallback callback = new CompletedCallback(response, context, resultHandler);
-                                doExecute(operation, attachmentsLength, context, callback);
-                                return null;
-                            }
-                        });
-                    } catch (PrivilegedActionException e) {
-                        throw e.getException();
-                    }
+                try {
+                    AccessAuditContext.doAs(connectionIdentity, remoteAddress, (PrivilegedExceptionAction<Void>) () -> {
+                        final CompletedCallback callback = new CompletedCallback(response, context1, resultHandler);
+                        doExecute(operation, attachmentsLength, context1, callback);
+                        return null;
+                    });
+                } catch (PrivilegedActionException e) {
+                    throw e.getException();
                 }
             }, clientRequestExecutor);
         }
@@ -199,15 +193,12 @@ public class ModelControllerClientOperationHandler implements ManagementRequestH
 
             // Send the prepared response for :reload operations
             final boolean sendPreparedOperation = sendPreparedResponse(operation);
-            final ModelController.OperationTransactionControl transactionControl = sendPreparedOperation ? new ModelController.OperationTransactionControl() {
-                @Override
-                public void operationPrepared(ModelController.OperationTransaction transaction, ModelNode preparedResult) {
-                    transaction.commit();
-                    // Fix prepared result
-                    preparedResult.get(OUTCOME).set(SUCCESS);
-                    preparedResult.get(RESULT);
-                    callback.sendResponse(preparedResult);
-                }
+            final ModelController.OperationTransactionControl transactionControl = sendPreparedOperation ? (transaction, preparedResult) -> {
+                transaction.commit();
+                // Fix prepared result
+                preparedResult.get(OUTCOME).set(SUCCESS);
+                preparedResult.get(RESULT);
+                callback.sendResponse(preparedResult);
             } : ModelController.OperationTransactionControl.COMMIT;
 
             final OperationMessageHandlerProxy messageHandlerProxy = new OperationMessageHandlerProxy(channelAssociation, batchId);
@@ -293,25 +284,21 @@ public class ModelControllerClientOperationHandler implements ManagementRequestH
             final CountDownLatch latch = new CountDownLatch(1);
             final IOExceptionHolder exceptionHolder = new IOExceptionHolder();
 
-            boolean accepted = responseContext.executeAsync(new ManagementRequestContext.AsyncTask<Void>() {
+            boolean accepted = responseContext.executeAsync(context -> {
 
-                @Override
-                public void execute(final ManagementRequestContext<Void> context) throws Exception {
-
-                    FlushableDataOutput output = null;
-                    try {
-                        MGMT_OP_LOGGER.tracef("Transmitting response for %d", context.getOperationId());
-                        output = responseContext.writeMessage(response);
-                        output.write(ModelControllerProtocol.PARAM_RESPONSE);
-                        result.writeExternal(output);
-                        output.writeByte(ManagementProtocol.RESPONSE_END);
-                        output.close();
-                    } catch (IOException e) {
-                        exceptionHolder.exception = e;
-                    } finally {
-                        StreamUtils.safeClose(output);
-                        latch.countDown();
-                    }
+                FlushableDataOutput output = null;
+                try {
+                    MGMT_OP_LOGGER.tracef("Transmitting response for %d", context.getOperationId());
+                    output = responseContext.writeMessage(response);
+                    output.write(ModelControllerProtocol.PARAM_RESPONSE);
+                    result.writeExternal(output);
+                    output.writeByte(ManagementProtocol.RESPONSE_END);
+                    output.close();
+                } catch (IOException e) {
+                    exceptionHolder.exception = e;
+                } finally {
+                    StreamUtils.safeClose(output);
+                    latch.countDown();
                 }
             }, false);
 
@@ -336,17 +323,14 @@ public class ModelControllerClientOperationHandler implements ManagementRequestH
         @Override
         public void handleRequest(final DataInput input, final ActiveOperation.ResultHandler<ModelNode> resultHandler, final ManagementRequestContext<Void> context) throws IOException {
             ControllerLogger.MGMT_OP_LOGGER.tracef("Cancellation of %d requested", context.getOperationId());
-            context.executeAsync(new ManagementRequestContext.AsyncTask<Void>() {
-                @Override
-                public void execute(ManagementRequestContext<Void> context) throws Exception {
-                    final ManagementResponseHeader response = ManagementResponseHeader.create(context.getRequestHeader());
-                    final FlushableDataOutput output = context.writeMessage(response);
-                    try {
-                        output.writeByte(ManagementProtocol.RESPONSE_END);
-                        output.close();
-                    } finally {
-                        StreamUtils.safeClose(output);
-                    }
+            context.executeAsync(context1 -> {
+                final ManagementResponseHeader response = ManagementResponseHeader.create(context1.getRequestHeader());
+                final FlushableDataOutput output = context1.writeMessage(response);
+                try {
+                    output.writeByte(ManagementProtocol.RESPONSE_END);
+                    output.close();
+                } finally {
+                    StreamUtils.safeClose(output);
                 }
             }, false);
             resultHandler.cancel();

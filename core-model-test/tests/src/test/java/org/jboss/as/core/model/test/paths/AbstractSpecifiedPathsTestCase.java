@@ -29,7 +29,6 @@ import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.REL
 
 import org.jboss.as.controller.PathAddress;
 import org.jboss.as.controller.PathElement;
-import org.jboss.as.controller.registry.Resource;
 import org.jboss.as.core.model.test.AbstractCoreModelTest;
 import org.jboss.as.core.model.test.KernelServices;
 import org.jboss.as.core.model.test.KernelServicesBuilder;
@@ -132,11 +131,8 @@ public abstract class AbstractSpecifiedPathsTestCase extends AbstractCoreModelTe
     protected abstract PathAddress getPathsParent();
 
     protected ModelInitializer createEmptyModelInitalizer() {
-        return new ModelInitializer() {
-            @Override
-            public void populateModel(Resource rootResource) {
-                //Default is no-op
-            }
+        return rootResource -> {
+            //Default is no-op
         };
     }
 

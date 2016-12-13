@@ -28,7 +28,6 @@ import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.Iterator;
 import java.util.List;
-import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
@@ -244,35 +243,32 @@ class RemoteDomainConnection extends FutureManagementChannel {
     protected Future<Connection> reconnect() {
         // Reset the connection state
         channelHandler.getAttachments().removeAttachment(TransactionalProtocolClient.SEND_SUBJECT);
-        return executorService.submit(new Callable<Connection>() {
-            @Override
-            public Connection call() throws Exception {
-                final ReconnectPolicy reconnectPolicy = ReconnectPolicy.RECONNECT;
-                int reconnectionCount = 0;
-                for(;;) {
-                    // Try to connect to the remote host controller by looping through all
-                    // discovery options
-                    reconnectPolicy.wait(reconnectionCount);
-                    HostControllerLogger.ROOT_LOGGER.reconnectingToMaster();
-                    for (Iterator<DiscoveryOption> i = discoveryOptions.iterator(); i.hasNext(); ) {
-                        DiscoveryOption discoveryOption = i.next();
-                        URI masterURI = null;
-                        try {
-                            List<RemoteDomainControllerConnectionConfiguration> remoteDcConfigs = discoveryOption.discover();
-                            for (RemoteDomainControllerConnectionConfiguration remoteDcConfig : remoteDcConfigs) {
-                                try {
-                                    return connect(remoteDcConfig);
-                                } catch (IOException ioe) {
-                                    // If the cause is one of the irrecoverable ones, unwrap and throw it on
-                                    RemoteDomainConnectionService.rethrowIrrecoverableConnectionFailures(ioe);
-                                }
+        return executorService.submit(() -> {
+            final ReconnectPolicy reconnectPolicy = ReconnectPolicy.RECONNECT;
+            int reconnectionCount = 0;
+            for(;;) {
+                // Try to connect to the remote host controller by looping through all
+                // discovery options
+                reconnectPolicy.wait(reconnectionCount);
+                HostControllerLogger.ROOT_LOGGER.reconnectingToMaster();
+                for (Iterator<DiscoveryOption> i = discoveryOptions.iterator(); i.hasNext(); ) {
+                    DiscoveryOption discoveryOption = i.next();
+                    URI masterURI = null;
+                    try {
+                        List<RemoteDomainControllerConnectionConfiguration> remoteDcConfigs = discoveryOption.discover();
+                        for (RemoteDomainControllerConnectionConfiguration remoteDcConfig : remoteDcConfigs) {
+                            try {
+                                return connect(remoteDcConfig);
+                            } catch (IOException ioe) {
+                                // If the cause is one of the irrecoverable ones, unwrap and throw it on
+                                RemoteDomainConnectionService.rethrowIrrecoverableConnectionFailures(ioe);
                             }
-                        } catch (Exception e) {
-                            RemoteDomainConnectionService.logConnectionException(masterURI, discoveryOption, i.hasNext(), e);
                         }
+                    } catch (Exception e) {
+                        RemoteDomainConnectionService.logConnectionException(masterURI, discoveryOption, i.hasNext(), e);
                     }
-                    reconnectionCount++;
                 }
+                reconnectionCount++;
             }
         });
     }
@@ -381,14 +377,11 @@ class RemoteDomainConnection extends FutureManagementChannel {
              if (context.getRequestHeader().getVersion() != 1) {
                  channelHandler.getAttachments().attach(TransactionalProtocolClient.SEND_SUBJECT, Boolean.TRUE);
              }
-             context.executeAsync(new ManagementRequestContext.AsyncTask<Void>() {
-                 @Override
-                 public void execute(ManagementRequestContext<Void> voidManagementRequestContext) throws Exception {
-                     //
-                     final ModelNode subsystems = resolveSubsystemVersions(extensions);
-                     channelHandler.executeRequest(context.getOperationId(),
-                             new RegisterSubsystemsRequest(subsystems));
-                 }
+             context.executeAsync(voidManagementRequestContext -> {
+                 //
+                 final ModelNode subsystems = resolveSubsystemVersions(extensions);
+                 channelHandler.executeRequest(context.getOperationId(),
+                         new RegisterSubsystemsRequest(subsystems));
              });
          }
      }
@@ -446,16 +439,13 @@ class RemoteDomainConnection extends FutureManagementChannel {
              }
              final ModelNode domainModel = new ModelNode();
              domainModel.readExternal(input);
-             context.executeAsync(new ManagementRequestContext.AsyncTask<Void>() {
-                 @Override
-                 public void execute(ManagementRequestContext<Void> voidManagementRequestContext) throws Exception {
-                     // Apply the domain model
-                     if (applyDomainModel(domainModel)) {
-                         channelHandler.executeRequest(context.getOperationId(), new CompleteRegistrationRequest(DomainControllerProtocol.PARAM_OK));
-                     } else {
-                         channelHandler.executeRequest(context.getOperationId(), new CompleteRegistrationRequest(DomainControllerProtocol.PARAM_ERROR));
-                         resultHandler.failed(new SlaveRegistrationException(SlaveRegistrationException.ErrorCode.UNKNOWN, ""));
-                     }
+             context.executeAsync(voidManagementRequestContext -> {
+                 // Apply the domain model
+                 if (applyDomainModel(domainModel)) {
+                     channelHandler.executeRequest(context.getOperationId(), new CompleteRegistrationRequest(DomainControllerProtocol.PARAM_OK));
+                 } else {
+                     channelHandler.executeRequest(context.getOperationId(), new CompleteRegistrationRequest(DomainControllerProtocol.PARAM_ERROR));
+                     resultHandler.failed(new SlaveRegistrationException(SlaveRegistrationException.ErrorCode.UNKNOWN, ""));
                  }
              });
          }

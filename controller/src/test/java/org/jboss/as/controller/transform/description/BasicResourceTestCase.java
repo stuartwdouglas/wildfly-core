@@ -48,9 +48,7 @@ import org.jboss.as.controller.registry.ManagementResourceRegistration;
 import org.jboss.as.controller.registry.Resource;
 import org.jboss.as.controller.transform.OperationResultTransformer;
 import org.jboss.as.controller.transform.OperationTransformer;
-import org.jboss.as.controller.transform.PathAddressTransformer;
 import org.jboss.as.controller.transform.ResourceTransformationContext;
-import org.jboss.as.controller.transform.ResourceTransformer;
 import org.jboss.as.controller.transform.TransformationContext;
 import org.jboss.as.controller.transform.TransformationTarget;
 import org.jboss.as.controller.transform.TransformationTargetImpl;
@@ -99,40 +97,31 @@ public class BasicResourceTestCase {
         final ResourceTransformationDescriptionBuilder attrResourceBuilder = builder.addChildResource(PathElement.pathElement("attribute-resource"))
                 .getAttributeBuilder().addRejectCheck(RejectAttributeChecker.SIMPLE_EXPRESSIONS, "test-resource")
                 .end()
-                .setCustomResourceTransformer(new ResourceTransformer() {
-                    @Override
-                    public void transformResource(final ResourceTransformationContext context, final PathAddress address, final Resource resource) throws OperationFailedException {
-                        // Remote the test-resource attribute
-                        final ModelNode model = resource.getModel();
-                        final ModelNode testResource = model.remove("test-resource");
-                        // Add the current resource
-                        context.addTransformedResource(PathAddress.EMPTY_ADDRESS, resource);
-                        // Use the test-resource attribute to create a child
-                        final Resource child = Resource.Factory.create();
-                        child.getModel().get("attribute").set(testResource);
-                        context.addTransformedResource(PathAddress.EMPTY_ADDRESS.append(PathElement.pathElement("resource", "test")), child);
-                        context.processChildren(resource);
-                    }
+                .setCustomResourceTransformer((context, address, resource) -> {
+                    // Remote the test-resource attribute
+                    final ModelNode model = resource.getModel();
+                    final ModelNode testResource = model.remove("test-resource");
+                    // Add the current resource
+                    context.addTransformedResource(PathAddress.EMPTY_ADDRESS, resource);
+                    // Use the test-resource attribute to create a child
+                    final Resource child = Resource.Factory.create();
+                    child.getModel().get("attribute").set(testResource);
+                    context.addTransformedResource(PathAddress.EMPTY_ADDRESS.append(PathElement.pathElement("resource", "test")), child);
+                    context.processChildren(resource);
                 });
 
-        attrResourceBuilder.addChildRedirection(PathElement.pathElement("resource-attribute"), new PathAddressTransformer() {
-            @Override
-            public PathAddress transform(PathElement current, Builder builder) {
-                return builder.next(); // skip the current element
-            }
+        attrResourceBuilder.addChildRedirection(PathElement.pathElement("resource-attribute"), (current, builder1) -> {
+            return builder1.next(); // skip the current element
         })
                 .getAttributeBuilder().addRejectCheck(RejectAttributeChecker.SIMPLE_EXPRESSIONS, "test-attribute").end()
-                .setCustomResourceTransformer(new ResourceTransformer() {
-                    @Override
-                    public void transformResource(ResourceTransformationContext context, PathAddress address, Resource resource) throws OperationFailedException {
-                        // Get the current attribute
-                        final ModelNode attribute = resource.getModel().get("test-attribute");
-                        // Add it to the existing resource
-                        final Resource existing = context.readTransformedResource(PathAddress.EMPTY_ADDRESS); //
-                        final ModelNode model = existing.getModel();
-                        model.get("test-attribute").set(attribute);
+                .setCustomResourceTransformer((context, address, resource) -> {
+                    // Get the current attribute
+                    final ModelNode attribute = resource.getModel().get("test-attribute");
+                    // Add it to the existing resource
+                    final Resource existing = context.readTransformedResource(PathAddress.EMPTY_ADDRESS); //
+                    final ModelNode model = existing.getModel();
+                    model.get("test-attribute").set(attribute);
 
-                    }
                 });
 
 
@@ -147,26 +136,22 @@ public class BasicResourceTestCase {
                 .end();
 
         builder.addOperationTransformationOverride("operation-with-transformer")
-                .setCustomOperationTransformer(new OperationTransformer() {
-                    @Override
-                    public TransformedOperation transformOperation(TransformationContext context, PathAddress address,
-                                                                   ModelNode operation) throws OperationFailedException {
-                        ModelNode remove = operation.clone();
-                        remove.get(OP).set(REMOVE);
-                        remove.remove("test");
+                .setCustomOperationTransformer((context, address, operation) -> {
+                    ModelNode remove = operation.clone();
+                    remove.get(OP).set(REMOVE);
+                    remove.remove("test");
 
-                        ModelNode add = operation.clone();
-                        add.get(OP).set(ADD);
-                        add.get("new").set("shiny");
+                    ModelNode add = operation.clone();
+                    add.get(OP).set(ADD);
+                    add.get("new").set("shiny");
 
-                        ModelNode composite = new ModelNode();
-                        composite.get(OP).set(COMPOSITE);
-                        composite.get(OP_ADDR).setEmptyList();
-                        composite.get(STEPS).add(remove);
-                        composite.get(STEPS).add(add);
+                    ModelNode composite = new ModelNode();
+                    composite.get(OP).set(COMPOSITE);
+                    composite.get(OP_ADDR).setEmptyList();
+                    composite.get(STEPS).add(remove);
+                    composite.get(STEPS).add(add);
 
-                        return new TransformedOperation(composite, OperationResultTransformer.ORIGINAL_RESULT);
-                    }
+                    return new OperationTransformer.TransformedOperation(composite, OperationResultTransformer.ORIGINAL_RESULT);
                 });
 
         // Discard all

@@ -145,17 +145,14 @@ public class ProfileIncludesHandlerTestCase extends AbstractOperationTestCase {
         PathAddress addr = getProfileAddress("profile-four");
         ModelNode list = new ModelNode().add("profile-three");
         ModelNode op = Util.getWriteAttributeOperation(addr, INCLUDES, list);
-        MockOperationContext operationContext = getOperationContextForSubsystemIncludes(addr, new RootResourceInitializer() {
-            @Override
-            public void addAdditionalResources(Resource root) {
-                Resource subsystemA = Resource.Factory.create();
-                root.getChild(PathElement.pathElement(PROFILE, "profile-three"))
-                        .registerChild(PathElement.pathElement(SUBSYSTEM, "a"), subsystemA);
+        MockOperationContext operationContext = getOperationContextForSubsystemIncludes(addr, root -> {
+            Resource subsystemA = Resource.Factory.create();
+            root.getChild(PathElement.pathElement(PROFILE, "profile-three"))
+                    .registerChild(PathElement.pathElement(SUBSYSTEM, "a"), subsystemA);
 
-                Resource subsystemB = Resource.Factory.create();
-                Resource profile4 = root.getChild(PathElement.pathElement(PROFILE, "profile-four"));
-                profile4.registerChild(PathElement.pathElement(SUBSYSTEM, "b"), subsystemB);
-            }
+            Resource subsystemB = Resource.Factory.create();
+            Resource profile4 = root.getChild(PathElement.pathElement(PROFILE, "profile-four"));
+            profile4.registerChild(PathElement.pathElement(SUBSYSTEM, "b"), subsystemB);
         });
         ProfileResourceDefinition.createIncludesValidationHandler().execute(operationContext, op);
         operationContext.executeNextStep();
@@ -170,17 +167,14 @@ public class ProfileIncludesHandlerTestCase extends AbstractOperationTestCase {
             PathAddress addr = getProfileAddress("profile-four");
             ModelNode list = new ModelNode().add("profile-three");
             ModelNode op = Util.getWriteAttributeOperation(addr, INCLUDES, list);
-            MockOperationContext operationContext = getOperationContextForSubsystemIncludes(addr, new RootResourceInitializer() {
-                @Override
-                public void addAdditionalResources(Resource root) {
-                    Resource subsystemA = Resource.Factory.create();
-                    root.getChild(PathElement.pathElement(PROFILE, "profile-three"))
-                            .registerChild(PathElement.pathElement(SUBSYSTEM, "a"), subsystemA);
+            MockOperationContext operationContext = getOperationContextForSubsystemIncludes(addr, root -> {
+                Resource subsystemA = Resource.Factory.create();
+                root.getChild(PathElement.pathElement(PROFILE, "profile-three"))
+                        .registerChild(PathElement.pathElement(SUBSYSTEM, "a"), subsystemA);
 
-                    Resource subsystemB = Resource.Factory.create();
-                    Resource profile4 = root.getChild(PathElement.pathElement(PROFILE, "profile-four"));
-                    profile4.registerChild(PathElement.pathElement(SUBSYSTEM, "a"), subsystemB);
-                }
+                Resource subsystemB = Resource.Factory.create();
+                Resource profile4 = root.getChild(PathElement.pathElement(PROFILE, "profile-four"));
+                profile4.registerChild(PathElement.pathElement(SUBSYSTEM, "a"), subsystemB);
             });
             ProfileResourceDefinition.createIncludesValidationHandler().execute(operationContext, op);
             operationContext.executeNextStep();
@@ -202,21 +196,18 @@ public class ProfileIncludesHandlerTestCase extends AbstractOperationTestCase {
             PathAddress addr = getProfileAddress("profile-five");
             ModelNode list = new ModelNode().add("profile-three").add("profile-four");
             ModelNode op = Util.getWriteAttributeOperation(addr, INCLUDES, list);
-            MockOperationContext operationContext = getOperationContextForSubsystemIncludes(addr, new RootResourceInitializer() {
-                @Override
-                public void addAdditionalResources(Resource root) {
-                    Resource subsystemA = Resource.Factory.create();
-                    root.getChild(PathElement.pathElement(PROFILE, "profile-three"))
-                            .registerChild(PathElement.pathElement(SUBSYSTEM, "a"), subsystemA);
+            MockOperationContext operationContext = getOperationContextForSubsystemIncludes(addr, root -> {
+                Resource subsystemA = Resource.Factory.create();
+                root.getChild(PathElement.pathElement(PROFILE, "profile-three"))
+                        .registerChild(PathElement.pathElement(SUBSYSTEM, "a"), subsystemA);
 
-                    Resource subsystemB = Resource.Factory.create();
-                    Resource profile4 = root.getChild(PathElement.pathElement(PROFILE, "profile-four"));
-                    profile4.registerChild(PathElement.pathElement(SUBSYSTEM, "a"), subsystemB);
+                Resource subsystemB = Resource.Factory.create();
+                Resource profile4 = root.getChild(PathElement.pathElement(PROFILE, "profile-four"));
+                profile4.registerChild(PathElement.pathElement(SUBSYSTEM, "a"), subsystemB);
 
-                    Resource subsystemC = Resource.Factory.create();
-                    Resource profile5 = root.getChild(PathElement.pathElement(PROFILE, "profile-five"));
-                    profile5.registerChild(PathElement.pathElement(SUBSYSTEM, "x"), subsystemC);
-                }
+                Resource subsystemC = Resource.Factory.create();
+                Resource profile5 = root.getChild(PathElement.pathElement(PROFILE, "profile-five"));
+                profile5.registerChild(PathElement.pathElement(SUBSYSTEM, "x"), subsystemC);
             });
             ProfileResourceDefinition.createIncludesValidationHandler().execute(operationContext, op);
             operationContext.executeNextStep();
@@ -239,19 +230,16 @@ public class ProfileIncludesHandlerTestCase extends AbstractOperationTestCase {
             PathAddress addr = getProfileAddress("profile-five");
             ModelNode list = new ModelNode().add("profile-three").add("profile-four");
             ModelNode op = Util.getWriteAttributeOperation(addr, INCLUDES, list);
-            MockOperationContext operationContext = getOperationContextForSubsystemIncludes(addr, new RootResourceInitializer() {
-                @Override
-                public void addAdditionalResources(Resource root) {
-                    Resource subsystemA = Resource.Factory.create();
-                    root.getChild(PathElement.pathElement(PROFILE, "profile-three"))
-                            .registerChild(PathElement.pathElement(SUBSYSTEM, "a"), subsystemA);
+            MockOperationContext operationContext = getOperationContextForSubsystemIncludes(addr, root -> {
+                Resource subsystemA = Resource.Factory.create();
+                root.getChild(PathElement.pathElement(PROFILE, "profile-three"))
+                        .registerChild(PathElement.pathElement(SUBSYSTEM, "a"), subsystemA);
 
-                    Resource subsystemB = Resource.Factory.create();
-                    Resource profile4 = root.getChild(PathElement.pathElement(PROFILE, "profile-four"));
-                    profile4.registerChild(PathElement.pathElement(SUBSYSTEM, "a"), subsystemB);
+                Resource subsystemB = Resource.Factory.create();
+                Resource profile4 = root.getChild(PathElement.pathElement(PROFILE, "profile-four"));
+                profile4.registerChild(PathElement.pathElement(SUBSYSTEM, "a"), subsystemB);
 
-                    //profile-four is empty
-                }
+                //profile-four is empty
             });
             ProfileResourceDefinition.createIncludesValidationHandler().execute(operationContext, op);
             operationContext.executeNextStep();

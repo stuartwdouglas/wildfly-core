@@ -29,8 +29,6 @@ import org.jboss.as.controller.AttributeDefinition;
 import org.jboss.as.controller.OperationContext;
 import org.jboss.as.controller.OperationContext.AttachmentKey;
 import org.jboss.as.controller.OperationContext.ResultAction;
-import org.jboss.as.controller.OperationContext.ResultHandler;
-import org.jboss.as.controller.OperationContext.RollbackHandler;
 import org.jboss.as.controller.OperationContext.Stage;
 import org.jboss.as.controller.OperationFailedException;
 import org.jboss.as.controller.OperationStepHandler;
@@ -95,23 +93,20 @@ final class LoggingOperations {
         @Override
         public void execute(final OperationContext context, final ModelNode operation) throws OperationFailedException {
             configurationPersistence.prepare();
-            context.completeStep(new ResultHandler() {
-                @Override
-                public void handleResult(final ResultAction resultAction, final OperationContext context, final ModelNode operation) {
-                    if (resultAction == ResultAction.KEEP) {
-                        configurationPersistence.commit();
-                        if (!LoggingProfileOperations.isLoggingProfileAddress(getAddress(operation))) {
-                            // Write once
-                            if (context.getAttachment(WRITTEN_KEY) == null) {
-                                context.attachIfAbsent(WRITTEN_KEY, Boolean.TRUE);
-                                if (persistConfig) {
-                                    configurationPersistence.writeConfiguration(context);
-                                }
+            context.completeStep((resultAction, context1, operation1) -> {
+                if (resultAction == ResultAction.KEEP) {
+                    configurationPersistence.commit();
+                    if (!LoggingProfileOperations.isLoggingProfileAddress(getAddress(operation1))) {
+                        // Write once
+                        if (context1.getAttachment(WRITTEN_KEY) == null) {
+                            context1.attachIfAbsent(WRITTEN_KEY, Boolean.TRUE);
+                            if (persistConfig) {
+                                configurationPersistence.writeConfiguration(context1);
                             }
                         }
-                    } else if (resultAction == ResultAction.ROLLBACK) {
-                        configurationPersistence.rollback();
                     }
+                } else if (resultAction == ResultAction.ROLLBACK) {
+                    configurationPersistence.rollback();
                 }
             });
         }
@@ -161,12 +156,7 @@ final class LoggingOperations {
             if (context.getProcessType().isServer()) {
                 addCommitStep(context, configurationPersistence);
                 // Add rollback handler in case rollback is invoked before a commit step is invoked
-                context.completeStep(new RollbackHandler() {
-                    @Override
-                    public void handleRollback(final OperationContext context, final ModelNode operation) {
-                        configurationPersistence.rollback();
-                    }
-                });
+                context.completeStep((context1, operation1) -> configurationPersistence.rollback());
             }
         }
 
@@ -198,12 +188,7 @@ final class LoggingOperations {
             final ModelNode model = resource.getModel();
             updateModel(operation, model);
             if (context.isNormalServer()) {
-                context.addStep(new OperationStepHandler() {
-                    @Override
-                    public void execute(final OperationContext context, final ModelNode operation) throws OperationFailedException {
-                        performRuntime(context, operation, logContextConfiguration, name, model);
-                    }
-                }, Stage.RUNTIME);
+                context.addStep((context1, operation1) -> performRuntime(context1, operation1, logContextConfiguration, name, model), Stage.RUNTIME);
             }
         }
 
@@ -231,12 +216,7 @@ final class LoggingOperations {
             final ModelNode model = resource.getModel();
             updateModel(operation, model);
             if (context.isNormalServer()) {
-                context.addStep(new OperationStepHandler() {
-                    @Override
-                    public void execute(final OperationContext context, final ModelNode operation) throws OperationFailedException {
-                        performRuntime(context, operation, logContextConfiguration, name, model);
-                    }
-                }, Stage.RUNTIME);
+                context.addStep((context1, operation1) -> performRuntime(context1, operation1, logContextConfiguration, name, model), Stage.RUNTIME);
             }
         }
 
@@ -265,12 +245,7 @@ final class LoggingOperations {
 
             performRemove(context, operation, logContextConfiguration, name, model);
             if (context.isNormalServer()) {
-                context.addStep(new OperationStepHandler() {
-                    @Override
-                    public void execute(final OperationContext context, final ModelNode operation) throws OperationFailedException {
-                        performRuntime(context, operation, logContextConfiguration, name, model);
-                    }
-                }, Stage.RUNTIME);
+                context.addStep((context1, operation1) -> performRuntime(context1, operation1, logContextConfiguration, name, model), Stage.RUNTIME);
             }
         }
 

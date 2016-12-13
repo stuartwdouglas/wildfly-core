@@ -145,13 +145,10 @@ public class PathRemoveHandler implements OperationStepHandler { // TODO make th
                 }
             }, OperationContext.Stage.RUNTIME);
 
-            context.completeStep(new OperationContext.RollbackHandler() {
-                @Override
-                public void handleRollback(OperationContext context, ModelNode operation) {
-                    if (pathEventContext.isInstallServices()) {
-                        // Re-add entry to the path manager
-                        pathManager.addPathEntry(name, path, relativeTo, false);
-                    }
+            context.completeStep((context1, operation1) -> {
+                if (pathEventContext.isInstallServices()) {
+                    // Re-add entry to the path manager
+                    pathManager.addPathEntry(name, path, relativeTo, false);
                 }
             });
         }

@@ -200,11 +200,10 @@ public class ParameterValueResolutionTestCase {
         if(System.getSecurityManager() == null) {
             System.setProperty(name, value);
         } else {
-            AccessController.doPrivileged(new PrivilegedAction<Object>() {
-                public Object run() {
-                    System.setProperty(name, value);
-                    return null;
-                }});
+            AccessController.doPrivileged((PrivilegedAction<Object>) () -> {
+                System.setProperty(name, value);
+                return null;
+            });
         }
     }
 
@@ -212,11 +211,10 @@ public class ParameterValueResolutionTestCase {
         if(System.getSecurityManager() == null) {
             System.clearProperty(name);
         } else {
-            AccessController.doPrivileged(new PrivilegedAction<Object>() {
-                public Object run() {
-                    System.clearProperty(name);
-                    return null;
-                }});
+            AccessController.doPrivileged((PrivilegedAction<Object>) () -> {
+                System.clearProperty(name);
+                return null;
+            });
         }
     }
 

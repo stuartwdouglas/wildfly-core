@@ -64,15 +64,12 @@ public class ServerReloadHandler implements OperationStepHandler {
         final boolean blocking = operation.get(ModelDescriptionConstants.BLOCKING).asBoolean(false);
         final boolean suspend = operation.get(ModelDescriptionConstants.SUSPEND).asBoolean(false);
 
-        context.addStep(new OperationStepHandler() {
-            @Override
-            public void execute(final OperationContext context, final ModelNode operation) throws OperationFailedException {
-                // WFLY-2189 trigger a write-runtime authz check
-                context.getServiceRegistry(true);
+        context.addStep((context1, operation1) -> {
+            // WFLY-2189 trigger a write-runtime authz check
+            context1.getServiceRegistry(true);
 
-                final ServerStatus status = serverInventory.reloadServer(serverName, blocking, suspend);
-                context.getResult().set(status.toString());
-            }
+            final ServerStatus status = serverInventory.reloadServer(serverName, blocking, suspend);
+            context1.getResult().set(status.toString());
         }, OperationContext.Stage.RUNTIME);
     }
 }

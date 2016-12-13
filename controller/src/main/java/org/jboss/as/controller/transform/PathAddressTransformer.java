@@ -48,14 +48,7 @@ public interface PathAddressTransformer {
      */
     PathAddress transform(PathElement current, Builder builder);
 
-    PathAddressTransformer DEFAULT = new PathAddressTransformer() {
-
-        @Override
-        public PathAddress transform(PathElement current, Builder builder) {
-            return builder.next(current);
-        }
-
-    };
+    PathAddressTransformer DEFAULT = (current, builder) -> builder.next(current);
 
     public class BasicPathAddressTransformer implements PathAddressTransformer {
 

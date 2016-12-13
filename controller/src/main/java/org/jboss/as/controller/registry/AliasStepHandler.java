@@ -78,16 +78,13 @@ public class AliasStepHandler implements OperationStepHandler {
             //Note that this situation only applies to r-r-d, the other operations involve a specific resource existing
             //(or being added).
             //The tests uncommented in the commit introducing this demonstrate the issue.
-            context.completeStep(new OperationContext.ResultHandler() {
-                @Override
-                public void handleResult(OperationContext.ResultAction resultAction, OperationContext context, ModelNode operation) {
-                    ModelNode result = context.getResult();
-                    if (result.getType() == ModelType.LIST) {
-                        List<ModelNode> list = result.asList();
-                        if (list.size() == 1) {
-                            ModelNode entry = list.get(0);
-                            context.getResult().set(entry.get(RESULT));
-                        }
+            context.completeStep((resultAction, context1, operation1) -> {
+                ModelNode result = context1.getResult();
+                if (result.getType() == ModelType.LIST) {
+                    List<ModelNode> list = result.asList();
+                    if (list.size() == 1) {
+                        ModelNode entry = list.get(0);
+                        context1.getResult().set(entry.get(RESULT));
                     }
                 }
             });

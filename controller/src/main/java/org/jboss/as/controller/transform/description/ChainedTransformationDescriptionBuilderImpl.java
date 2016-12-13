@@ -22,7 +22,6 @@
 package org.jboss.as.controller.transform.description;
 
 import java.util.Arrays;
-import java.util.Comparator;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -57,12 +56,7 @@ class ChainedTransformationDescriptionBuilderImpl implements ChainedTransformati
         ModelVersion[] allVersions = new ModelVersion[versions.length + 1];
         allVersions[0] = currentVersion;
         System.arraycopy(versions, 0, allVersions, 1, versions.length);
-        Arrays.sort(allVersions, new Comparator<ModelVersion>() {
-            @Override
-            public int compare(ModelVersion o1, ModelVersion o2) {
-                return ModelVersion.compare(o1, o2);
-            }
-        });
+        Arrays.sort(allVersions, (o1, o2) -> ModelVersion.compare(o1, o2));
         return doBuild(allVersions);
     }
 

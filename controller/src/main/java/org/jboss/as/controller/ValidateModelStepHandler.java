@@ -75,11 +75,9 @@ class ValidateModelStepHandler implements OperationStepHandler {
             }
             final AttributeDefinition attr = access.getAttributeDefinition();
             if (!has && isRequired(attr, model)) {
-                attemptReadMissingAttributeValueFromHandler(context, access, attributeName, new ErrorHandler() {
-                    @Override
-                    public void throwError() throws OperationFailedException {
-                        throw new OperationFailedException(ControllerLogger.ROOT_LOGGER.required(attributeName));
-                    }});
+                attemptReadMissingAttributeValueFromHandler(context, access, attributeName, () -> {
+                    throw new OperationFailedException(ControllerLogger.ROOT_LOGGER.required(attributeName));
+                });
             }
             if (!has) {
                 continue;
@@ -88,11 +86,9 @@ class ValidateModelStepHandler implements OperationStepHandler {
             if (attr.getRequires() != null) {
                 for (final String required : attr.getRequires()) {
                     if (!model.hasDefined(required)) {
-                        attemptReadMissingAttributeValueFromHandler(context, access, attributeName, new ErrorHandler() {
-                            @Override
-                            public void throwError() throws OperationFailedException {
-                                throw ControllerLogger.ROOT_LOGGER.requiredAttributeNotSet(required, attr.getName());
-                            }});
+                        attemptReadMissingAttributeValueFromHandler(context, access, attributeName, () -> {
+                            throw ControllerLogger.ROOT_LOGGER.requiredAttributeNotSet(required, attr.getName());
+                        });
                     }
                 }
             }
@@ -134,12 +130,9 @@ class ValidateModelStepHandler implements OperationStepHandler {
             context.addStep(resultHolder, readAttr, handler, Stage.MODEL, true);
 
             //Then check the read-attribute result in a later step and throw the error if it is not set
-            context.addStep(new OperationStepHandler() {
-                @Override
-                public void execute(OperationContext context, ModelNode operation) throws OperationFailedException {
-                    if (!resultHolder.isDefined() && !resultHolder.hasDefined(RESULT)) {
-                        errorHandler.throwError();
-                    }
+            context.addStep((context1, operation) -> {
+                if (!resultHolder.isDefined() && !resultHolder.hasDefined(RESULT)) {
+                    errorHandler.throwError();
                 }
             }, Stage.MODEL);
         }

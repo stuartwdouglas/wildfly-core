@@ -40,16 +40,13 @@ public class CliShutdownHook {
     private static final List<Handler> handlers = new ArrayList<Handler>();
 
     static {
-        SecurityActions.addShutdownHook(new Thread(new Runnable() {
-            @Override
-            public void run() {
-                synchronized(handlers) {
-                    shuttingDown = true;
-                    for (Handler h : handlers) {
-                        try {
-                            h.shutdown();
-                        } catch (Throwable t) {
-                        }
+        SecurityActions.addShutdownHook(new Thread(() -> {
+            synchronized(handlers) {
+                shuttingDown = true;
+                for (Handler h : handlers) {
+                    try {
+                        h.shutdown();
+                    } catch (Throwable t) {
                     }
                 }
             }

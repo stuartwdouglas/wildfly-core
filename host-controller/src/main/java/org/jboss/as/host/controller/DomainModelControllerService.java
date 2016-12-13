@@ -71,9 +71,7 @@ import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-import javax.security.auth.callback.Callback;
 import javax.security.auth.callback.CallbackHandler;
-import javax.security.auth.callback.UnsupportedCallbackException;
 
 import org.jboss.as.controller.AbstractControllerService;
 import org.jboss.as.controller.BlockingTimeout;
@@ -110,7 +108,6 @@ import org.jboss.as.controller.client.OperationResponse;
 import org.jboss.as.controller.client.helpers.domain.ServerStatus;
 import org.jboss.as.controller.descriptions.ModelDescriptionConstants;
 import org.jboss.as.controller.extension.ExtensionRegistry;
-import org.jboss.as.controller.extension.MutableRootResourceRegistrationProvider;
 import org.jboss.as.controller.extension.RuntimeHostControllerInfoAccessor;
 import org.jboss.as.controller.logging.ControllerLogger;
 import org.jboss.as.controller.notification.Notification;
@@ -508,23 +505,16 @@ public class DomainModelControllerService extends AbstractControllerService impl
         this.hostControllerConfigurationPersister = new HostControllerConfigurationPersister(environment, hostControllerInfo, executorService, hostExtensionRegistry, extensionRegistry);
         setConfigurationPersister(hostControllerConfigurationPersister);
         prepareStepHandler.setExecutorService(executorService);
-        ThreadFactory pingerThreadFactory = doPrivileged(new PrivilegedAction<JBossThreadFactory>() {
-            public JBossThreadFactory run() {
-                return new JBossThreadFactory(new ThreadGroup("proxy-pinger-threads"), Boolean.TRUE, null, "%G - %t", null, null);
-            }
-        });
+        ThreadFactory pingerThreadFactory = doPrivileged((PrivilegedAction<JBossThreadFactory>) () -> new JBossThreadFactory(new ThreadGroup("proxy-pinger-threads"), Boolean.TRUE, null, "%G - %t", null, null));
         pingScheduler = Executors.newScheduledThreadPool(PINGER_POOL_SIZE, pingerThreadFactory);
 
         super.start(context);
 
-        pingScheduler.scheduleAtFixedRate(new Runnable() {
-            @Override
-            public void run() {
-                try {
-                    slaveHostRegistrations.pruneExpired();
-                } catch (Exception e) {
-                    HostControllerLogger.DOMAIN_LOGGER.debugf(e, "failed to execute eviction task");
-                }
+        pingScheduler.scheduleAtFixedRate(() -> {
+            try {
+                slaveHostRegistrations.pruneExpired();
+            } catch (Exception e) {
+                HostControllerLogger.DOMAIN_LOGGER.debugf(e, "failed to execute eviction task");
             }
         }, 1, 1, TimeUnit.MINUTES);
 
@@ -584,16 +574,13 @@ public class DomainModelControllerService extends AbstractControllerService impl
 
     @Override
     protected OperationStepHandler createExtraValidationStepHandler() {
-        return new OperationStepHandler() {
-            @Override
-            public void execute(OperationContext context, ModelNode operation) throws OperationFailedException {
-                if (!context.isBooting()) {
-                    PathAddress addr = context.getCurrentAddress();
-                    if (addr.size() > 0 && addr.getLastElement().getKey().equals(SUBSYSTEM)) {
-                        //For subsystem adds in domain mode we need to check that the new subsystem does not break the rule
-                        //that when profile includes are used, we don't allow overriding subsystems.
-                        DomainModelIncludesValidator.addValidationStep(context, operation);
-                    }
+        return (context, operation) -> {
+            if (!context.isBooting()) {
+                PathAddress addr = context.getCurrentAddress();
+                if (addr.size() > 0 && addr.getLastElement().getKey().equals(SUBSYSTEM)) {
+                    //For subsystem adds in domain mode we need to check that the new subsystem does not break the rule
+                    //that when profile includes are used, we don't allow overriding subsystems.
+                    DomainModelIncludesValidator.addValidationStep(context, operation);
                 }
             }
         };
@@ -627,11 +614,7 @@ public class DomainModelControllerService extends AbstractControllerService impl
             //This will be used to make sure that any extensions added in parallel get registered in the host model
             if (ok) {
                 HostControllerLogger.ROOT_LOGGER.debug("Invoking remaining host.xml ops");
-                ok = boot(hostBootOps, true, true, new MutableRootResourceRegistrationProvider() {
-                    public ManagementResourceRegistration getRootResourceRegistrationForUpdate(OperationContext context) {
-                        return hostModelRegistration;
-                    }
-                });
+                ok = boot(hostBootOps, true, true, context12 -> hostModelRegistration);
             }
 
             final RunningMode currentRunningMode = runningModeControl.getRunningMode();
@@ -767,12 +750,7 @@ public class DomainModelControllerService extends AbstractControllerService impl
                 final ModelNode validate = new ModelNode();
                 validate.get(OP).set("validate");
                 validate.get(OP_ADDR).setEmptyList();
-                final ModelNode result = internalExecute(OperationBuilder.create(validate).build(), OperationMessageHandler.DISCARD, OperationTransactionControl.COMMIT, new OperationStepHandler() {
-                    @Override
-                    public void execute(OperationContext context, ModelNode operation) throws OperationFailedException {
-                        DomainModelIncludesValidator.validateAtBoot(context, operation);
-                    }
-                }).getResponseNode();
+                final ModelNode result = internalExecute(OperationBuilder.create(validate).build(), OperationMessageHandler.DISCARD, OperationTransactionControl.COMMIT, (context1, operation) -> DomainModelIncludesValidator.validateAtBoot(context1, operation)).getResponseNode();
 
                 if (!SUCCESS.equals(result.get(OUTCOME).asString())) {
                     throw new OperationFailedException(result.get(FAILURE_DESCRIPTION));
@@ -1397,11 +1375,7 @@ public class DomainModelControllerService extends AbstractControllerService impl
             if (context.isBooting() && context.getCurrentStage() == OperationContext.Stage.MODEL) {
                 throw ControllerLogger.ROOT_LOGGER.onlyAccessHostControllerInfoInRuntimeStage();
             }
-            return new HostControllerInfo() {
-                public boolean isMasterHc() {
-                    return hostControllerInfo.isMasterDomainController();
-                }
-            };
+            return () -> hostControllerInfo.isMasterDomainController();
         }
 
     }
@@ -1513,10 +1487,7 @@ public class DomainModelControllerService extends AbstractControllerService impl
 
             @Override
             public CallbackHandler getServerCallbackHandler() {
-                CallbackHandler callback = new CallbackHandler() {
-                    @Override
-                    public void handle(Callback[] callbacks) throws IOException, UnsupportedCallbackException {
-                    }
+                CallbackHandler callback = callbacks -> {
                 };
                 return callback;
             }

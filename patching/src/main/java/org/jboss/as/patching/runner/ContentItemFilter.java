@@ -40,27 +40,16 @@ public interface ContentItemFilter {
      */
     boolean accepts(ContentItem item);
 
-    ContentItemFilter ALL = new ContentItemFilter() {
-        @Override
-        public boolean accepts(ContentItem item) {
-            return true;
-        }
+    ContentItemFilter ALL = item -> true;
+
+    ContentItemFilter MISC_ONLY = item -> {
+        final ContentType type = item.getContentType();
+        return type == ContentType.MISC;
     };
 
-    ContentItemFilter MISC_ONLY = new ContentItemFilter() {
-        @Override
-        public boolean accepts(ContentItem item) {
-            final ContentType type = item.getContentType();
-            return type == ContentType.MISC;
-        }
-    };
-
-    ContentItemFilter ALL_BUT_MISC = new ContentItemFilter() {
-        @Override
-        public boolean accepts(ContentItem item) {
-            final ContentType type = item.getContentType();
-            return type != ContentType.MISC;
-        }
+    ContentItemFilter ALL_BUT_MISC = item -> {
+        final ContentType type = item.getContentType();
+        return type != ContentType.MISC;
     };
 
 }

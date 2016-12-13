@@ -66,24 +66,9 @@ public class PatchingHistoryUnitTestCase extends AbstractPatchingTest {
         final List<String> bundleDirs = new ArrayList<String>();
 
         final PatchHistoryIterator.Builder builder = PatchHistoryIterator.Builder.create(updateInstallationManager().getDefaultIdentity());
-        builder.addStateHandler(PatchingArtifacts.HISTORY_DIR, new PatchingArtifactStateHandler<PatchingFileArtifact.DirectoryArtifactState>() {
-            @Override
-            public void handleValidatedState(PatchingFileArtifact.DirectoryArtifactState state) {
-                historyDirs.add(state.getFile().getName());
-            }
-        });
-        builder.addStateHandler(PatchingArtifacts.MODULE_OVERLAY, new PatchingArtifactStateHandler<PatchingFileArtifact.DirectoryArtifactState>() {
-            @Override
-            public void handleValidatedState(PatchingFileArtifact.DirectoryArtifactState state) {
-                moduleDirs.add(state.getFile().getName());
-            }
-        });
-        builder.addStateHandler(PatchingArtifacts.BUNDLE_OVERLAY, new PatchingArtifactStateHandler<PatchingFileArtifact.DirectoryArtifactState>() {
-            @Override
-            public void handleValidatedState(PatchingFileArtifact.DirectoryArtifactState state) {
-                bundleDirs.add(state.getFile().getName());
-            }
-        });
+        builder.addStateHandler(PatchingArtifacts.HISTORY_DIR, state -> historyDirs.add(state.getFile().getName()));
+        builder.addStateHandler(PatchingArtifacts.MODULE_OVERLAY, state -> moduleDirs.add(state.getFile().getName()));
+        builder.addStateHandler(PatchingArtifacts.BUNDLE_OVERLAY, state -> bundleDirs.add(state.getFile().getName()));
 
         final PatchHistoryIterator iterator = builder.iterator();
         while (iterator.hasNext()) {
@@ -105,24 +90,9 @@ public class PatchingHistoryUnitTestCase extends AbstractPatchingTest {
         final List<String> moduleDirs = new ArrayList<String>();
         final List<String> bundleDirs = new ArrayList<String>();
         final PatchHistoryIterator.Builder builder = PatchHistoryIterator.Builder.create(updateInstallationManager().getDefaultIdentity());
-        builder.addStateHandler(PatchingArtifacts.HISTORY_DIR, new PatchingArtifactStateHandler<PatchingFileArtifact.DirectoryArtifactState>() {
-            @Override
-            public void handleValidatedState(PatchingFileArtifact.DirectoryArtifactState state) {
-                historyDirs.add(state.getFile().getName());
-            }
-        });
-        builder.addStateHandler(PatchingArtifacts.MODULE_OVERLAY, new PatchingArtifactStateHandler<PatchingFileArtifact.DirectoryArtifactState>() {
-            @Override
-            public void handleValidatedState(PatchingFileArtifact.DirectoryArtifactState state) {
-                moduleDirs.add(state.getFile().getName());
-            }
-        });
-        builder.addStateHandler(PatchingArtifacts.BUNDLE_OVERLAY, new PatchingArtifactStateHandler<PatchingFileArtifact.DirectoryArtifactState>() {
-            @Override
-            public void handleValidatedState(PatchingFileArtifact.DirectoryArtifactState state) {
-                bundleDirs.add(state.getFile().getName());
-            }
-        });
+        builder.addStateHandler(PatchingArtifacts.HISTORY_DIR, state -> historyDirs.add(state.getFile().getName()));
+        builder.addStateHandler(PatchingArtifacts.MODULE_OVERLAY, state -> moduleDirs.add(state.getFile().getName()));
+        builder.addStateHandler(PatchingArtifacts.BUNDLE_OVERLAY, state -> bundleDirs.add(state.getFile().getName()));
 
         final PatchHistoryIterator tree = builder.iterator();
 

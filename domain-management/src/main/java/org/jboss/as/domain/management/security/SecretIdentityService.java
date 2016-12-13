@@ -78,11 +78,7 @@ public class SecretIdentityService implements Service<CallbackHandlerFactory> {
             thePassword = password.toCharArray();
         }
 
-        factory = new CallbackHandlerFactory() {
-            public CallbackHandler getCallbackHandler(String username) {
-                return new SecretCallbackHandler(username, thePassword);
-            }
-        };
+        factory = username -> new SecretCallbackHandler(username, thePassword);
     }
 
     public void stop(StopContext stopContext) {

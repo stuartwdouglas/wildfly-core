@@ -200,11 +200,8 @@ public class TransactionalProtocolClientTestCase {
     @Test
     public void testClosePrepared() throws Exception {
         final BlockingOperationListener listener = new BlockingOperationListener();
-        final TestOperationHandler handler = new TestOperationHandler() {
-            @Override
-            public void execute(ModelNode operation, OperationMessageHandler handler, OperationAttachments attachments) throws Exception {
-                //
-            }
+        final TestOperationHandler handler = (operation, handler1, attachments) -> {
+            //
         };
         final TestUpdateWrapper wrapper = createTestClient(0, handler);
         final Future<OperationResponse> futureResult = wrapper.execute(listener);

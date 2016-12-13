@@ -162,12 +162,7 @@ public class DomainSlaveHandler implements OperationStepHandler {
                 Thread.currentThread().interrupt();
             }
 
-            context.completeStep(new OperationContext.ResultHandler() {
-                @Override
-                public void handleResult(OperationContext.ResultAction resultAction, OperationContext context, ModelNode operation) {
-                    finalizeOp(results, finalResults, false, context, blockingTimeout);
-                }
-            });
+            context.completeStep((resultAction, context1, operation1) -> finalizeOp(results, finalResults, false, context1, blockingTimeout));
 
             completeStepCalled = true;
 

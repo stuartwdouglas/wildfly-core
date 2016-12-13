@@ -62,25 +62,11 @@ class SecurityActions {
 
         AccessAuditContext currentContext();
 
-        AccessAuditContextActions NON_PRIVILEGED = new AccessAuditContextActions() {
-
-            @SuppressWarnings("deprecation")
-            @Override
-            public AccessAuditContext currentContext() {
-                return AccessAuditContext.currentAccessAuditContext();
-            }
-        };
+        AccessAuditContextActions NON_PRIVILEGED = () -> AccessAuditContext.currentAccessAuditContext();
 
         AccessAuditContextActions PRIVILEGED = new AccessAuditContextActions() {
 
-            private final PrivilegedAction<AccessAuditContext> PRIVILEGED_ACTION = new PrivilegedAction<AccessAuditContext>() {
-
-                @Override
-                public AccessAuditContext run() {
-                    return NON_PRIVILEGED.currentContext();
-                }
-
-            };
+            private final PrivilegedAction<AccessAuditContext> PRIVILEGED_ACTION = () -> NON_PRIVILEGED.currentContext();
 
             @Override
             public AccessAuditContext currentContext() {
@@ -95,29 +81,9 @@ class SecurityActions {
         Caller createCaller(SecurityIdentity securityIdentity);
 
 
-        CallerActions NON_PRIVILEGED = new CallerActions() {
+        CallerActions NON_PRIVILEGED = securityIdentity -> Caller.createCaller(securityIdentity);
 
-            @Override
-            public Caller createCaller(SecurityIdentity securityIdentity) {
-                return Caller.createCaller(securityIdentity);
-            }
-
-        };
-
-        CallerActions PRIVILEGED = new CallerActions() {
-
-            @Override
-            public Caller createCaller(final SecurityIdentity securityIdentity) {
-                return doPrivileged(new PrivilegedAction<Caller>() {
-
-                    @Override
-                    public Caller run() {
-                        return NON_PRIVILEGED.createCaller(securityIdentity);
-                    }
-                });
-            }
-
-        };
+        CallerActions PRIVILEGED = securityIdentity -> doPrivileged((PrivilegedAction<Caller>) () -> NON_PRIVILEGED.createCaller(securityIdentity));
 
     }
 

@@ -71,20 +71,17 @@ public class ServerRestartHandler implements OperationStepHandler {
         final boolean suspend = operation.get(ModelDescriptionConstants.SUSPEND).asBoolean(false);
 
         final ModelNode model = Resource.Tools.readModel(context.readResourceFromRoot(PathAddress.EMPTY_ADDRESS, true));
-        context.addStep(new OperationStepHandler() {
-            @Override
-            public void execute(OperationContext context, ModelNode operation) throws OperationFailedException {
-                // WFLY-2189 trigger a write-runtime authz check
-                context.getServiceRegistry(true);
+        context.addStep((context1, operation1) -> {
+            // WFLY-2189 trigger a write-runtime authz check
+            context1.getServiceRegistry(true);
 
-                final ServerStatus origStatus = serverInventory.determineServerStatus(serverName);
-                if (origStatus != ServerStatus.STARTED) {
-                    throw new OperationFailedException(HostControllerLogger.ROOT_LOGGER.cannotRestartServer(serverName, origStatus));
-                }
-                final ServerStatus status = serverInventory.restartServer(serverName, -1, model, blocking, suspend);
-                context.getResult().set(status.toString());
-                context.completeStep(OperationContext.RollbackHandler.NOOP_ROLLBACK_HANDLER);
+            final ServerStatus origStatus = serverInventory.determineServerStatus(serverName);
+            if (origStatus != ServerStatus.STARTED) {
+                throw new OperationFailedException(HostControllerLogger.ROOT_LOGGER.cannotRestartServer(serverName, origStatus));
             }
+            final ServerStatus status = serverInventory.restartServer(serverName, -1, model, blocking, suspend);
+            context1.getResult().set(status.toString());
+            context1.completeStep(OperationContext.RollbackHandler.NOOP_ROLLBACK_HANDLER);
         }, OperationContext.Stage.RUNTIME);
     }
 }

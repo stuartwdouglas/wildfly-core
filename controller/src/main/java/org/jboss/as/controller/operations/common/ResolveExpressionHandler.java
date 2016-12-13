@@ -105,12 +105,7 @@ public class ResolveExpressionHandler implements OperationStepHandler {
                 if(context.isRollbackOnRuntimeFailure()) {
                     context.setRollbackOnly();
                 }
-                context.completeStep(new OperationContext.ResultHandler() {
-                    @Override
-                    public void handleResult(OperationContext.ResultAction resultAction, OperationContext context, ModelNode operation) {
-                        context.getFailureDescription().set(failureDescription);
-                    }
-                });
+                context.completeStep((resultAction, context1, operation1) -> context1.getFailureDescription().set(failureDescription));
             }
         }, OperationContext.Stage.RUNTIME);
     }

@@ -71,60 +71,55 @@ public class DeploymentRemoveHandler implements OperationStepHandler {
         final ModelNode model = deployment.getModel();
 
         if (context.isNormalServer()) {
-            context.addStep(new OperationStepHandler() {
-                public void execute(OperationContext context, ModelNode operation) throws OperationFailedException {
-                    final String runtimeName;
-                    final boolean enabled = ENABLED.resolveModelAttribute(context, model).asBoolean();
-                    if (enabled) {
-                        runtimeName = RUNTIME_NAME.resolveModelAttribute(context, model).asString();
-                        final ServiceName deploymentUnitServiceName = Services.deploymentUnitName(runtimeName);
-                        context.removeService(deploymentUnitServiceName);
-                        context.removeService(deploymentUnitServiceName.append("contents"));
-                    } else {
-                        runtimeName = null;
-                    }
-                    final ModelNode contentNode = CONTENT_RESOURCE.resolveModelAttribute(context, model);
-                    context.completeStep(new OperationContext.ResultHandler() {
-                        @Override
-                        public void handleResult(OperationContext.ResultAction resultAction, OperationContext context, ModelNode operation) {
-                            final String managementName = context.getCurrentAddressValue();
-                            if (resultAction == OperationContext.ResultAction.ROLLBACK) {
-                                if (enabled) {
-                                    recoverServices(context, deployment, managementName, runtimeName, contentNode,
-                                            registration, mutableRegistration, vaultReader);
-                                }
+            context.addStep((context12, operation12) -> {
+                final String runtimeName;
+                final boolean enabled = ENABLED.resolveModelAttribute(context12, model).asBoolean();
+                if (enabled) {
+                    runtimeName = RUNTIME_NAME.resolveModelAttribute(context12, model).asString();
+                    final ServiceName deploymentUnitServiceName = Services.deploymentUnitName(runtimeName);
+                    context12.removeService(deploymentUnitServiceName);
+                    context12.removeService(deploymentUnitServiceName.append("contents"));
+                } else {
+                    runtimeName = null;
+                }
+                final ModelNode contentNode = CONTENT_RESOURCE.resolveModelAttribute(context12, model);
+                context12.completeStep((resultAction, context1, operation1) -> {
+                    final String managementName = context1.getCurrentAddressValue();
+                    if (resultAction == OperationContext.ResultAction.ROLLBACK) {
+                        if (enabled) {
+                            recoverServices(context1, deployment, managementName, runtimeName, contentNode,
+                                    registration, mutableRegistration, vaultReader);
+                        }
 
-                                if (enabled && context.hasFailureDescription()) {
-                                    ServerLogger.ROOT_LOGGER.undeploymentRolledBack(runtimeName, context.getFailureDescription().asString());
-                                } else if (enabled) {
-                                    ServerLogger.ROOT_LOGGER.undeploymentRolledBackWithNoMessage(runtimeName);
+                        if (enabled && context1.hasFailureDescription()) {
+                            ServerLogger.ROOT_LOGGER.undeploymentRolledBack(runtimeName, context1.getFailureDescription().asString());
+                        } else if (enabled) {
+                            ServerLogger.ROOT_LOGGER.undeploymentRolledBackWithNoMessage(runtimeName);
+                        }
+                    } else {
+                        if (enabled) {
+                            ServerLogger.ROOT_LOGGER.deploymentUndeployed(managementName, runtimeName);
+                        }
+                        Set<String> newHash;
+                        try {
+                            newHash = DeploymentUtils.getDeploymentHexHash(context1.readResource(PathAddress.EMPTY_ADDRESS, false).getModel());
+                        } catch (Resource.NoSuchResourceException ex) {
+                            newHash = Collections.emptySet();
+                        }
+                        for (byte[] hash : removedHashes) {
+                            try {
+                                if(newHash.isEmpty() || !newHash.contains(HashUtil.bytesToHexString(hash))) {
+                                    contentRepository.removeContent(ModelContentReference.fromDeploymentName(name, hash));
+                                } else {
+                                    ServerLogger.ROOT_LOGGER.undeployingDeploymentHasBeenRedeployed(name);
                                 }
-                            } else {
-                                if (enabled) {
-                                    ServerLogger.ROOT_LOGGER.deploymentUndeployed(managementName, runtimeName);
-                                }
-                                Set<String> newHash;
-                                try {
-                                    newHash = DeploymentUtils.getDeploymentHexHash(context.readResource(PathAddress.EMPTY_ADDRESS, false).getModel());
-                                } catch (Resource.NoSuchResourceException ex) {
-                                    newHash = Collections.emptySet();
-                                }
-                                for (byte[] hash : removedHashes) {
-                                    try {
-                                        if(newHash.isEmpty() || !newHash.contains(HashUtil.bytesToHexString(hash))) {
-                                            contentRepository.removeContent(ModelContentReference.fromDeploymentName(name, hash));
-                                        } else {
-                                            ServerLogger.ROOT_LOGGER.undeployingDeploymentHasBeenRedeployed(name);
-                                        }
-                                    } catch (Exception e) {
-                                        //TODO
-                                        ServerLogger.ROOT_LOGGER.failedToRemoveDeploymentContent(e, HashUtil.bytesToHexString(hash));
-                                    }
-                                }
+                            } catch (Exception e) {
+                                //TODO
+                                ServerLogger.ROOT_LOGGER.failedToRemoveDeploymentContent(e, HashUtil.bytesToHexString(hash));
                             }
                         }
-                    });
-                }
+                    }
+                });
             }, OperationContext.Stage.RUNTIME);
         }
     }

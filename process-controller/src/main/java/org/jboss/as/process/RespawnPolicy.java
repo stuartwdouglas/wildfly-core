@@ -43,14 +43,7 @@ interface RespawnPolicy {
      */
     void respawn(int count, ManagedProcess process, boolean slowRespawn, boolean unlimited);
 
-    RespawnPolicy NONE = new RespawnPolicy() {
-
-        @Override
-        public void respawn(final int count, final ManagedProcess process, boolean slowRespawn, boolean unlimited) {
-            ProcessLogger.SERVER_LOGGER.tracef("not trying to respawn process %s.", process.getProcessName());
-        }
-
-    };
+    RespawnPolicy NONE = (count, process, slowRespawn, unlimited) -> ProcessLogger.SERVER_LOGGER.tracef("not trying to respawn process %s.", process.getProcessName());
 
     RespawnPolicy RESPAWN = new RespawnPolicy() {
 

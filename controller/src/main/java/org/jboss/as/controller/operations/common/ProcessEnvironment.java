@@ -240,20 +240,12 @@ public abstract class ProcessEnvironment {
             final String processName = resolved;
 
             if (booting) {
-                context.addStep(new OperationStepHandler() {
-                    @Override
-                    public void execute(OperationContext context, ModelNode operation) throws OperationFailedException {
-                        ProcessEnvironment.this.setProcessName(processName);
-                    }
-                }, Stage.RUNTIME);
+                context.addStep((context12, operation12) -> ProcessEnvironment.this.setProcessName(processName), Stage.RUNTIME);
             }
 
-            context.completeStep(new OperationContext.RollbackHandler() {
-                @Override
-                public void handleRollback(OperationContext context, ModelNode operation) {
-                    if (!booting) {
-                        context.revertReloadRequired();
-                    }
+            context.completeStep((context1, operation1) -> {
+                if (!booting) {
+                    context1.revertReloadRequired();
                 }
             });
         }

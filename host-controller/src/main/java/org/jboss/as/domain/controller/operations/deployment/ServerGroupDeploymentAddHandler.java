@@ -93,12 +93,7 @@ public class ServerGroupDeploymentAddHandler implements OperationStepHandler {
         }
 
         // Add a step to validate uniqueness of runtime names
-        context.addStep(new OperationStepHandler() {
-            @Override
-            public void execute(OperationContext context, ModelNode operation) throws OperationFailedException {
-                validateRuntimeNames(name, context, address);
-            }
-        }, OperationContext.Stage.MODEL);
+        context.addStep((context1, operation1) -> validateRuntimeNames(name, context1, address), OperationContext.Stage.MODEL);
     }
 
     static void validateRuntimeNames(String deploymentName, OperationContext context, PathAddress address) throws OperationFailedException {

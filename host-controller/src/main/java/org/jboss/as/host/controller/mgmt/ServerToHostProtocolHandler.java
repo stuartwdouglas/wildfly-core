@@ -31,7 +31,6 @@ import static org.jboss.as.host.controller.logging.HostControllerLogger.ROOT_LOG
 import static org.jboss.as.process.protocol.ProtocolUtils.expectHeader;
 
 import java.io.DataInput;
-import java.io.File;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.util.concurrent.Executor;
@@ -64,7 +63,6 @@ import org.jboss.as.protocol.mgmt.ManagementRequestHandlerFactory;
 import org.jboss.as.protocol.mgmt.ManagementRequestHeader;
 import org.jboss.as.protocol.mgmt.ManagementResponseHeader;
 import org.jboss.as.protocol.mgmt.ProtocolUtils;
-import org.jboss.as.protocol.mgmt.RequestProcessingException;
 import org.jboss.as.repository.ContentReference;
 import org.jboss.as.repository.DeploymentFileRepository;
 import org.jboss.as.repository.RemoteFileRequestAndHandler;
@@ -178,20 +176,17 @@ public class ServerToHostProtocolHandler implements ManagementRequestHandlerFact
             serverProcessName = serverName;
             ROOT_LOGGER.serverConnected(serverName, context.getChannel());
             // Execute the registration request
-            context.executeAsync(new ManagementRequestContext.AsyncTask<Void>() {
-                @Override
-                public void execute(final ManagementRequestContext<Void> context) throws Exception {
-                    try {
-                        final OperationStepHandler stepHandler = new ServerRegistrationStepHandler(serverName, context);
-                        final ModelNode result = operationExecutor.joinActiveOperation(EMPTY_OP.getOperation(), OperationMessageHandler.DISCARD, ModelController.OperationTransactionControl.COMMIT, stepHandler, operationId);
-                        if(! SUCCESS.equals(result.get(OUTCOME).asString())) {
-                            safeWriteResponse(context.getChannel(), context.getRequestHeader(), DomainServerProtocol.PARAM_ERROR);
-                        }
-                    } catch (Exception e) {
-                        safeWriteResponse(context, e);
+            context.executeAsync(context1 -> {
+                try {
+                    final OperationStepHandler stepHandler = new ServerRegistrationStepHandler(serverName, context1);
+                    final ModelNode result = operationExecutor.joinActiveOperation(EMPTY_OP.getOperation(), OperationMessageHandler.DISCARD, ModelController.OperationTransactionControl.COMMIT, stepHandler, operationId);
+                    if(! SUCCESS.equals(result.get(OUTCOME).asString())) {
+                        safeWriteResponse(context1.getChannel(), context1.getRequestHeader(), DomainServerProtocol.PARAM_ERROR);
                     }
-                    resultHandler.done(null);
+                } catch (Exception e) {
+                    safeWriteResponse(context1, e);
                 }
+                resultHandler.done(null);
             }, registrations);
         }
     }
@@ -240,13 +235,10 @@ public class ServerToHostProtocolHandler implements ManagementRequestHandlerFact
                 return;
             }
 
-            context.completeStep(new OperationContext.ResultHandler() {
-                @Override
-                public void handleResult(OperationContext.ResultAction resultAction, OperationContext context, ModelNode operation) {
-                    if(resultAction == OperationContext.ResultAction.KEEP) {
-                        // Register the server proxy
-                        domainController.registerRunningServer(controller);
-                    }
+            context.completeStep((resultAction, context1, operation1) -> {
+                if(resultAction == OperationContext.ResultAction.KEEP) {
+                    // Register the server proxy
+                    domainController.registerRunningServer(controller);
                 }
             });
         }
@@ -263,40 +255,34 @@ public class ServerToHostProtocolHandler implements ManagementRequestHandlerFact
             final String serverName = input.readUTF();
             final Channel channel = context.getChannel();
             ROOT_LOGGER.serverConnected(serverName, channel);
-            context.executeAsync(new ManagementRequestContext.AsyncTask<Void>() {
-                @Override
-                public void execute(final ManagementRequestContext<Void> requestContext) throws Exception {
-                    final OperationStepHandler stepHandler = new OperationStepHandler() {
-                        @Override
-                        public void execute(final OperationContext context, final ModelNode operation) throws OperationFailedException {
-                            // Acquire controller lock
-                            context.acquireControllerLock();
-                            // Check if the server is still in sync with the domain model
-                            // TODO WFCORE-990 this should involve shipping the resource tree to the server, which then compares
-                            // its local model. This would be done in the prepare phase of a transactional request.
-                            // The ResultHandler of this step would then publish the server's state, and register
-                            // the server's proxy controller with DomainModelControllerService
-                            final byte param;
-                            if(serverInventory.serverReconnected(serverName, channelHandler)) {
-                                param = DomainServerProtocol.PARAM_OK;
-                            } else {
-                                param = DomainServerProtocol.PARAM_RESTART_REQUIRED;
-                            }
-                            // Notify the server whether configuration is still in sync or it requires a reload
-                            safeWriteResponse(channel, requestContext.getRequestHeader(), param);
-                            context.completeStep(OperationContext.RollbackHandler.NOOP_ROLLBACK_HANDLER);
-                        }
-                    };
-                    try {
-                        final ModelNode result = operationExecutor.execute(EMPTY_OP, OperationMessageHandler.DISCARD, ModelController.OperationTransactionControl.COMMIT, stepHandler);
-                        if(! SUCCESS.equals(result.get(OUTCOME).asString())) {
-                            safeWriteResponse(context.getChannel(), context.getRequestHeader(), DomainServerProtocol.PARAM_ERROR);
-                        }
-                    } catch (Exception e) {
-                        safeWriteResponse(context, e);
-                    } finally {
-                        resultHandler.done(null);
+            context.executeAsync(requestContext -> {
+                final OperationStepHandler stepHandler = (context1, operation) -> {
+                    // Acquire controller lock
+                    context1.acquireControllerLock();
+                    // Check if the server is still in sync with the domain model
+                    // TODO WFCORE-990 this should involve shipping the resource tree to the server, which then compares
+                    // its local model. This would be done in the prepare phase of a transactional request.
+                    // The ResultHandler of this step would then publish the server's state, and register
+                    // the server's proxy controller with DomainModelControllerService
+                    final byte param;
+                    if(serverInventory.serverReconnected(serverName, channelHandler)) {
+                        param = DomainServerProtocol.PARAM_OK;
+                    } else {
+                        param = DomainServerProtocol.PARAM_RESTART_REQUIRED;
                     }
+                    // Notify the server whether configuration is still in sync or it requires a reload
+                    safeWriteResponse(channel, requestContext.getRequestHeader(), param);
+                    context1.completeStep(OperationContext.RollbackHandler.NOOP_ROLLBACK_HANDLER);
+                };
+                try {
+                    final ModelNode result = operationExecutor.execute(EMPTY_OP, OperationMessageHandler.DISCARD, ModelController.OperationTransactionControl.COMMIT, stepHandler);
+                    if(! SUCCESS.equals(result.get(OUTCOME).asString())) {
+                        safeWriteResponse(context.getChannel(), context.getRequestHeader(), DomainServerProtocol.PARAM_ERROR);
+                    }
+                } catch (Exception e) {
+                    safeWriteResponse(context, e);
+                } finally {
+                    resultHandler.done(null);
                 }
             });
         }
@@ -312,11 +298,9 @@ public class ServerToHostProtocolHandler implements ManagementRequestHandlerFact
         public void handleRequest(DataInput input, ActiveOperation.ResultHandler<Void> resultHandler, ManagementRequestContext<Void> context)
                 throws IOException {
             HostControllerLogger.ROOT_LOGGER.tracef("Handling GetFileOperation with id %d", context.getOperationId());
-            final RemoteFileRequestAndHandler.RootFileReader reader = new RemoteFileRequestAndHandler.RootFileReader() {
-                public File readRootFile(byte rootId, String filePath) throws RequestProcessingException {
-                    byte[] hash = HashUtil.hexStringToByteArray(filePath);
-                    return deploymentFileRepository.getDeploymentRoot(new ContentReference(filePath, hash));
-                }
+            final RemoteFileRequestAndHandler.RootFileReader reader = (rootId, filePath) -> {
+                byte[] hash = HashUtil.hexStringToByteArray(filePath);
+                return deploymentFileRepository.getDeploymentRoot(new ContentReference(filePath, hash));
             };
             ServerToHostRemoteFileRequestAndHandler.INSTANCE.handleRequest(input, reader, resultHandler, context);
         }
@@ -336,19 +320,16 @@ public class ServerToHostProtocolHandler implements ManagementRequestHandlerFact
         public void handleRequest(final DataInput input, final ActiveOperation.ResultHandler<Void> resultHandler, final ManagementRequestContext<ServerInventory> context) throws IOException {
             final byte param = input.readByte(); // Started / Failed PARAM_OK
             final String message = input.readUTF(); // Server started/failed message
-            context.executeAsync(new ManagementRequestContext.AsyncTask<ServerInventory>() {
-                @Override
-                public void execute(ManagementRequestContext<ServerInventory> serverInventoryManagementRequestContext) throws Exception {
-                    try {
-                        final ServerInventory inventory = context.getAttachment();
-                        if(param == DomainServerProtocol.PARAM_OK) {
-                            inventory.serverStarted(serverProcessName);
-                        } else {
-                            inventory.serverStartFailed(serverProcessName);
-                        }
-                    } finally {
-                        resultHandler.done(null);
+            context.executeAsync(serverInventoryManagementRequestContext -> {
+                try {
+                    final ServerInventory inventory = context.getAttachment();
+                    if(param == DomainServerProtocol.PARAM_OK) {
+                        inventory.serverStarted(serverProcessName);
+                    } else {
+                        inventory.serverStartFailed(serverProcessName);
                     }
+                } finally {
+                    resultHandler.done(null);
                 }
             });
         }
@@ -366,14 +347,11 @@ public class ServerToHostProtocolHandler implements ManagementRequestHandlerFact
 
         @Override
         public void handleRequest(final DataInput input, final ActiveOperation.ResultHandler<Void> resultHandler, final ManagementRequestContext<ServerInventory> context) throws IOException {
-            context.executeAsync(new ManagementRequestContext.AsyncTask<ServerInventory>() {
-                @Override
-                public void execute(ManagementRequestContext<ServerInventory> serverInventoryManagementRequestContext) throws Exception {
-                    try {
-                        serverInventory.serverUnstable(serverProcessName);
-                    } finally {
-                        resultHandler.done(null);
-                    }
+            context.executeAsync(serverInventoryManagementRequestContext -> {
+                try {
+                    serverInventory.serverUnstable(serverProcessName);
+                } finally {
+                    resultHandler.done(null);
                 }
             });
         }

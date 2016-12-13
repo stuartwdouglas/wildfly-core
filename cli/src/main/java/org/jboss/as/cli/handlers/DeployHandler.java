@@ -38,7 +38,6 @@ import java.util.concurrent.Executors;
 
 import org.jboss.as.cli.CommandContext;
 import org.jboss.as.cli.CommandFormatException;
-import org.jboss.as.cli.CommandLineCompleter;
 import org.jboss.as.cli.CommandLineException;
 import org.jboss.as.cli.Util;
 import org.jboss.as.cli.accesscontrol.AccessRequirement;
@@ -118,53 +117,51 @@ public class DeployHandler extends DeploymentHandler {
         force.addRequiredPreceding(path);
         force.setAccessRequirement(fullReplacePermission);
 
-        name = new ArgumentWithValue(this, new CommandLineCompleter() {
-            @Override
-            public int complete(CommandContext ctx, String buffer, int cursor, List<String> candidates) {
+        name = new ArgumentWithValue(this, (ctx1, buffer, cursor, candidates) -> {
 
-                ParsedCommandLine args = ctx.getParsedCommandLine();
-                try {
-                    if(path.isPresent(args) || url.isPresent(args)) {
-                        return -1;
-                    }
-                } catch (CommandFormatException e) {
+            ParsedCommandLine args = ctx1.getParsedCommandLine();
+            try {
+                if(path.isPresent(args) || url.isPresent(args)) {
+                    return -1;
+                }
+            } catch (CommandFormatException e) {
+                return -1;
+            }
+
+            int nextCharIndex = 0;
+            while (nextCharIndex < buffer.length()) {
+                if (!Character.isWhitespace(buffer.charAt(nextCharIndex))) {
+                    break;
+                }
+                ++nextCharIndex;
+            }
+
+            if(ctx1.getModelControllerClient() != null) {
+                List<String> deployments = Util.getDeployments(ctx1.getModelControllerClient());
+                if(deployments.isEmpty()) {
                     return -1;
                 }
 
-                int nextCharIndex = 0;
-                while (nextCharIndex < buffer.length()) {
-                    if (!Character.isWhitespace(buffer.charAt(nextCharIndex))) {
-                        break;
-                    }
-                    ++nextCharIndex;
-                }
-
-                if(ctx.getModelControllerClient() != null) {
-                    List<String> deployments = Util.getDeployments(ctx.getModelControllerClient());
-                    if(deployments.isEmpty()) {
-                        return -1;
-                    }
-
-                    String opBuffer = buffer.substring(nextCharIndex).trim();
-                    if (opBuffer.isEmpty()) {
-                        candidates.addAll(deployments);
-                        candidates.add(ALL);
-                    } else if (ALL.startsWith(opBuffer)) {
-                        candidates.add(ALL + " ");
-                    } else {
-                        for (String name : deployments) {
-                            if (name.startsWith(opBuffer)) {
-                                candidates.add(name);
-                            }
-                        }
-                        Collections.sort(candidates);
-                    }
-                    return nextCharIndex;
+                String opBuffer = buffer.substring(nextCharIndex).trim();
+                if (opBuffer.isEmpty()) {
+                    candidates.addAll(deployments);
+                    candidates.add(ALL);
+                } else if (ALL.startsWith(opBuffer)) {
+                    candidates.add(ALL + " ");
                 } else {
-                    return -1;
+                    for (String name : deployments) {
+                        if (name.startsWith(opBuffer)) {
+                            candidates.add(name);
+                        }
+                    }
+                    Collections.sort(candidates);
                 }
+                return nextCharIndex;
+            } else {
+                return -1;
+            }
 
-            }}, "--name");
+        }, "--name");
         name.addCantAppearAfter(l);
         path.addCantAppearAfter(name);
         url.addCantAppearAfter(name);

@@ -77,7 +77,6 @@ import org.jboss.as.domain.management.access.AccessAuthorizationResourceDefiniti
 import org.jboss.as.host.controller.HostControllerConfigurationPersister;
 import org.jboss.as.host.controller.HostControllerEnvironment;
 import org.jboss.as.host.controller.HostModelUtil;
-import org.jboss.as.host.controller.HostModelUtil.HostModelRegistrar;
 import org.jboss.as.host.controller.HostPathManagerService;
 import org.jboss.as.host.controller.HostRunningModeControl;
 import org.jboss.as.host.controller.ignored.IgnoredDomainResourceRegistry;
@@ -531,10 +530,7 @@ class TestModelControllerService extends ModelTestModelControllerService {
                     rootRegistration,
                     env,
                     ignoredRegistry,
-                    new HostModelRegistrar() {
-                        @Override
-                        public void registerHostModel(String hostName, ManagementResourceRegistration rootRegistration) {
-                        }
+                    (hostName, rootRegistration1) -> {
                     },ProcessType.HOST_CONTROLLER, authorizer, modelControllerResource);
 
             ManagementResourceRegistration hostReg = HostModelUtil.createHostRegistry(
@@ -617,11 +613,7 @@ class TestModelControllerService extends ModelTestModelControllerService {
                     rootRegistration,
                     env,
                     ignoredRegistry,
-                    new HostModelRegistrar() {
-
-                        @Override
-                        public void registerHostModel(String hostName, ManagementResourceRegistration root) {
-                        }
+                    (hostName, root) -> {
                     },processType, authorizer, modelControllerResource);
 
             CoreManagementResourceDefinition.registerDomainResource(rootResource, null);

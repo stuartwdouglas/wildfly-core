@@ -63,15 +63,11 @@ class ServerInterceptorFactory implements ServerMessageInterceptorFactory {
             final InetAddress remoteAddress = peerSocketAddress != null ? peerSocketAddress.getAddress() : null;
 
             try {
-                AccessAuditContext.doAs(localIdentity, remoteAddress, new PrivilegedExceptionAction<Void>() {
+                AccessAuditContext.doAs(localIdentity, remoteAddress, (PrivilegedExceptionAction<Void>) () -> {
+                    SecurityActions.currentAccessAuditContext().setAccessMechanism(AccessMechanism.JMX);
+                    event.run();
 
-                    @Override
-                    public Void run() throws IOException {
-                        SecurityActions.currentAccessAuditContext().setAccessMechanism(AccessMechanism.JMX);
-                        event.run();
-
-                        return null;
-                    }
+                    return null;
                 });
             } catch (PrivilegedActionException e) {
                 Exception cause = e.getException();

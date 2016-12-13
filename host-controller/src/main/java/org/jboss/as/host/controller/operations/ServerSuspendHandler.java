@@ -80,15 +80,12 @@ public class ServerSuspendHandler implements OperationStepHandler {
         final int suspendTimeout = TIMEOUT.resolveModelAttribute(context, operation).asInt(); //timeout in seconds, by default is 0
         final BlockingTimeout blockingTimeout = BlockingTimeout.Factory.getProxyBlockingTimeout(context);
 
-        context.addStep(new OperationStepHandler() {
-            @Override
-            public void execute(final OperationContext context, final ModelNode operation) throws OperationFailedException {
-                // WFLY-2189 trigger a write-runtime authz check
-                context.getServiceRegistry(true);
-                final List<ModelNode> errorResponses  = serverInventory.suspendServers(Collections.singleton(serverName), suspendTimeout, blockingTimeout);
-                if ( !errorResponses.isEmpty() ){
-                    context.getFailureDescription().set(errorResponses.get(0));
-                }
+        context.addStep((context1, operation1) -> {
+            // WFLY-2189 trigger a write-runtime authz check
+            context1.getServiceRegistry(true);
+            final List<ModelNode> errorResponses  = serverInventory.suspendServers(Collections.singleton(serverName), suspendTimeout, blockingTimeout);
+            if ( !errorResponses.isEmpty() ){
+                context1.getFailureDescription().set(errorResponses.get(0));
             }
         }, OperationContext.Stage.RUNTIME);
     }

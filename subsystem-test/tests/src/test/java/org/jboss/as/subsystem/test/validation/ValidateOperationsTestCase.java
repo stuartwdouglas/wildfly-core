@@ -38,11 +38,9 @@ import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.VAL
 
 import java.math.BigDecimal;
 import java.util.Collections;
-import java.util.Locale;
 
 import org.jboss.as.controller.PathAddress;
 import org.jboss.as.controller.PathElement;
-import org.jboss.as.controller.descriptions.DescriptionProvider;
 import org.jboss.as.subsystem.test.AbstractSubsystemTest;
 import org.jboss.as.subsystem.test.AdditionalInitialization;
 import org.jboss.as.subsystem.test.KernelServices;
@@ -70,15 +68,11 @@ public class ValidateOperationsTestCase extends AbstractSubsystemTest {
      */
     @Test
     public void testValidNoArgs() throws Exception {
-        getMainExtension().setAddDescriptionProvider(new DescriptionProvider() {
-
-            @Override
-            public ModelNode getModelDescription(Locale locale) {
-                ModelNode description = new ModelNode();
-                description.get(OPERATION_NAME).set(ADD);
-                description.get(DESCRIPTION).set("Add operation");
-                return description;
-            }
+        getMainExtension().setAddDescriptionProvider(locale -> {
+            ModelNode description = new ModelNode();
+            description.get(OPERATION_NAME).set(ADD);
+            description.get(DESCRIPTION).set("Add operation");
+            return description;
         });
         ModelNode operation = createAddOperation();
         KernelServices services = createKernelServicesBuilder(AdditionalInitialization.MANAGEMENT)
@@ -93,20 +87,16 @@ public class ValidateOperationsTestCase extends AbstractSubsystemTest {
      */
     @Test
     public void testValidArgs() throws Exception {
-        getMainExtension().setAddDescriptionProvider(new DescriptionProvider() {
-
-            @Override
-            public ModelNode getModelDescription(Locale locale) {
-                ModelNode description = new ModelNode();
-                description.get(DESCRIPTION).set("Add operation");
-                description.get(OPERATION_NAME).set(ADD);
-                description.get(REQUEST_PROPERTIES, "test", DESCRIPTION).set("A param");
-                description.get(REQUEST_PROPERTIES, "test", TYPE).set(ModelType.LONG);
-                description.get(REQUEST_PROPERTIES, "test", REQUIRED).set(true);
-                description.get(REQUEST_PROPERTIES, "test", MIN).set(0);
-                description.get(REQUEST_PROPERTIES, "test", MAX).set(2);
-                return description;
-            }
+        getMainExtension().setAddDescriptionProvider(locale -> {
+            ModelNode description = new ModelNode();
+            description.get(DESCRIPTION).set("Add operation");
+            description.get(OPERATION_NAME).set(ADD);
+            description.get(REQUEST_PROPERTIES, "test", DESCRIPTION).set("A param");
+            description.get(REQUEST_PROPERTIES, "test", TYPE).set(ModelType.LONG);
+            description.get(REQUEST_PROPERTIES, "test", REQUIRED).set(true);
+            description.get(REQUEST_PROPERTIES, "test", MIN).set(0);
+            description.get(REQUEST_PROPERTIES, "test", MAX).set(2);
+            return description;
         });
         ModelNode operation = createAddOperation();
         operation.get("test").set(1);
@@ -119,15 +109,11 @@ public class ValidateOperationsTestCase extends AbstractSubsystemTest {
 
     @Test
     public void testNonExistentParameter() throws Exception {
-        getMainExtension().setAddDescriptionProvider(new DescriptionProvider() {
-
-            @Override
-            public ModelNode getModelDescription(Locale locale) {
-                ModelNode description = new ModelNode();
-                description.get(DESCRIPTION).set("Add operation");
-                description.get(OPERATION_NAME).set(ADD);
-                return description;
-            }
+        getMainExtension().setAddDescriptionProvider(locale -> {
+            ModelNode description = new ModelNode();
+            description.get(DESCRIPTION).set("Add operation");
+            description.get(OPERATION_NAME).set(ADD);
+            return description;
         });
         ModelNode operation = createAddOperation();
         operation.get("test").set(1);
@@ -142,17 +128,13 @@ public class ValidateOperationsTestCase extends AbstractSubsystemTest {
 
     @Test
     public void testMissingRequiredParam() throws Exception {
-        getMainExtension().setAddDescriptionProvider(new DescriptionProvider() {
-
-            @Override
-            public ModelNode getModelDescription(Locale locale) {
-                ModelNode description = new ModelNode();
-                description.get(DESCRIPTION).set("Add operation");
-                description.get(OPERATION_NAME).set(ADD);
-                description.get(REQUEST_PROPERTIES, "test", TYPE).set(ModelType.LONG);
-                description.get(REQUEST_PROPERTIES, "test", REQUIRED).set(true);
-                return description;
-            }
+        getMainExtension().setAddDescriptionProvider(locale -> {
+            ModelNode description = new ModelNode();
+            description.get(DESCRIPTION).set("Add operation");
+            description.get(OPERATION_NAME).set(ADD);
+            description.get(REQUEST_PROPERTIES, "test", TYPE).set(ModelType.LONG);
+            description.get(REQUEST_PROPERTIES, "test", REQUIRED).set(true);
+            return description;
         });
         ModelNode operation = createAddOperation();
         try {
@@ -166,16 +148,12 @@ public class ValidateOperationsTestCase extends AbstractSubsystemTest {
 
     @Test
     public void testMissingRequiredParam2() throws Exception {
-        getMainExtension().setAddDescriptionProvider(new DescriptionProvider() {
-
-            @Override
-            public ModelNode getModelDescription(Locale locale) {
-                ModelNode description = new ModelNode();
-                description.get(DESCRIPTION).set("Add operation");
-                description.get(OPERATION_NAME).set(ADD);
-                description.get(REQUEST_PROPERTIES, "test", TYPE).set(ModelType.LONG);
-                return description;
-            }
+        getMainExtension().setAddDescriptionProvider(locale -> {
+            ModelNode description = new ModelNode();
+            description.get(DESCRIPTION).set("Add operation");
+            description.get(OPERATION_NAME).set(ADD);
+            description.get(REQUEST_PROPERTIES, "test", TYPE).set(ModelType.LONG);
+            return description;
         });
         ModelNode operation = createAddOperation();
         try {
@@ -189,18 +167,14 @@ public class ValidateOperationsTestCase extends AbstractSubsystemTest {
 
     @Test
     public void testMissingNonRequiredParam() throws Exception {
-        getMainExtension().setAddDescriptionProvider(new DescriptionProvider() {
-
-            @Override
-            public ModelNode getModelDescription(Locale locale) {
-                ModelNode description = new ModelNode();
-                description.get(DESCRIPTION).set("Add operation");
-                description.get(OPERATION_NAME).set(ADD);
-                description.get(REQUEST_PROPERTIES, "test", DESCRIPTION).set("A param");
-                description.get(REQUEST_PROPERTIES, "test", TYPE).set(ModelType.LONG);
-                description.get(REQUEST_PROPERTIES, "test", REQUIRED).set(false);
-                return description;
-            }
+        getMainExtension().setAddDescriptionProvider(locale -> {
+            ModelNode description = new ModelNode();
+            description.get(DESCRIPTION).set("Add operation");
+            description.get(OPERATION_NAME).set(ADD);
+            description.get(REQUEST_PROPERTIES, "test", DESCRIPTION).set("A param");
+            description.get(REQUEST_PROPERTIES, "test", TYPE).set(ModelType.LONG);
+            description.get(REQUEST_PROPERTIES, "test", REQUIRED).set(false);
+            return description;
         });
         ModelNode operation = createAddOperation();
         createKernelServicesBuilder(AdditionalInitialization.MANAGEMENT)
@@ -210,16 +184,12 @@ public class ValidateOperationsTestCase extends AbstractSubsystemTest {
 
     @Test
     public void testWrongParamType() throws Exception {
-        getMainExtension().setAddDescriptionProvider(new DescriptionProvider() {
-
-            @Override
-            public ModelNode getModelDescription(Locale locale) {
-                ModelNode description = new ModelNode();
-                description.get(DESCRIPTION).set("Add operation");
-                description.get(OPERATION_NAME).set(ADD);
-                description.get(REQUEST_PROPERTIES, "test", TYPE).set(ModelType.LONG);
-                return description;
-            }
+        getMainExtension().setAddDescriptionProvider(locale -> {
+            ModelNode description = new ModelNode();
+            description.get(DESCRIPTION).set("Add operation");
+            description.get(OPERATION_NAME).set(ADD);
+            description.get(REQUEST_PROPERTIES, "test", TYPE).set(ModelType.LONG);
+            return description;
         });
         ModelNode operation = createAddOperation();
         operation.get("test").set("Hello");
@@ -234,17 +204,13 @@ public class ValidateOperationsTestCase extends AbstractSubsystemTest {
 
     @Test
     public void testBigDecimalRangeTooSmall() throws Exception {
-        getMainExtension().setAddDescriptionProvider(new DescriptionProvider() {
-
-            @Override
-            public ModelNode getModelDescription(Locale locale) {
-                ModelNode description = new ModelNode();
-                description.get(DESCRIPTION).set("Add operation");
-                description.get(OPERATION_NAME).set(ADD);
-                description.get(REQUEST_PROPERTIES, "test", TYPE).set(ModelType.BIG_DECIMAL);
-                description.get(REQUEST_PROPERTIES, "test", MIN).set(new BigDecimal("10"));
-                return description;
-            }
+        getMainExtension().setAddDescriptionProvider(locale -> {
+            ModelNode description = new ModelNode();
+            description.get(DESCRIPTION).set("Add operation");
+            description.get(OPERATION_NAME).set(ADD);
+            description.get(REQUEST_PROPERTIES, "test", TYPE).set(ModelType.BIG_DECIMAL);
+            description.get(REQUEST_PROPERTIES, "test", MIN).set(new BigDecimal("10"));
+            return description;
         });
         ModelNode operation = createAddOperation();
         operation.get("test").set(new BigDecimal("5"));
@@ -259,17 +225,13 @@ public class ValidateOperationsTestCase extends AbstractSubsystemTest {
 
     @Test
     public void testBigDecimalRangeTooLarge() throws Exception {
-        getMainExtension().setAddDescriptionProvider(new DescriptionProvider() {
-
-            @Override
-            public ModelNode getModelDescription(Locale locale) {
-                ModelNode description = new ModelNode();
-                description.get(DESCRIPTION).set("Add operation");
-                description.get(OPERATION_NAME).set(ADD);
-                description.get(REQUEST_PROPERTIES, "test", TYPE).set(ModelType.BIG_DECIMAL);
-                description.get(REQUEST_PROPERTIES, "test", MAX).set(new BigDecimal("10"));
-                return description;
-            }
+        getMainExtension().setAddDescriptionProvider(locale -> {
+            ModelNode description = new ModelNode();
+            description.get(DESCRIPTION).set("Add operation");
+            description.get(OPERATION_NAME).set(ADD);
+            description.get(REQUEST_PROPERTIES, "test", TYPE).set(ModelType.BIG_DECIMAL);
+            description.get(REQUEST_PROPERTIES, "test", MAX).set(new BigDecimal("10"));
+            return description;
         });
         ModelNode operation = createAddOperation();
         operation.get("test").set(new BigDecimal("15"));
@@ -284,17 +246,13 @@ public class ValidateOperationsTestCase extends AbstractSubsystemTest {
 
     @Test
     public void testIntRangeTooSmall() throws Exception {
-        getMainExtension().setAddDescriptionProvider(new DescriptionProvider() {
-
-            @Override
-            public ModelNode getModelDescription(Locale locale) {
-                ModelNode description = new ModelNode();
-                description.get(DESCRIPTION).set("Add operation");
-                description.get(OPERATION_NAME).set(ADD);
-                description.get(REQUEST_PROPERTIES, "test", TYPE).set(ModelType.INT);
-                description.get(REQUEST_PROPERTIES, "test", MIN).set(10);
-                return description;
-            }
+        getMainExtension().setAddDescriptionProvider(locale -> {
+            ModelNode description = new ModelNode();
+            description.get(DESCRIPTION).set("Add operation");
+            description.get(OPERATION_NAME).set(ADD);
+            description.get(REQUEST_PROPERTIES, "test", TYPE).set(ModelType.INT);
+            description.get(REQUEST_PROPERTIES, "test", MIN).set(10);
+            return description;
         });
         ModelNode operation = createAddOperation();
         operation.get("test").set(5);
@@ -309,17 +267,13 @@ public class ValidateOperationsTestCase extends AbstractSubsystemTest {
 
     @Test
     public void testIntRangeTooLarge() throws Exception {
-        getMainExtension().setAddDescriptionProvider(new DescriptionProvider() {
-
-            @Override
-            public ModelNode getModelDescription(Locale locale) {
-                ModelNode description = new ModelNode();
-                description.get(DESCRIPTION).set("Add operation");
-                description.get(OPERATION_NAME).set(ADD);
-                description.get(REQUEST_PROPERTIES, "test", TYPE).set(ModelType.INT);
-                description.get(REQUEST_PROPERTIES, "test", MAX).set(10);
-                return description;
-            }
+        getMainExtension().setAddDescriptionProvider(locale -> {
+            ModelNode description = new ModelNode();
+            description.get(DESCRIPTION).set("Add operation");
+            description.get(OPERATION_NAME).set(ADD);
+            description.get(REQUEST_PROPERTIES, "test", TYPE).set(ModelType.INT);
+            description.get(REQUEST_PROPERTIES, "test", MAX).set(10);
+            return description;
         });
         ModelNode operation = createAddOperation();
         operation.get("test").set(15);
@@ -334,17 +288,13 @@ public class ValidateOperationsTestCase extends AbstractSubsystemTest {
 
     @Test
     public void testStringTooShort() throws Exception {
-        getMainExtension().setAddDescriptionProvider(new DescriptionProvider() {
-
-            @Override
-            public ModelNode getModelDescription(Locale locale) {
-                ModelNode description = new ModelNode();
-                description.get(DESCRIPTION).set("Add operation");
-                description.get(OPERATION_NAME).set(ADD);
-                description.get(REQUEST_PROPERTIES, "test", TYPE).set(ModelType.STRING);
-                description.get(REQUEST_PROPERTIES, "test", MIN_LENGTH).set(3);
-                return description;
-            }
+        getMainExtension().setAddDescriptionProvider(locale -> {
+            ModelNode description = new ModelNode();
+            description.get(DESCRIPTION).set("Add operation");
+            description.get(OPERATION_NAME).set(ADD);
+            description.get(REQUEST_PROPERTIES, "test", TYPE).set(ModelType.STRING);
+            description.get(REQUEST_PROPERTIES, "test", MIN_LENGTH).set(3);
+            return description;
         });
         ModelNode operation = createAddOperation();
         operation.get("test").set("Yo");
@@ -359,17 +309,13 @@ public class ValidateOperationsTestCase extends AbstractSubsystemTest {
 
     @Test
     public void testStringTooLong() throws Exception {
-        getMainExtension().setAddDescriptionProvider(new DescriptionProvider() {
-
-            @Override
-            public ModelNode getModelDescription(Locale locale) {
-                ModelNode description = new ModelNode();
-                description.get(DESCRIPTION).set("Add operation");
-                description.get(OPERATION_NAME).set(ADD);
-                description.get(REQUEST_PROPERTIES, "test", TYPE).set(ModelType.STRING);
-                description.get(REQUEST_PROPERTIES, "test", MAX_LENGTH).set(1);
-                return description;
-            }
+        getMainExtension().setAddDescriptionProvider(locale -> {
+            ModelNode description = new ModelNode();
+            description.get(DESCRIPTION).set("Add operation");
+            description.get(OPERATION_NAME).set(ADD);
+            description.get(REQUEST_PROPERTIES, "test", TYPE).set(ModelType.STRING);
+            description.get(REQUEST_PROPERTIES, "test", MAX_LENGTH).set(1);
+            return description;
         });
         ModelNode operation = createAddOperation();
         operation.get("test").set("Yo");
@@ -384,19 +330,15 @@ public class ValidateOperationsTestCase extends AbstractSubsystemTest {
 
     @Test
     public void testStringJustRight() throws Exception {
-        getMainExtension().setAddDescriptionProvider(new DescriptionProvider() {
-
-            @Override
-            public ModelNode getModelDescription(Locale locale) {
-                ModelNode description = new ModelNode();
-                description.get(DESCRIPTION).set("Add operation");
-                description.get(OPERATION_NAME).set(ADD);
-                description.get(REQUEST_PROPERTIES, "test", DESCRIPTION).set("A param");
-                description.get(REQUEST_PROPERTIES, "test", TYPE).set(ModelType.STRING);
-                description.get(REQUEST_PROPERTIES, "test", MIN_LENGTH).set(2);
-                description.get(REQUEST_PROPERTIES, "test", MAX_LENGTH).set(2);
-                return description;
-            }
+        getMainExtension().setAddDescriptionProvider(locale -> {
+            ModelNode description = new ModelNode();
+            description.get(DESCRIPTION).set("Add operation");
+            description.get(OPERATION_NAME).set(ADD);
+            description.get(REQUEST_PROPERTIES, "test", DESCRIPTION).set("A param");
+            description.get(REQUEST_PROPERTIES, "test", TYPE).set(ModelType.STRING);
+            description.get(REQUEST_PROPERTIES, "test", MIN_LENGTH).set(2);
+            description.get(REQUEST_PROPERTIES, "test", MAX_LENGTH).set(2);
+            return description;
         });
         ModelNode operation = createAddOperation();
         operation.get("test").set("Yo");
@@ -407,17 +349,13 @@ public class ValidateOperationsTestCase extends AbstractSubsystemTest {
 
     @Test
     public void testBytesTooShort() throws Exception {
-        getMainExtension().setAddDescriptionProvider(new DescriptionProvider() {
-
-            @Override
-            public ModelNode getModelDescription(Locale locale) {
-                ModelNode description = new ModelNode();
-                description.get(DESCRIPTION).set("Add operation");
-                description.get(OPERATION_NAME).set(ADD);
-                description.get(REQUEST_PROPERTIES, "test", TYPE).set(ModelType.BYTES);
-                description.get(REQUEST_PROPERTIES, "test", MIN_LENGTH).set(3);
-                return description;
-            }
+        getMainExtension().setAddDescriptionProvider(locale -> {
+            ModelNode description = new ModelNode();
+            description.get(DESCRIPTION).set("Add operation");
+            description.get(OPERATION_NAME).set(ADD);
+            description.get(REQUEST_PROPERTIES, "test", TYPE).set(ModelType.BYTES);
+            description.get(REQUEST_PROPERTIES, "test", MIN_LENGTH).set(3);
+            return description;
         });
         ModelNode operation = createAddOperation();
         operation.get("test").set(new byte[] {1, 2});
@@ -432,17 +370,13 @@ public class ValidateOperationsTestCase extends AbstractSubsystemTest {
 
     @Test
     public void testBytesTooLong() throws Exception {
-        getMainExtension().setAddDescriptionProvider(new DescriptionProvider() {
-
-            @Override
-            public ModelNode getModelDescription(Locale locale) {
-                ModelNode description = new ModelNode();
-                description.get(DESCRIPTION).set("Add operation");
-                description.get(OPERATION_NAME).set(ADD);
-                description.get(REQUEST_PROPERTIES, "test", TYPE).set(ModelType.BYTES);
-                description.get(REQUEST_PROPERTIES, "test", MAX_LENGTH).set(1);
-                return description;
-            }
+        getMainExtension().setAddDescriptionProvider(locale -> {
+            ModelNode description = new ModelNode();
+            description.get(DESCRIPTION).set("Add operation");
+            description.get(OPERATION_NAME).set(ADD);
+            description.get(REQUEST_PROPERTIES, "test", TYPE).set(ModelType.BYTES);
+            description.get(REQUEST_PROPERTIES, "test", MAX_LENGTH).set(1);
+            return description;
         });
         ModelNode operation = createAddOperation();
         operation.get("test").set(new byte[] {1, 2});
@@ -457,19 +391,15 @@ public class ValidateOperationsTestCase extends AbstractSubsystemTest {
 
     @Test
     public void testBytesJustRight() throws Exception {
-        getMainExtension().setAddDescriptionProvider(new DescriptionProvider() {
-
-            @Override
-            public ModelNode getModelDescription(Locale locale) {
-                ModelNode description = new ModelNode();
-                description.get(DESCRIPTION).set("Add operation");
-                description.get(OPERATION_NAME).set(ADD);
-                description.get(REQUEST_PROPERTIES, "test", DESCRIPTION).set("A param");
-                description.get(REQUEST_PROPERTIES, "test", TYPE).set(ModelType.BYTES);
-                description.get(REQUEST_PROPERTIES, "test", MIN_LENGTH).set(2);
-                description.get(REQUEST_PROPERTIES, "test", MAX_LENGTH).set(2);
-                return description;
-            }
+        getMainExtension().setAddDescriptionProvider(locale -> {
+            ModelNode description = new ModelNode();
+            description.get(DESCRIPTION).set("Add operation");
+            description.get(OPERATION_NAME).set(ADD);
+            description.get(REQUEST_PROPERTIES, "test", DESCRIPTION).set("A param");
+            description.get(REQUEST_PROPERTIES, "test", TYPE).set(ModelType.BYTES);
+            description.get(REQUEST_PROPERTIES, "test", MIN_LENGTH).set(2);
+            description.get(REQUEST_PROPERTIES, "test", MAX_LENGTH).set(2);
+            return description;
         });
         ModelNode operation = createAddOperation();
         operation.get("test").set(new byte[] {1, 2});
@@ -480,17 +410,13 @@ public class ValidateOperationsTestCase extends AbstractSubsystemTest {
 
     @Test
     public void testListTooShort() throws Exception {
-        getMainExtension().setAddDescriptionProvider(new DescriptionProvider() {
-
-            @Override
-            public ModelNode getModelDescription(Locale locale) {
-                ModelNode description = new ModelNode();
-                description.get(DESCRIPTION).set("Add operation");
-                description.get(OPERATION_NAME).set(ADD);
-                description.get(REQUEST_PROPERTIES, "test", TYPE).set(ModelType.LIST);
-                description.get(REQUEST_PROPERTIES, "test", MIN_LENGTH).set(3);
-                return description;
-            }
+        getMainExtension().setAddDescriptionProvider(locale -> {
+            ModelNode description = new ModelNode();
+            description.get(DESCRIPTION).set("Add operation");
+            description.get(OPERATION_NAME).set(ADD);
+            description.get(REQUEST_PROPERTIES, "test", TYPE).set(ModelType.LIST);
+            description.get(REQUEST_PROPERTIES, "test", MIN_LENGTH).set(3);
+            return description;
         });
         ModelNode operation = createAddOperation();
         operation.get("test").add("1");
@@ -506,17 +432,13 @@ public class ValidateOperationsTestCase extends AbstractSubsystemTest {
 
     @Test
     public void testListTooLong() throws Exception {
-        getMainExtension().setAddDescriptionProvider(new DescriptionProvider() {
-
-            @Override
-            public ModelNode getModelDescription(Locale locale) {
-                ModelNode description = new ModelNode();
-                description.get(DESCRIPTION).set("Add operation");
-                description.get(OPERATION_NAME).set(ADD);
-                description.get(REQUEST_PROPERTIES, "test", TYPE).set(ModelType.LIST);
-                description.get(REQUEST_PROPERTIES, "test", MAX_LENGTH).set(1);
-                return description;
-            }
+        getMainExtension().setAddDescriptionProvider(locale -> {
+            ModelNode description = new ModelNode();
+            description.get(DESCRIPTION).set("Add operation");
+            description.get(OPERATION_NAME).set(ADD);
+            description.get(REQUEST_PROPERTIES, "test", TYPE).set(ModelType.LIST);
+            description.get(REQUEST_PROPERTIES, "test", MAX_LENGTH).set(1);
+            return description;
         });
         ModelNode operation = createAddOperation();
         operation.get("test").add("1");
@@ -532,20 +454,16 @@ public class ValidateOperationsTestCase extends AbstractSubsystemTest {
 
     @Test
     public void testListJustRight() throws Exception {
-        getMainExtension().setAddDescriptionProvider(new DescriptionProvider() {
-
-            @Override
-            public ModelNode getModelDescription(Locale locale) {
-                ModelNode description = new ModelNode();
-                description.get(DESCRIPTION).set("Add operation");
-                description.get(OPERATION_NAME).set(ADD);
-                description.get(REQUEST_PROPERTIES, "test", DESCRIPTION).set("A param");
-                description.get(REQUEST_PROPERTIES, "test", TYPE).set(ModelType.LIST);
-                description.get(REQUEST_PROPERTIES, "test", VALUE_TYPE).set(ModelType.INT);
-                description.get(REQUEST_PROPERTIES, "test", MIN_LENGTH).set(2);
-                description.get(REQUEST_PROPERTIES, "test", MAX_LENGTH).set(2);
-                return description;
-            }
+        getMainExtension().setAddDescriptionProvider(locale -> {
+            ModelNode description = new ModelNode();
+            description.get(DESCRIPTION).set("Add operation");
+            description.get(OPERATION_NAME).set(ADD);
+            description.get(REQUEST_PROPERTIES, "test", DESCRIPTION).set("A param");
+            description.get(REQUEST_PROPERTIES, "test", TYPE).set(ModelType.LIST);
+            description.get(REQUEST_PROPERTIES, "test", VALUE_TYPE).set(ModelType.INT);
+            description.get(REQUEST_PROPERTIES, "test", MIN_LENGTH).set(2);
+            description.get(REQUEST_PROPERTIES, "test", MAX_LENGTH).set(2);
+            return description;
         });
         ModelNode operation = createAddOperation();
         operation.get("test").add("1");
@@ -557,18 +475,14 @@ public class ValidateOperationsTestCase extends AbstractSubsystemTest {
 
     @Test
     public void testListCorrectType() throws Exception {
-        getMainExtension().setAddDescriptionProvider(new DescriptionProvider() {
-
-            @Override
-            public ModelNode getModelDescription(Locale locale) {
-                ModelNode description = new ModelNode();
-                description.get(DESCRIPTION).set("Add operation");
-                description.get(OPERATION_NAME).set(ADD);
-                description.get(REQUEST_PROPERTIES, "test", DESCRIPTION).set("A param");
-                description.get(REQUEST_PROPERTIES, "test", TYPE).set(ModelType.LIST);
-                description.get(REQUEST_PROPERTIES, "test", VALUE_TYPE).set(ModelType.INT);
-                return description;
-            }
+        getMainExtension().setAddDescriptionProvider(locale -> {
+            ModelNode description = new ModelNode();
+            description.get(DESCRIPTION).set("Add operation");
+            description.get(OPERATION_NAME).set(ADD);
+            description.get(REQUEST_PROPERTIES, "test", DESCRIPTION).set("A param");
+            description.get(REQUEST_PROPERTIES, "test", TYPE).set(ModelType.LIST);
+            description.get(REQUEST_PROPERTIES, "test", VALUE_TYPE).set(ModelType.INT);
+            return description;
         });
         ModelNode operation = createAddOperation();
         operation.get("test").add(1);
@@ -580,17 +494,13 @@ public class ValidateOperationsTestCase extends AbstractSubsystemTest {
 
     @Test
     public void testListWrongType() throws Exception {
-        getMainExtension().setAddDescriptionProvider(new DescriptionProvider() {
-
-            @Override
-            public ModelNode getModelDescription(Locale locale) {
-                ModelNode description = new ModelNode();
-                description.get(DESCRIPTION).set("Add operation");
-                description.get(OPERATION_NAME).set(ADD);
-                description.get(REQUEST_PROPERTIES, "test", TYPE).set(ModelType.LIST);
-                description.get(REQUEST_PROPERTIES, "test", VALUE_TYPE).set(ModelType.INT);
-                return description;
-            }
+        getMainExtension().setAddDescriptionProvider(locale -> {
+            ModelNode description = new ModelNode();
+            description.get(DESCRIPTION).set("Add operation");
+            description.get(OPERATION_NAME).set(ADD);
+            description.get(REQUEST_PROPERTIES, "test", TYPE).set(ModelType.LIST);
+            description.get(REQUEST_PROPERTIES, "test", VALUE_TYPE).set(ModelType.INT);
+            return description;
         });
         ModelNode operation = createAddOperation();
         operation.get("test").add(1);

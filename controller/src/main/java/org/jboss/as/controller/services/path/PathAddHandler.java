@@ -125,46 +125,40 @@ public class PathAddHandler implements OperationStepHandler {  // TODO make this
                 pathManager.addPathEntry(name, path, relativeTo, false);
             }
 
-            context.addStep(new OperationStepHandler() {
-                public void execute(final OperationContext context, final ModelNode operation) throws OperationFailedException {
-                    final ServiceController<?> legacyService;
-                    if (pathEventContext.isInstallServices()) {
+            context.addStep((context13, operation13) -> {
+                final ServiceController<?> legacyService;
+                if (pathEventContext.isInstallServices()) {
 
-                        //Add the legacy services
-                        final ServiceTarget target = context.getServiceTarget();
-                        if (relativeTo == null) {
-                            legacyService = pathManager.addAbsolutePathService(target, name, path);
-                        } else {
-                            legacyService = pathManager.addRelativePathService(target, name, path, false, relativeTo);
+                    //Add the legacy services
+                    final ServiceTarget target = context13.getServiceTarget();
+                    if (relativeTo == null) {
+                        legacyService = pathManager.addAbsolutePathService(target, name, path);
+                    } else {
+                        legacyService = pathManager.addRelativePathService(target, name, path, false, relativeTo);
+                    }
+                } else {
+                    legacyService = null;
+                }
+
+                context13.completeStep((context12, operation12) -> {
+                    pathManager.removePathService(context12, name);
+                    if (pathEventContext.isInstallServices()) {
+                        if (legacyService != null) {
+                            context12.removeService(legacyService.getName());
                         }
                     } else {
-                        legacyService = null;
+                        pathEventContext.revert();
                     }
-
-                    context.completeStep(new OperationContext.RollbackHandler() {
-                        public void handleRollback(OperationContext context, ModelNode operation) {
-                            pathManager.removePathService(context, name);
-                            if (pathEventContext.isInstallServices()) {
-                                if (legacyService != null) {
-                                    context.removeService(legacyService.getName());
-                                }
-                            } else {
-                                pathEventContext.revert();
-                            }
-                        }
-                    });
-                }
+                });
             }, OperationContext.Stage.RUNTIME);
 
-            context.completeStep(new OperationContext.RollbackHandler() {
-                public void handleRollback(OperationContext context, ModelNode operation) {
-                    if (pathEventContext.isInstallServices()) {
-                        try {
-                            pathManager.removePathEntry(name, false);
-                        } catch (OperationFailedException e) {
-                            //Should not happen since 'false' passed in for the check parameter
-                            throw new RuntimeException(e);
-                        }
+            context.completeStep((context1, operation1) -> {
+                if (pathEventContext.isInstallServices()) {
+                    try {
+                        pathManager.removePathEntry(name, false);
+                    } catch (OperationFailedException e) {
+                        //Should not happen since 'false' passed in for the check parameter
+                        throw new RuntimeException(e);
                     }
                 }
             });

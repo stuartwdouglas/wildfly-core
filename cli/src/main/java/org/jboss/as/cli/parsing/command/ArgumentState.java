@@ -23,7 +23,6 @@ package org.jboss.as.cli.parsing.command;
 
 
 import org.jboss.as.cli.CommandFormatException;
-import org.jboss.as.cli.parsing.CharacterHandler;
 import org.jboss.as.cli.parsing.DefaultParsingState;
 import org.jboss.as.cli.parsing.EnterStateCharacterHandler;
 import org.jboss.as.cli.parsing.GlobalCharacterHandlers;
@@ -51,36 +50,30 @@ public class ArgumentState extends DefaultParsingState {
         final NameValueSeparatorState nvSep = new NameValueSeparatorState(valueState);
         enterState('=', nvSep);
         //setLeaveOnWhitespace(true);
-        setDefaultHandler(new CharacterHandler(){
-            @Override
-            public void handle(ParsingContext ctx) throws CommandFormatException {
-                ctx.resolveExpression(true, true);
-                WordCharacterHandler.IGNORE_LB_ESCAPE_ON.handle(ctx);
-            }});
+        setDefaultHandler(ctx -> {
+            ctx.resolveExpression(true, true);
+            WordCharacterHandler.IGNORE_LB_ESCAPE_ON.handle(ctx);
+        });
         setWhitespaceHandler(new EnterStateCharacterHandler(new WhitespaceState()));
-        setReturnHandler(new CharacterHandler(){
-            @Override
-            public void handle(ParsingContext ctx) throws CommandFormatException {
-                if(ctx.isEndOfContent()) {
-                    ctx.leaveState();
-                } else if(ctx.getCharacter() == '=') {
-                    ctx.enterState(nvSep);
-                } else {
-                    ctx.leaveState();
-                }
-            }});
+        setReturnHandler(ctx -> {
+            if(ctx.isEndOfContent()) {
+                ctx.leaveState();
+            } else if(ctx.getCharacter() == '=') {
+                ctx.enterState(nvSep);
+            } else {
+                ctx.leaveState();
+            }
+        });
     }
 
     private static class WhitespaceState extends DefaultParsingState {
         public WhitespaceState() {
             super("WS");
-            setDefaultHandler(new CharacterHandler(){
-                @Override
-                public void handle(ParsingContext ctx) throws CommandFormatException {
-                    if(!Character.isWhitespace(ctx.getCharacter())) {
-                        ctx.leaveState();
-                    }
-                }});
+            setDefaultHandler(ctx -> {
+                if(!Character.isWhitespace(ctx.getCharacter())) {
+                    ctx.leaveState();
+                }
+            });
         }
         @Override
         public boolean updateValueIndex() {

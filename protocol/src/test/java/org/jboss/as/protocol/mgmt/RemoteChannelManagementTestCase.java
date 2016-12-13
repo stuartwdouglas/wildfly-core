@@ -238,12 +238,9 @@ public class RemoteChannelManagementTestCase {
             @Override
             public void handleRequest(final DataInput input, final ActiveOperation.ResultHandler<Integer> resultHandler, final ManagementRequestContext<Void> context) throws IOException {
                 final int i = input.readInt();
-                context.executeAsync(new ManagementRequestContext.AsyncTask<Void>() {
-                    @Override
-                    public void execute(ManagementRequestContext<Void> voidManagementRequestContext) throws Exception {
-                        latch.await();
-                        resultHandler.done(i);
-                    }
+                context.executeAsync(voidManagementRequestContext -> {
+                    latch.await();
+                    resultHandler.done(i);
                 });
             }
         };

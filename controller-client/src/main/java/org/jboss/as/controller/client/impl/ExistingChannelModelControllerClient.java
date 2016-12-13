@@ -26,7 +26,6 @@ import org.jboss.as.protocol.mgmt.ManagementChannelAssociation;
 import org.jboss.as.protocol.mgmt.ManagementChannelHandler;
 import org.jboss.as.protocol.mgmt.ManagementClientChannelStrategy;
 import org.jboss.remoting3.Channel;
-import org.jboss.remoting3.CloseHandler;
 
 import java.io.IOException;
 import java.util.concurrent.ExecutorService;
@@ -78,17 +77,14 @@ public class ExistingChannelModelControllerClient extends AbstractModelControlle
         final ManagementChannelHandler handler = new ManagementChannelHandler(strategy, executorService);
         final ExistingChannelModelControllerClient client = new ExistingChannelModelControllerClient(handler);
         handler.addHandlerFactory(client);
-        channel.addCloseHandler(new CloseHandler<Channel>() {
-            @Override
-            public void handleClose(Channel closed, IOException exception) {
-                handler.shutdown();
-                try {
-                    handler.awaitCompletion(1, TimeUnit.SECONDS);
-                } catch (InterruptedException e) {
-                    Thread.currentThread().interrupt();
-                } finally {
-                    handler.shutdownNow();
-                }
+        channel.addCloseHandler((closed, exception) -> {
+            handler.shutdown();
+            try {
+                handler.awaitCompletion(1, TimeUnit.SECONDS);
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+            } finally {
+                handler.shutdownNow();
             }
         });
         channel.receiveMessage(handler.getReceiver());

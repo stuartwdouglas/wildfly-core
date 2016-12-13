@@ -116,12 +116,7 @@ public class EmbeddedHostControllerBootstrap {
             } finally {
                 if (sc != null) {
                     final CountDownLatch latch = new CountDownLatch(1);
-                    sc.addTerminateListener(new ServiceContainer.TerminateListener() {
-                        @Override
-                        public void handleTermination(Info info) {
-                            latch.countDown();
-                        }
-                    });
+                    sc.addTerminateListener(info -> latch.countDown());
                     sc.shutdown();
                     // wait for all services to finish.
                     for (;;) {

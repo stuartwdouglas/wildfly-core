@@ -22,8 +22,6 @@
 
 package org.jboss.as.server.mgmt.domain;
 
-import java.beans.PropertyChangeEvent;
-import java.beans.PropertyChangeListener;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.Serializable;
@@ -125,19 +123,16 @@ public class HostControllerConnectionService implements Service<HostControllerCl
                     configuration, responseAttachmentSupport, executorInjector.getValue());
             // Trigger the started notification based on the process state listener
             final ControlledProcessStateService processService = processStateServiceInjectedValue.getValue();
-            processService.addPropertyChangeListener(new PropertyChangeListener() {
-                @Override
-                public void propertyChange(final PropertyChangeEvent evt) {
-                    final ControlledProcessState.State old = (ControlledProcessState.State) evt.getOldValue();
-                    final ControlledProcessState.State current = (ControlledProcessState.State) evt.getNewValue();
-                    if (old == ControlledProcessState.State.STARTING) {
-                        // After starting reload has to be cleared, may still require a restart
-                        if(current == ControlledProcessState.State.RUNNING
-                                || current == ControlledProcessState.State.RESTART_REQUIRED) {
-                            connection.started();
-                        } else {
-                            IoUtils.safeClose(connection);
-                        }
+            processService.addPropertyChangeListener(evt -> {
+                final ControlledProcessState.State old = (ControlledProcessState.State) evt.getOldValue();
+                final ControlledProcessState.State current = (ControlledProcessState.State) evt.getNewValue();
+                if (old == ControlledProcessState.State.STARTING) {
+                    // After starting reload has to be cleared, may still require a restart
+                    if(current == ControlledProcessState.State.RUNNING
+                            || current == ControlledProcessState.State.RESTART_REQUIRED) {
+                        connection.started();
+                    } else {
+                        IoUtils.safeClose(connection);
                     }
                 }
             });
@@ -151,16 +146,13 @@ public class HostControllerConnectionService implements Service<HostControllerCl
     @Override
     public synchronized void stop(final StopContext stopContext) {
         final ExecutorService executorService = executorInjector.getValue();
-        final Runnable task = new Runnable() {
-            @Override
-            public void run() {
-                try {
-                    responseAttachmentSupport.shutdown();
-                } finally {
-                    StreamUtils.safeClose(client);
-                    client = null;
-                    stopContext.complete();
-                }
+        final Runnable task = () -> {
+            try {
+                responseAttachmentSupport.shutdown();
+            } finally {
+                StreamUtils.safeClose(client);
+                client = null;
+                stopContext.complete();
             }
         };
         try {

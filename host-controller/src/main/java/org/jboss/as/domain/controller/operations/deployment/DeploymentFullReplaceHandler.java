@@ -168,30 +168,27 @@ public class DeploymentFullReplaceHandler implements OperationStepHandler {
             }
         }
 
-        context.completeStep(new OperationContext.ResultHandler() {
-            @Override
-            public void handleResult(ResultAction resultAction, OperationContext context, ModelNode operation) {
-                if (resultAction == ResultAction.KEEP) {
-                    if (replacedHash != null  && (newHash == null || !Arrays.equals(replacedHash, newHash))) {
-                        // The old content is no longer used; clean from repos
-                        ContentReference reference = ModelContentReference.fromModelAddress(address, replacedHash);
-                        if (contentRepository != null) {
-                            contentRepository.removeContent(reference);
-                        } else {
-                            fileRepository.deleteDeployment(reference);
-                        }
-                    }
-                    if (newHash != null && contentRepository != null) {
-                        contentRepository.addContentReference(ModelContentReference.fromModelAddress(address, newHash));
-                    }
-                } else if (newHash != null && (replacedHash == null || !Arrays.equals(replacedHash, newHash))) {
-                    // Due to rollback, the new content isn't used; clean from repos
-                    ContentReference reference = ModelContentReference.fromModelAddress(address, newHash);
+        context.completeStep((resultAction, context1, operation1) -> {
+            if (resultAction == ResultAction.KEEP) {
+                if (replacedHash != null  && (newHash == null || !Arrays.equals(replacedHash, newHash))) {
+                    // The old content is no longer used; clean from repos
+                    ContentReference reference = ModelContentReference.fromModelAddress(address, replacedHash);
                     if (contentRepository != null) {
                         contentRepository.removeContent(reference);
                     } else {
                         fileRepository.deleteDeployment(reference);
                     }
+                }
+                if (newHash != null && contentRepository != null) {
+                    contentRepository.addContentReference(ModelContentReference.fromModelAddress(address, newHash));
+                }
+            } else if (newHash != null && (replacedHash == null || !Arrays.equals(replacedHash, newHash))) {
+                // Due to rollback, the new content isn't used; clean from repos
+                ContentReference reference = ModelContentReference.fromModelAddress(address, newHash);
+                if (contentRepository != null) {
+                    contentRepository.removeContent(reference);
+                } else {
+                    fileRepository.deleteDeployment(reference);
                 }
             }
         });

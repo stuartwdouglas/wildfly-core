@@ -24,8 +24,6 @@ import java.awt.Dialog;
 import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
 import java.awt.GridLayout;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
 import java.util.Enumeration;
 import javax.swing.Box;
 import javax.swing.DefaultListModel;
@@ -97,30 +95,22 @@ public class ListEditor extends JPanel implements ListSelectionListener {
         JPanel buttonColumn = new JPanel(new GridLayout(3, 1, 5, 5));
 
         addButton.setToolTipText("Add an item to the list.");
-        addButton.addActionListener(new ActionListener() {
-            public void actionPerformed(ActionEvent ae) {
-                ItemEditor editor = new ItemEditor();
-                editor.setVisible(true);
-                list.setSelectedIndex(list.getLastVisibleIndex());
-            }
+        addButton.addActionListener(ae -> {
+            ItemEditor editor = new ItemEditor();
+            editor.setVisible(true);
+            list.setSelectedIndex(list.getLastVisibleIndex());
         });
 
         editButton.setToolTipText("Edit selected item.");
         editButton.setEnabled(false);
-        editButton.addActionListener(new ActionListener() {
-            public void actionPerformed(ActionEvent ae) {
-                ItemEditor editor = new ItemEditor(list.getSelectedValue().toString());
-                editor.setVisible(true);
-            }
+        editButton.addActionListener(ae -> {
+            ItemEditor editor = new ItemEditor(list.getSelectedValue().toString());
+            editor.setVisible(true);
         });
 
         removeButton.setToolTipText("Remove selected item.");
         removeButton.setEnabled(false);
-        removeButton.addActionListener(new ActionListener() {
-            public void actionPerformed(ActionEvent ae) {
-                listModel.remove(list.getSelectedIndex());
-            }
-        });
+        removeButton.addActionListener(ae -> listModel.remove(list.getSelectedIndex()));
 
         buttonColumn.add(addButton);
         buttonColumn.add(editButton);
@@ -133,24 +123,20 @@ public class ListEditor extends JPanel implements ListSelectionListener {
 
         moveUpButton.setToolTipText("Move selected item up.");
         moveUpButton.setEnabled(false);
-        moveUpButton.addActionListener(new ActionListener() {
-            public void actionPerformed(ActionEvent ae) {
-                int selectedIndex = list.getSelectedIndex();
-                Object toBeMoved = listModel.remove(selectedIndex);
-                listModel.add(selectedIndex - 1, toBeMoved);
-                list.setSelectedIndex(selectedIndex - 1);
-            }
+        moveUpButton.addActionListener(ae -> {
+            int selectedIndex = list.getSelectedIndex();
+            Object toBeMoved = listModel.remove(selectedIndex);
+            listModel.add(selectedIndex - 1, toBeMoved);
+            list.setSelectedIndex(selectedIndex - 1);
         });
 
         moveDownButton.setToolTipText("Move selected item down.");
         moveDownButton.setEnabled(false);
-        moveDownButton.addActionListener(new ActionListener() {
-            public void actionPerformed(ActionEvent ae) {
-                int selectedIndex = list.getSelectedIndex();
-                Object toBeMoved = listModel.remove(selectedIndex);
-                listModel.add(selectedIndex + 1, toBeMoved);
-                list.setSelectedIndex(selectedIndex + 1);
-            }
+        moveDownButton.addActionListener(ae -> {
+            int selectedIndex = list.getSelectedIndex();
+            Object toBeMoved = listModel.remove(selectedIndex);
+            listModel.add(selectedIndex + 1, toBeMoved);
+            list.setSelectedIndex(selectedIndex + 1);
         });
 
         buttonColumn.add(moveUpButton);
@@ -223,25 +209,19 @@ public class ListEditor extends JPanel implements ListSelectionListener {
             JPanel buttonPanel = new JPanel();
 
             JButton ok = new JButton("OK");
-            ok.addActionListener(new ActionListener() {
-                public void actionPerformed(ActionEvent ae) {
-                    String editedItem = itemField.getText();
-                    if (isAddMode) {
-                        listModel.addElement(editedItem);
-                    } else {
-                        listModel.set(list.getSelectedIndex(), editedItem);
-                    }
-
-                    ItemEditor.this.dispose();
+            ok.addActionListener(ae -> {
+                String editedItem = itemField.getText();
+                if (isAddMode) {
+                    listModel.addElement(editedItem);
+                } else {
+                    listModel.set(list.getSelectedIndex(), editedItem);
                 }
+
+                ItemEditor.this.dispose();
             });
 
             JButton cancel = new JButton("Cancel");
-            cancel.addActionListener(new ActionListener() {
-                public void actionPerformed(ActionEvent ae) {
-                    ItemEditor.this.dispose();
-                }
-            });
+            cancel.addActionListener(ae -> ItemEditor.this.dispose());
 
             buttonPanel.add(ok);
             buttonPanel.add(cancel);

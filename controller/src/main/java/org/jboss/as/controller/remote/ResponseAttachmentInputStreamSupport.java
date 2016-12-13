@@ -272,39 +272,36 @@ public class ResponseAttachmentInputStreamSupport {
             expectHeader(input, ModelControllerProtocol.PARAM_INPUTSTREAM_INDEX);
             final int index = input.readInt();
             final InputStreamKey key = new InputStreamKey(requestId, index);
-            context.executeAsync(new ManagementRequestContext.AsyncTask<Void>() {
-                @Override
-                public void execute(final ManagementRequestContext<Void> context) throws Exception {
-                    final ManagementRequestHeader header = ManagementRequestHeader.class.cast(context.getRequestHeader());
-                    final ManagementResponseHeader response = new ManagementResponseHeader(header.getVersion(), header.getRequestId(), null);
-                    final TimedStreamEntry entry = streamMap.remove(key);  // remove as we'll never use it again
+            context.executeAsync(context1 -> {
+                final ManagementRequestHeader header = ManagementRequestHeader.class.cast(context1.getRequestHeader());
+                final ManagementResponseHeader response = new ManagementResponseHeader(header.getVersion(), header.getRequestId(), null);
+                final TimedStreamEntry entry = streamMap.remove(key);  // remove as we'll never use it again
 
-                    FlushableDataOutput output = null;
-                    try {
-                        output = context.writeMessage(response);
-                        if (entry == null) {
-                            // Either a bogus request or a request for a stream that has timed out
-                            // and been cleaned up.
-                            handleMissingStream(requestId, index, output);
-                        } else {
-                            //noinspection SynchronizationOnLocalVariableOrMethodParameter
-                            synchronized (entry) { // lock out any gc work
-                                if (entry.closed) {
-                                    // Just cleaned up
-                                    handleMissingStream(requestId, index, output);
-                                } else {
-                                    handleRequest(entry, output);
-                                    entry.timestamp.set(System.currentTimeMillis());
-                                }
+                FlushableDataOutput output = null;
+                try {
+                    output = context1.writeMessage(response);
+                    if (entry == null) {
+                        // Either a bogus request or a request for a stream that has timed out
+                        // and been cleaned up.
+                        handleMissingStream(requestId, index, output);
+                    } else {
+                        //noinspection SynchronizationOnLocalVariableOrMethodParameter
+                        synchronized (entry) { // lock out any gc work
+                            if (entry.closed) {
+                                // Just cleaned up
+                                handleMissingStream(requestId, index, output);
+                            } else {
+                                handleRequest(entry, output);
+                                entry.timestamp.set(System.currentTimeMillis());
                             }
                         }
-                        output.writeByte(ManagementProtocol.RESPONSE_END);
-                        output.close();
-                        resultHandler.done(null);
-                    } finally {
-                        StreamUtils.safeClose(output);
-                        StreamUtils.safeClose(entry);
                     }
+                    output.writeByte(ManagementProtocol.RESPONSE_END);
+                    output.close();
+                    resultHandler.done(null);
+                } finally {
+                    StreamUtils.safeClose(output);
+                    StreamUtils.safeClose(entry);
                 }
             });
         }

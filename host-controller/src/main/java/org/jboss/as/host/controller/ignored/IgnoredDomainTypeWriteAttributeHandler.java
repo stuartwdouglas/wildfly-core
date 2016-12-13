@@ -70,16 +70,13 @@ class IgnoredDomainTypeWriteAttributeHandler implements OperationStepHandler {
             context.reloadRequired();
         }
 
-        context.completeStep(new OperationContext.ResultHandler() {
-            @Override
-            public void handleResult(OperationContext.ResultAction resultAction, OperationContext context, ModelNode operation) {
-                if (resultAction == OperationContext.ResultAction.KEEP) {
-                    if (booting) {
-                        resource.publish();
-                    }
-                } else if (!booting) {
-                    context.revertReloadRequired();
+        context.completeStep((resultAction, context1, operation1) -> {
+            if (resultAction == OperationContext.ResultAction.KEEP) {
+                if (booting) {
+                    resource.publish();
                 }
+            } else if (!booting) {
+                context1.revertReloadRequired();
             }
         });
     }

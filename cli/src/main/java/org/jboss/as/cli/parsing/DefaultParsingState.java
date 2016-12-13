@@ -21,8 +21,6 @@
  */
 package org.jboss.as.cli.parsing;
 
-import org.jboss.as.cli.CommandFormatException;
-
 
 /**
  *
@@ -51,13 +49,11 @@ public class DefaultParsingState extends BaseParsingState {
 
         if(enterLeaveContent) {
             setEnterHandler(GlobalCharacterHandlers.CONTENT_CHARACTER_HANDLER);
-            setLeaveHandler(new CharacterHandler() {
-                @Override
-                public void handle(ParsingContext ctx) throws CommandFormatException {
-                    if(!ctx.isEndOfContent()) {
-                        ctx.getCallbackHandler().character(ctx);
-                    }
-                }});
+            setLeaveHandler(ctx -> {
+                if(!ctx.isEndOfContent()) {
+                    ctx.getCallbackHandler().character(ctx);
+                }
+            });
         }
 
         this.handlers = new DefaultCharacterHandlerMap();
@@ -105,12 +101,7 @@ public class DefaultParsingState extends BaseParsingState {
 
     public void setHandleEntrance(boolean handleEntrance) {
         if (handleEntrance) {
-            setEnterHandler(new CharacterHandler() {
-                @Override
-                public void handle(ParsingContext ctx) throws CommandFormatException {
-                    getHandler(ctx.getCharacter()).handle(ctx);
-                }
-            });
+            setEnterHandler(ctx -> getHandler(ctx.getCharacter()).handle(ctx));
         } else {
             setEnterHandler(GlobalCharacterHandlers.NOOP_CHARACTER_HANDLER);
         }

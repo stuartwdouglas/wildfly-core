@@ -79,36 +79,28 @@ public class HostShutdownHandler implements OperationStepHandler {
     @Override
     public void execute(OperationContext context, ModelNode operation) throws OperationFailedException {
         final boolean restart = RESTART.validateOperation(operation).asBoolean(false);
-        context.addStep(new OperationStepHandler() {
-            @Override
-            public void execute(OperationContext context, ModelNode operation) throws OperationFailedException {
-                // WFLY-2741 -- DO NOT call context.getServiceRegistry(true) as that will trigger blocking for
-                // service container stability and one use case for this op is to recover from a
-                // messed up service container from a previous op. Instead just ask for authorization.
-                // Note that we already have the exclusive lock, so we are just skipping waiting for stability.
-                // If another op that is a step in a composite step with this op needs to modify the container
-                // it will have to wait for container stability, so skipping this only matters for the case
-                // where this step is the only runtime change.
+        context.addStep((context1, operation1) -> {
+            // WFLY-2741 -- DO NOT call context.getServiceRegistry(true) as that will trigger blocking for
+            // service container stability and one use case for this op is to recover from a
+            // messed up service container from a previous op. Instead just ask for authorization.
+            // Note that we already have the exclusive lock, so we are just skipping waiting for stability.
+            // If another op that is a step in a composite step with this op needs to modify the container
+            // it will have to wait for container stability, so skipping this only matters for the case
+            // where this step is the only runtime change.
 //                context.getServiceRegistry(true);
-                AuthorizationResult authorizationResult = context.authorize(operation, EnumSet.of(Action.ActionEffect.WRITE_RUNTIME));
-                if (authorizationResult.getDecision() == AuthorizationResult.Decision.DENY) {
-                    throw ControllerLogger.ACCESS_LOGGER.unauthorized(operation.get(OP).asString(),
-                            PathAddress.pathAddress(operation.get(OP_ADDR)), authorizationResult.getExplanation());
-                }
-                SystemExiter.logBeforeExit(new SystemExiter.ExitLogger() {
-                    @Override
-                    public void logExit() {
-                        HostControllerLogger.ROOT_LOGGER.shuttingDownInResponseToManagementRequest(getOperationName(operation));
-                    }
-                });
-                if (restart) {
-                    //Add the exit code so that we get respawned
-                    domainController.stopLocalHost(ExitCodes.RESTART_PROCESS_FROM_STARTUP_SCRIPT);
-                } else {
-                    domainController.stopLocalHost();
-                }
-                context.completeStep(OperationContext.RollbackHandler.NOOP_ROLLBACK_HANDLER);
+            AuthorizationResult authorizationResult = context1.authorize(operation1, EnumSet.of(Action.ActionEffect.WRITE_RUNTIME));
+            if (authorizationResult.getDecision() == AuthorizationResult.Decision.DENY) {
+                throw ControllerLogger.ACCESS_LOGGER.unauthorized(operation1.get(OP).asString(),
+                        PathAddress.pathAddress(operation1.get(OP_ADDR)), authorizationResult.getExplanation());
             }
+            SystemExiter.logBeforeExit(() -> HostControllerLogger.ROOT_LOGGER.shuttingDownInResponseToManagementRequest(getOperationName(operation1)));
+            if (restart) {
+                //Add the exit code so that we get respawned
+                domainController.stopLocalHost(ExitCodes.RESTART_PROCESS_FROM_STARTUP_SCRIPT);
+            } else {
+                domainController.stopLocalHost();
+            }
+            context1.completeStep(OperationContext.RollbackHandler.NOOP_ROLLBACK_HANDLER);
         }, OperationContext.Stage.RUNTIME);
     }
 

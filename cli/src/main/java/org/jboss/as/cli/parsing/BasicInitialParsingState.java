@@ -21,8 +21,6 @@
  */
 package org.jboss.as.cli.parsing;
 
-import org.jboss.as.cli.CommandFormatException;
-
 
 /**
  *
@@ -41,12 +39,6 @@ public class BasicInitialParsingState extends DefaultParsingState {
 
     BasicInitialParsingState(String id) {
         super(id, false, GlobalCharacterHandlers.GLOBAL_ENTER_STATE_HANDLERS);
-        setDefaultHandler(new CharacterHandler() {
-            @Override
-            public void handle(ParsingContext ctx)
-                    throws CommandFormatException {
-                ctx.enterState(DEFAULT_STATE);
-            }
-        });
+        setDefaultHandler(ctx -> ctx.enterState(DEFAULT_STATE));
     }
 }

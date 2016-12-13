@@ -20,8 +20,6 @@ import static org.wildfly.extension.core.management.client.Process.Type.DOMAIN_S
 import static org.wildfly.extension.core.management.client.Process.Type.EMBEDDED_SERVER;
 import static org.wildfly.extension.core.management.client.Process.Type.STANDALONE_SERVER;
 
-import java.beans.PropertyChangeEvent;
-import java.beans.PropertyChangeListener;
 import java.lang.management.ManagementFactory;
 import java.util.concurrent.atomic.AtomicLong;
 import javax.management.AttributeChangeNotification;
@@ -241,15 +239,12 @@ private static RunningState getInitialRunningState(SuspendController suspendCont
     }
 
     private static void registerStateListener(RunningStateJmxMBean mbean, ControlledProcessStateService processStateService) {
-        processStateService.addPropertyChangeListener(new PropertyChangeListener() {
-                @Override
-                public void propertyChange(PropertyChangeEvent evt) {
-                    if ("currentState".equals(evt.getPropertyName())) {
-                        ControlledProcessState.State oldState = (ControlledProcessState.State) evt.getOldValue();
-                        ControlledProcessState.State newState = (ControlledProcessState.State) evt.getNewValue();
-                        mbean.setProcessState(oldState, newState);
-                    }
-                }
-            });
+        processStateService.addPropertyChangeListener(evt -> {
+            if ("currentState".equals(evt.getPropertyName())) {
+                ControlledProcessState.State oldState = (ControlledProcessState.State) evt.getOldValue();
+                ControlledProcessState.State newState = (ControlledProcessState.State) evt.getNewValue();
+                mbean.setProcessState(oldState, newState);
+            }
+        });
     }
 }

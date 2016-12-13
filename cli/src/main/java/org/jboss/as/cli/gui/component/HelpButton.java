@@ -18,8 +18,6 @@
  */
 package org.jboss.as.cli.gui.component;
 
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
 import java.io.IOException;
 import java.io.InputStream;
 import javax.swing.JButton;
@@ -45,17 +43,13 @@ public class HelpButton extends JButton {
             return;
         }
 
-        addActionListener(new ActionListener() {
-
-            public void actionPerformed(ActionEvent e) {
-                JOptionPane helpPane = new JOptionPane(helpScroller, JOptionPane.PLAIN_MESSAGE, JOptionPane.DEFAULT_OPTION);
-                JDialog dialog = helpPane.createDialog(HelpButton.this, "Help");
-                dialog.setResizable(true);
-                dialog.setModal(false);
-                dialog.setSize(dialog.getHeight(), helpScroller.getWidth() + 10);
-                dialog.setVisible(true);
-            }
-
+        addActionListener(e -> {
+            JOptionPane helpPane = new JOptionPane(helpScroller, JOptionPane.PLAIN_MESSAGE, JOptionPane.DEFAULT_OPTION);
+            JDialog dialog = helpPane.createDialog(HelpButton.this, "Help");
+            dialog.setResizable(true);
+            dialog.setModal(false);
+            dialog.setSize(dialog.getHeight(), helpScroller.getWidth() + 10);
+            dialog.setVisible(true);
         });
     }
 

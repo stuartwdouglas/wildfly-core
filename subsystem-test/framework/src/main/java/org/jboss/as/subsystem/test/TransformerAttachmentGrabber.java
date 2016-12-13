@@ -79,11 +79,6 @@ public class TransformerAttachmentGrabber implements OperationStepHandler {
 
         final ModelNode originalOp = realOp.clone();
 
-        context.addStep(new OperationStepHandler() {
-            @Override
-            public void execute(OperationContext context, ModelNode operation) throws OperationFailedException {
-                attachment = context.getAttachment(TransformerOperationAttachment.KEY);
-            }
-        }, OperationContext.Stage.RUNTIME); //Use RUNTIME here to make sure that this comes at the end (the collection ops add another step)
+        context.addStep((context1, operation1) -> attachment = context1.getAttachment(TransformerOperationAttachment.KEY), OperationContext.Stage.RUNTIME); //Use RUNTIME here to make sure that this comes at the end (the collection ops add another step)
     }
 }

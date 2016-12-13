@@ -589,12 +589,7 @@ public abstract class AttributeDefinition {
      * @throws OperationFailedException if the value is not valid
      */
     public ModelNode resolveModelAttribute(final OperationContext context, final ModelNode model) throws OperationFailedException {
-        return resolveModelAttribute(new ExpressionResolver() {
-            @Override
-            public ModelNode resolveExpressions(ModelNode node) throws OperationFailedException {
-                return context.resolveExpressions(node);
-            }
-        }, model);
+        return resolveModelAttribute(node -> context.resolveExpressions(node), model);
     }
 
     /**
@@ -631,12 +626,7 @@ public abstract class AttributeDefinition {
      * @throws OperationFailedException if the value is not valid
      */
     public ModelNode resolveValue(final OperationContext context, final ModelNode value) throws OperationFailedException {
-        return resolveValue(new ExpressionResolver() {
-            @Override
-            public ModelNode resolveExpressions(ModelNode node) throws OperationFailedException {
-                return context.resolveExpressions(node);
-            }
-        }, value);
+        return resolveValue(node -> context.resolveExpressions(node), value);
     }
 
     /**

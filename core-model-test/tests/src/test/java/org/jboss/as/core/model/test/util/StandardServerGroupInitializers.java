@@ -40,7 +40,6 @@ import org.jboss.as.core.model.test.ModelInitializer;
 import org.jboss.as.core.model.test.ModelWriteSanitizer;
 import org.jboss.as.domain.controller.resources.ProfileResourceDefinition;
 import org.jboss.as.model.test.ModelFixer;
-import org.jboss.dmr.ModelNode;
 
 /**
  *
@@ -80,14 +79,11 @@ public class StandardServerGroupInitializers {
         }
     };
 
-    public static final ModelWriteSanitizer XML_MODEL_WRITE_SANITIZER = new ModelWriteSanitizer() {
-        @Override
-        public ModelNode sanitize(ModelNode model) {
-            //Remove the profile and socket-binding-group removed by the initializer so the xml does not include a profile
-            model.remove(PROFILE);
-            model.remove(SOCKET_BINDING_GROUP);
-            return model;
-        }
+    public static final ModelWriteSanitizer XML_MODEL_WRITE_SANITIZER = model -> {
+        //Remove the profile and socket-binding-group removed by the initializer so the xml does not include a profile
+        model.remove(PROFILE);
+        model.remove(SOCKET_BINDING_GROUP);
+        return model;
     };
 
     public static LegacyKernelServicesInitializer addServerGroupInitializers(LegacyKernelServicesInitializer legacyKernelServicesInitializer) {
@@ -96,14 +92,10 @@ public class StandardServerGroupInitializers {
         return legacyKernelServicesInitializer;
     }
 
-    public static final ModelFixer MODEL_FIXER = new ModelFixer() {
-
-        @Override
-        public ModelNode fixModel(ModelNode modelNode) {
-            modelNode.remove(SOCKET_BINDING_GROUP);
-            modelNode.remove(PROFILE);
-            return modelNode;
-        }
+    public static final ModelFixer MODEL_FIXER = modelNode -> {
+        modelNode.remove(SOCKET_BINDING_GROUP);
+        modelNode.remove(PROFILE);
+        return modelNode;
     };
 
 }

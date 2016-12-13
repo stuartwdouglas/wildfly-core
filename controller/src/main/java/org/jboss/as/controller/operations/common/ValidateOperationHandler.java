@@ -120,13 +120,7 @@ public class ValidateOperationHandler implements OperationStepHandler {
             final ModelNode result = new ModelNode();
 
             context.addStep(result, proxyOp, proxyReg.getOperationHandler(PathAddress.EMPTY_ADDRESS, VALIDATE_OPERATION), Stage.MODEL, true);
-            context.completeStep(new OperationContext.RollbackHandler() {
-
-                @Override
-                public void handleRollback(OperationContext context, ModelNode operation) {
-                    context.getFailureDescription().set(result.get(FAILURE_DESCRIPTION));
-                }
-            });
+            context.completeStep((context1, operation1) -> context1.getFailureDescription().set(result.get(FAILURE_DESCRIPTION)));
         } else {
             try {
                 if (authorize(context, op, operation).getDecision() == Decision.DENY) {

@@ -100,54 +100,48 @@ public class ProfileCloneHandler implements OperationStepHandler {
         final ModelNode result = new ModelNode();
 
         final OperationStepHandler handler = context.getRootResourceRegistration().getOperationHandler(address, operationName);
-        context.addStep(new OperationStepHandler() {
-            @Override
-            public void execute(OperationContext context, ModelNode operation) throws OperationFailedException {
-                final PathAddress newPA = PathAddress.pathAddress(PROFILE, newProfile);
-                final List<ModelNode> operations = new ArrayList<>(result.get(RESULT).asList());
+        context.addStep((context12, operation12) -> {
+            final PathAddress newPA1 = PathAddress.pathAddress(PROFILE, newProfile);
+            final List<ModelNode> operations = new ArrayList<>(result.get(RESULT).asList());
 
-                //Make sure that we add everything in exactly the same order as the original profile
-                Map<String, List<ModelNode>> opsBySubsystem = new LinkedHashMap<>();
-                ModelNode profileAdd = null;
+            //Make sure that we add everything in exactly the same order as the original profile
+            Map<String, List<ModelNode>> opsBySubsystem = new LinkedHashMap<>();
+            ModelNode profileAdd = null;
 
-                for (ModelNode op : operations) {
-                    PathAddress addr = PathAddress.pathAddress(op.require(OP_ADDR)).subAddress(1);
+            for (ModelNode op : operations) {
+                PathAddress addr = PathAddress.pathAddress(op.require(OP_ADDR)).subAddress(1);
 
-                    //Adjust the address for the new profile
-                    final PathAddress a = newPA.append(addr);
-                    op.get(OP_ADDR).set(a.toModelNode());
+                //Adjust the address for the new profile
+                final PathAddress a = newPA1.append(addr);
+                op.get(OP_ADDR).set(a.toModelNode());
 
-                    if (addr.size() == 0) {
-                        profileAdd = op;
-                    } else {
-                        String subsystem = addr.getElement(0).getValue();
-                        List<ModelNode> subsystemOps = opsBySubsystem.get(subsystem);
-                        if (subsystemOps == null) {
-                            subsystemOps = new ArrayList<>();
-                            opsBySubsystem.put(subsystem, subsystemOps);
-                        }
-                        subsystemOps.add(op);
+                if (addr.size() == 0) {
+                    profileAdd = op;
+                } else {
+                    String subsystem = addr.getElement(0).getValue();
+                    List<ModelNode> subsystemOps = opsBySubsystem.get(subsystem);
+                    if (subsystemOps == null) {
+                        subsystemOps = new ArrayList<>();
+                        opsBySubsystem.put(subsystem, subsystemOps);
                     }
+                    subsystemOps.add(op);
                 }
-
-                for (List<ModelNode> ops : opsBySubsystem.values()) {
-                    Collections.reverse(ops);
-                    for (final ModelNode op : ops) {
-                        addOperation(context, op);
-                    }
-                }
-                addOperation(context, profileAdd);
             }
+
+            for (List<ModelNode> ops : opsBySubsystem.values()) {
+                Collections.reverse(ops);
+                for (final ModelNode op : ops) {
+                    addOperation(context12, op);
+                }
+            }
+            addOperation(context12, profileAdd);
         }, OperationContext.Stage.MODEL, true);
 
         context.addStep(result, describeOp, handler, OperationContext.Stage.MODEL, true);
 
-        context.completeStep(new OperationContext.RollbackHandler() {
-            @Override
-            public void handleRollback(OperationContext context, ModelNode operation) {
-                if (!context.hasFailureDescription()) {
-                    context.getFailureDescription().set(result.get(FAILURE_DESCRIPTION));
-                }
+        context.completeStep((context1, operation1) -> {
+            if (!context1.hasFailureDescription()) {
+                context1.getFailureDescription().set(result.get(FAILURE_DESCRIPTION));
             }
         });
     }

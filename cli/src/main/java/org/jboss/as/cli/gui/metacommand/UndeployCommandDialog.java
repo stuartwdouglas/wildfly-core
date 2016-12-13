@@ -73,11 +73,7 @@ public class UndeployCommandDialog extends JDialog implements ActionListener {
     }
 
     private void setRelevantServerGroupsListener() {
-        allRelevantServerGroups.addActionListener(new ActionListener() {
-            public void actionPerformed(ActionEvent e) {
-                serverGroupChooser.setEnabled(!allRelevantServerGroups.isSelected());
-            }
-        });
+        allRelevantServerGroups.addActionListener(e -> serverGroupChooser.setEnabled(!allRelevantServerGroups.isSelected()));
     }
 
     private JPanel makeInputPanel() {
@@ -112,11 +108,7 @@ public class UndeployCommandDialog extends JDialog implements ActionListener {
         ok.setMnemonic(KeyEvent.VK_ENTER);
 
         JButton cancel = new JButton("Cancel");
-        cancel.addActionListener(new ActionListener() {
-            public void actionPerformed(ActionEvent ae) {
-                UndeployCommandDialog.this.dispose();
-            }
-        });
+        cancel.addActionListener(ae -> UndeployCommandDialog.this.dispose());
 
         if (deploymentChooser.hasDeployments()) {
             buttonPanel.add(ok);

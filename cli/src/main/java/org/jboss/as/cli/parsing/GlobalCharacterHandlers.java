@@ -24,7 +24,6 @@ package org.jboss.as.cli.parsing;
 import java.util.HashMap;
 import java.util.Map;
 
-import org.jboss.as.cli.CommandFormatException;
 import org.jboss.as.cli.operation.OperationFormatException;
 
 /**
@@ -61,23 +60,9 @@ public class GlobalCharacterHandlers {
         }
     };
 
-    public static final CharacterHandler CONTENT_CHARACTER_HANDLER = new CharacterHandler() {
+    public static final CharacterHandler CONTENT_CHARACTER_HANDLER = ctx -> ctx.getCallbackHandler().character(ctx);
 
-        @Override
-        public void handle(ParsingContext ctx)
-                throws CommandFormatException {
-            ctx.getCallbackHandler().character(ctx);
-        }
-    };
-
-    public static final CharacterHandler LEAVE_STATE_HANDLER = new CharacterHandler() {
-
-        @Override
-        public void handle(ParsingContext ctx)
-                throws CommandFormatException {
-            ctx.leaveState();
-        }
-    };
+    public static final CharacterHandler LEAVE_STATE_HANDLER = ctx -> ctx.leaveState();
 
     static CharacterHandler getHandler(char ch, CharacterHandler defaultHandler) {
         CharacterHandler handler = handlers.get(ch);

@@ -22,7 +22,6 @@
 
 package org.wildfly.core.embedded;
 
-import java.beans.PropertyChangeEvent;
 import java.beans.PropertyChangeListener;
 import java.io.File;
 import java.io.IOException;
@@ -235,13 +234,10 @@ public class EmbeddedHostControllerFactory {
             this.systemProps = systemProps;
             this.systemEnv = systemEnv;
             this.moduleLoader = moduleLoader;
-            processStateListener = new PropertyChangeListener() {
-                @Override
-                public void propertyChange(PropertyChangeEvent evt) {
-                    if ("currentState".equals(evt.getPropertyName())) {
-                        ControlledProcessState.State newState = (ControlledProcessState.State) evt.getNewValue();
-                        establishModelControllerClient(newState);
-                    }
+            processStateListener = evt -> {
+                if ("currentState".equals(evt.getPropertyName())) {
+                    ControlledProcessState.State newState = (ControlledProcessState.State) evt.getNewValue();
+                    establishModelControllerClient(newState);
                 }
             };
         }
@@ -252,12 +248,7 @@ public class EmbeddedHostControllerFactory {
             try {
                 final long startTime = System.currentTimeMillis();
                 // Take control of server use of System.exit
-                SystemExiter.initialize(new SystemExiter.Exiter() {
-                    @Override
-                    public void exit(int status) {
-                        HostControllerImpl.this.exit();
-                    }
-                });
+                SystemExiter.initialize(status -> HostControllerImpl.this.exit());
                 // Take control of stdio
                 try {
                     StdioContext.install();
@@ -297,12 +288,7 @@ public class EmbeddedHostControllerFactory {
 
         @Override
         public synchronized ModelControllerClient getModelControllerClient() {
-            return modelControllerClient == null ? null : new DelegatingModelControllerClient(new DelegatingModelControllerClient.DelegateProvider() {
-                @Override
-                public ModelControllerClient getDelegate() {
-                    return getActiveModelControllerClient();
-                }
-            });
+            return modelControllerClient == null ? null : new DelegatingModelControllerClient(() -> getActiveModelControllerClient());
         }
 
         private synchronized void establishModelControllerClient(ControlledProcessState.State state) {

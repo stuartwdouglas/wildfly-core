@@ -121,17 +121,14 @@ class ServerInventoryService implements Service<ServerInventory> {
     public synchronized void stop(final StopContext context) {
         final boolean shutdownServers = runningModeControl.getRestartMode() == RestartMode.SERVERS;
         if (shutdownServers) {
-            Runnable task = new Runnable() {
-                @Override
-                public void run() {
-                    try {
-                        serverInventory.shutdown(true, -1, true); // TODO graceful shutdown
-                        serverInventory = null;
-                        // client.getValue().setServerInventory(null);
-                    } finally {
-                        serverCallback.getValue().setCallbackHandler(null);
-                        context.complete();
-                    }
+            Runnable task = () -> {
+                try {
+                    serverInventory.shutdown(true, -1, true); // TODO graceful shutdown
+                    serverInventory = null;
+                    // client.getValue().setServerInventory(null);
+                } finally {
+                    serverCallback.getValue().setCallbackHandler(null);
+                    context.complete();
                 }
             };
             try {

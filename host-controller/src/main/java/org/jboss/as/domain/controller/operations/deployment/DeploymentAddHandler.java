@@ -153,11 +153,9 @@ public class DeploymentAddHandler implements OperationStepHandler {
 
         if (contentRepository != null && hash != null) {
             final byte[] contentHash = hash;
-            context.completeStep(new OperationContext.ResultHandler() {
-                public void handleResult(ResultAction resultAction, OperationContext context, ModelNode operation) {
-                    if (resultAction == ResultAction.KEEP) {
-                        contentRepository.addContentReference(ModelContentReference.fromModelAddress(address, contentHash));
-                    }
+            context.completeStep((resultAction, context1, operation1) -> {
+                if (resultAction == ResultAction.KEEP) {
+                    contentRepository.addContentReference(ModelContentReference.fromModelAddress(address, contentHash));
                 }
             });
         }

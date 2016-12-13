@@ -73,22 +73,18 @@ class SecurityActions {
 
             @Override
             public ClassLoader setThreadContextClassLoader(final Class cl) {
-                return AccessController.doPrivileged(new PrivilegedAction<ClassLoader>() {
-                    public ClassLoader run() {
-                        ClassLoader old = Thread.currentThread().getContextClassLoader();
-                        Thread.currentThread().setContextClassLoader(cl.getClassLoader());
-                        return old;
-                    }
+                return AccessController.doPrivileged((PrivilegedAction<ClassLoader>) () -> {
+                    ClassLoader old = Thread.currentThread().getContextClassLoader();
+                    Thread.currentThread().setContextClassLoader(cl.getClassLoader());
+                    return old;
                 });
             }
 
             @Override
             public void setThreadContextClassLoader(final ClassLoader cl) {
-                AccessController.doPrivileged(new PrivilegedAction<Void>() {
-                    public Void run() {
-                        Thread.currentThread().setContextClassLoader(cl);
-                        return null;
-                    }
+                AccessController.doPrivileged((PrivilegedAction<Void>) () -> {
+                    Thread.currentThread().setContextClassLoader(cl);
+                    return null;
                 });
             }
         };

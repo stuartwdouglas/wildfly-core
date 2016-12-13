@@ -50,11 +50,7 @@ public class TempFileProviderService implements Service<TempFileProvider> {
     private static final TempFileProvider PROVIDER;
     static {
        try {
-           final JBossThreadFactory threadFactory = doPrivileged(new PrivilegedAction<JBossThreadFactory>() {
-               public JBossThreadFactory run() {
-                   return new JBossThreadFactory(new ThreadGroup("TempFileProviderService-temp-threads"), Boolean.TRUE, null, "%G - %t", null, null);
-               }
-           });
+           final JBossThreadFactory threadFactory = doPrivileged((PrivilegedAction<JBossThreadFactory>) () -> new JBossThreadFactory(new ThreadGroup("TempFileProviderService-temp-threads"), Boolean.TRUE, null, "%G - %t", null, null));
            ScheduledThreadPoolExecutor ex = new ScheduledThreadPoolExecutor(0, threadFactory);
            ex.setKeepAliveTime(60,TimeUnit.SECONDS);
            PROVIDER = TempFileProvider.create("deployment", ex, true);

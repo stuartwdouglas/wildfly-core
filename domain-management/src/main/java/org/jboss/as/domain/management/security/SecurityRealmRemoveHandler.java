@@ -51,28 +51,22 @@ public class SecurityRealmRemoveHandler implements OperationStepHandler {
     public void execute(OperationContext context, ModelNode operation) throws OperationFailedException {
         final ModelNode model = Resource.Tools.readModel(context.readResource(PathAddress.EMPTY_ADDRESS));
         context.removeResource(PathAddress.EMPTY_ADDRESS);
-        context.addStep(new OperationStepHandler() {
-            @Override
-            public void execute(OperationContext context, ModelNode operation) throws OperationFailedException {
-                final boolean reloadRequired = ManagementUtil.isSecurityRealmReloadRequired(context, operation);
-                final String realmName = ManagementUtil.getSecurityRealmName(operation);
-                if (reloadRequired) {
-                    context.reloadRequired();
-                } else {
-                    removeServices(context, realmName, model);
-                }
-
-                context.completeStep(new OperationContext.RollbackHandler() {
-                    @Override
-                    public void handleRollback(OperationContext context, ModelNode operation) {
-                        if (reloadRequired) {
-                            context.revertReloadRequired();
-                        } else {
-                            recoverServices(context, realmName, model);
-                        }
-                    }
-                });
+        context.addStep((context12, operation12) -> {
+            final boolean reloadRequired = ManagementUtil.isSecurityRealmReloadRequired(context12, operation12);
+            final String realmName = ManagementUtil.getSecurityRealmName(operation12);
+            if (reloadRequired) {
+                context12.reloadRequired();
+            } else {
+                removeServices(context12, realmName, model);
             }
+
+            context12.completeStep((context1, operation1) -> {
+                if (reloadRequired) {
+                    context1.revertReloadRequired();
+                } else {
+                    recoverServices(context1, realmName, model);
+                }
+            });
         }, OperationContext.Stage.RUNTIME);
 
         context.completeStep(OperationContext.RollbackHandler.NOOP_ROLLBACK_HANDLER);

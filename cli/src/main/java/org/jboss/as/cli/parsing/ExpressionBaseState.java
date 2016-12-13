@@ -63,19 +63,16 @@ public class ExpressionBaseState extends DefaultParsingState {
     }
 
     protected void putExpressionHandler() {
-        this.putHandler('$', new CharacterHandler(){
-            @Override
-            public void handle(ParsingContext ctx)
-                    throws CommandFormatException {
-                final int originalLength = ctx.getInput().length();
-                ctx.resolveExpression(resolveSystemProperties, exceptionIfNotResolved);
-                final char resolvedCh = ctx.getCharacter();
-                if(resolvedCh == '$' && originalLength == ctx.getInput().length()) {
-                    getDefaultHandler().handle(ctx);
-                } else {
-                    getHandler(resolvedCh).handle(ctx);
-                }
-            }});
+        this.putHandler('$', ctx -> {
+            final int originalLength = ctx.getInput().length();
+            ctx.resolveExpression(resolveSystemProperties, exceptionIfNotResolved);
+            final char resolvedCh = ctx.getCharacter();
+            if(resolvedCh == '$' && originalLength == ctx.getInput().length()) {
+                getDefaultHandler().handle(ctx);
+            } else {
+                getHandler(resolvedCh).handle(ctx);
+            }
+        });
     }
 
     @Override

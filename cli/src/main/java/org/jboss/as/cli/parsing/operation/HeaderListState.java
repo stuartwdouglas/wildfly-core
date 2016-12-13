@@ -22,7 +22,6 @@
 package org.jboss.as.cli.parsing.operation;
 
 import org.jboss.as.cli.CommandFormatException;
-import org.jboss.as.cli.parsing.CharacterHandler;
 import org.jboss.as.cli.parsing.DefaultParsingState;
 import org.jboss.as.cli.parsing.GlobalCharacterHandlers;
 import org.jboss.as.cli.parsing.LineBreakHandler;
@@ -50,13 +49,11 @@ public class HeaderListState extends DefaultParsingState {
                 ctx.enterState(headerState);
             }
         });
-        setReturnHandler(new CharacterHandler(){
-            @Override
-            public void handle(ParsingContext ctx) throws CommandFormatException {
-                if(ctx.getCharacter() == '}') {
-                    GlobalCharacterHandlers.LEAVE_STATE_HANDLER.handle(ctx);
-                }
-            }});
+        setReturnHandler(ctx -> {
+            if(ctx.getCharacter() == '}') {
+                GlobalCharacterHandlers.LEAVE_STATE_HANDLER.handle(ctx);
+            }
+        });
         setIgnoreWhitespaces(true);
     }
 }

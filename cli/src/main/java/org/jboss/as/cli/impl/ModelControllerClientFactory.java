@@ -53,35 +53,25 @@ public interface ModelControllerClientFactory {
             boolean disableLocalAuth, SSLContext sslContext, int connectionTimeout,
             ConnectionCloseHandler closeHandler, ProtocolTimeoutHandler timeoutHandler, String clientBindAddress) throws IOException;
 
-    ModelControllerClientFactory DEFAULT = new ModelControllerClientFactory() {
-        @Override
-        public ModelControllerClient getClient(ControllerAddress address, CallbackHandler handler,
-                boolean disableLocalAuth, SSLContext sslContext, int connectionTimeout,
-                ConnectionCloseHandler closeHandler, ProtocolTimeoutHandler timeoutHandler, String clientBindAddress) throws IOException {
-            // TODO - Make use of the ProtocolTimeoutHandler
-            Map<String, String> saslOptions = disableLocalAuth ? DISABLED_LOCAL_AUTH : ENABLED_LOCAL_AUTH;
-            ModelControllerClientConfiguration config = new ModelControllerClientConfiguration.Builder()
-                    .setProtocol(address.getProtocol())
-                    .setHostName(address.getHost())
-                    .setPort(address.getPort())
-                    .setHandler(handler)
-                    .setSslContext(sslContext)
-                    .setConnectionTimeout(connectionTimeout)
-                    .setSaslOptions(saslOptions)
-                    .setClientBindAddress(clientBindAddress)
-                    .build();
-            return ModelControllerClient.Factory.create(config);
-        }
+    ModelControllerClientFactory DEFAULT = (address, handler, disableLocalAuth, sslContext, connectionTimeout, closeHandler, timeoutHandler, clientBindAddress) -> {
+        // TODO - Make use of the ProtocolTimeoutHandler
+        Map<String, String> saslOptions = disableLocalAuth ? DISABLED_LOCAL_AUTH : ENABLED_LOCAL_AUTH;
+        ModelControllerClientConfiguration config = new ModelControllerClientConfiguration.Builder()
+                .setProtocol(address.getProtocol())
+                .setHostName(address.getHost())
+                .setPort(address.getPort())
+                .setHandler(handler)
+                .setSslContext(sslContext)
+                .setConnectionTimeout(connectionTimeout)
+                .setSaslOptions(saslOptions)
+                .setClientBindAddress(clientBindAddress)
+                .build();
+        return ModelControllerClient.Factory.create(config);
     };
 
-    ModelControllerClientFactory CUSTOM = new ModelControllerClientFactory() {
-
-        @Override
-        public ModelControllerClient getClient(ControllerAddress address,
-                final CallbackHandler handler, boolean disableLocalAuth, final SSLContext sslContext,
-                final int connectionTimeout, final ConnectionCloseHandler closeHandler, ProtocolTimeoutHandler timeoutHandler, String clientBindAddress) throws IOException {
-            Map<String, String> saslOptions = disableLocalAuth ? DISABLED_LOCAL_AUTH : ENABLED_LOCAL_AUTH;
-            return new CLIModelControllerClient(address, handler, connectionTimeout, closeHandler, saslOptions, sslContext, timeoutHandler, clientBindAddress);
-        }};
+    ModelControllerClientFactory CUSTOM = (address, handler, disableLocalAuth, sslContext, connectionTimeout, closeHandler, timeoutHandler, clientBindAddress) -> {
+        Map<String, String> saslOptions = disableLocalAuth ? DISABLED_LOCAL_AUTH : ENABLED_LOCAL_AUTH;
+        return new CLIModelControllerClient(address, handler, connectionTimeout, closeHandler, saslOptions, sslContext, timeoutHandler, clientBindAddress);
+    };
 
 }

@@ -67,16 +67,13 @@ public class DumpServicesHandler implements OperationStepHandler {
 
         }
 
-        context.addStep(new OperationStepHandler() {
-            @Override
-            public void execute(OperationContext context, ModelNode operation) throws OperationFailedException {
-                ServiceController<?> service = context.getServiceRegistry(false).getRequiredService(serviceName);
-                ByteArrayOutputStream out = new ByteArrayOutputStream();
-                PrintStream print = new PrintStream(out);
-                service.getServiceContainer().dumpServices(print);
-                print.flush();
-                context.getResult().set(new String(out.toByteArray(), StandardCharsets.UTF_8));
-            }
+        context.addStep((context1, operation1) -> {
+            ServiceController<?> service = context1.getServiceRegistry(false).getRequiredService(serviceName);
+            ByteArrayOutputStream out = new ByteArrayOutputStream();
+            PrintStream print = new PrintStream(out);
+            service.getServiceContainer().dumpServices(print);
+            print.flush();
+            context1.getResult().set(new String(out.toByteArray(), StandardCharsets.UTF_8));
         }, OperationContext.Stage.RUNTIME);
     }
 

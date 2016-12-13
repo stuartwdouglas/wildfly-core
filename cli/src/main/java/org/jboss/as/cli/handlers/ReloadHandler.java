@@ -87,12 +87,7 @@ public class ReloadHandler extends BaseOperationCommand {
             }
         };
 
-        startMode = new ArgumentWithValue(this, new DefaultCompleter(new DefaultCompleter.CandidatesProvider() {
-            @Override
-            public Collection<String> getAllCandidates(CommandContext ctx) {
-                return Arrays.asList(ADMIN_ONLY, NORMAL, SUSPEND);
-            }
-        }), "--start-mode") {
+        startMode = new ArgumentWithValue(this, new DefaultCompleter(ctx1 -> Arrays.asList(ADMIN_ONLY, NORMAL, SUSPEND)), "--start-mode") {
             @Override
             public boolean canAppearNext(CommandContext ctx) throws CommandFormatException {
                 if (ctx.isDomainMode()) {

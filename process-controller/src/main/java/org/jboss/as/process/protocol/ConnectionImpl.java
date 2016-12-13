@@ -173,90 +173,82 @@ final class ConnectionImpl implements Connection {
     }
 
     Runnable getReadTask() {
-        return new Runnable() {
-            @Override
-            public void run() {
-                boolean closed = false;
-                OutputStream mos = null;
-                try {
-                    Pipe pipe = null;
-                    final InputStream is = socket.getInputStream();
-                    final int bufferSize = 8192;
-                    final byte[] buffer = new byte[bufferSize];
-                    for (;;) {
+        return () -> {
+            boolean closed = false;
+            OutputStream mos = null;
+            try {
+                Pipe pipe = null;
+                final InputStream is = socket.getInputStream();
+                final int bufferSize = 8192;
+                final byte[] buffer = new byte[bufferSize];
+                for (;;) {
 
-                        int cmd = is.read();
-                        switch (cmd) {
-                            case -1: {
-                                ProcessLogger.PROTOCOL_CONNECTION_LOGGER.trace("Received end of stream");
-                                // end of stream
-                                safeHandleShutdown();
-                                boolean done;
-                                if (mos != null) {
-                                    mos.close();
-                                    pipe.await();
-                                }
-                                synchronized (lock) {
-                                    readDone = true;
-                                    done = writeDone;
-                                }
-                                if (done) {
-                                    StreamUtils.safeClose(socket);
-                                    safeHandleFinished();
-                                }
-                                closed = true;
-                                closed();
-                                return;
+                    int cmd = is.read();
+                    switch (cmd) {
+                        case -1: {
+                            ProcessLogger.PROTOCOL_CONNECTION_LOGGER.trace("Received end of stream");
+                            // end of stream
+                            safeHandleShutdown();
+                            boolean done;
+                            if (mos != null) {
+                                mos.close();
+                                pipe.await();
                             }
-                            case ProtocolConstants.CHUNK_START: {
-                                if (mos == null) {
-                                    pipe = new Pipe(8192);
-                                    // new message!
-                                    final InputStream pis = pipe.getIn();
-                                    mos = pipe.getOut();
+                            synchronized (lock) {
+                                readDone = true;
+                                done = writeDone;
+                            }
+                            if (done) {
+                                StreamUtils.safeClose(socket);
+                                safeHandleFinished();
+                            }
+                            closed = true;
+                            closed();
+                            return;
+                        }
+                        case ProtocolConstants.CHUNK_START: {
+                            if (mos == null) {
+                                pipe = new Pipe(8192);
+                                // new message!
+                                final InputStream pis = pipe.getIn();
+                                mos = pipe.getOut();
 
-                                    readExecutor.execute(new Runnable() {
-                                        @Override
-                                        public void run() {
-                                            safeHandleMessage(new MessageInputStream(pis));
-                                        }
-                                    });
-                                }
-                                int cnt = StreamUtils.readInt(is);
-                                ProcessLogger.PROTOCOL_CONNECTION_LOGGER.tracef("Received data chunk of size %d", Integer.valueOf(cnt));
-                                while (cnt > 0) {
-                                    int sc = is.read(buffer, 0, Math.min(cnt, bufferSize));
-                                    if (sc == -1) {
-                                        throw ProcessLogger.ROOT_LOGGER.unexpectedEndOfStream();
-                                    }
-                                    mos.write(buffer, 0, sc);
-                                    cnt -= sc;
-                                }
-                                break;
+                                readExecutor.execute(() -> safeHandleMessage(new MessageInputStream(pis)));
                             }
-                            case ProtocolConstants.CHUNK_END: {
-                                ProcessLogger.PROTOCOL_CONNECTION_LOGGER.trace("Received end data marker");
-                                if (mos != null) {
-                                    // end message
-                                    mos.close();
-                                    pipe.await();
-                                    mos = null;
-                                    pipe = null;
+                            int cnt = StreamUtils.readInt(is);
+                            ProcessLogger.PROTOCOL_CONNECTION_LOGGER.tracef("Received data chunk of size %d", Integer.valueOf(cnt));
+                            while (cnt > 0) {
+                                int sc = is.read(buffer, 0, Math.min(cnt, bufferSize));
+                                if (sc == -1) {
+                                    throw ProcessLogger.ROOT_LOGGER.unexpectedEndOfStream();
                                 }
-                                break;
+                                mos.write(buffer, 0, sc);
+                                cnt -= sc;
                             }
-                            default: {
-                                throw ProcessLogger.ROOT_LOGGER.invalidCommandByte(cmd);
+                            break;
+                        }
+                        case ProtocolConstants.CHUNK_END: {
+                            ProcessLogger.PROTOCOL_CONNECTION_LOGGER.trace("Received end data marker");
+                            if (mos != null) {
+                                // end message
+                                mos.close();
+                                pipe.await();
+                                mos = null;
+                                pipe = null;
                             }
+                            break;
+                        }
+                        default: {
+                            throw ProcessLogger.ROOT_LOGGER.invalidCommandByte(cmd);
                         }
                     }
-                } catch (IOException e) {
-                    safeHandlerFailure(e);
-                } finally {
-                    StreamUtils.safeClose(mos);
-                    if (!closed) {
-                        closed();
-                    }
+                }
+            } catch (IOException e) {
+                safeHandlerFailure(e);
+            } finally {
+                StreamUtils.safeClose(mos);
+                if (!closed) {
+                    closed();
                 }
             }
         };
@@ -366,12 +358,7 @@ final class ConnectionImpl implements Connection {
                 lock.notify();
                 if (writeDone) throw ProcessLogger.ROOT_LOGGER.writeChannelClosed();
                 if (readDone) {
-                    readExecutor.execute(new Runnable() {
-                        @Override
-                        public void run() {
-                            safeHandleFinished();
-                        }
-                    });
+                    readExecutor.execute(() -> safeHandleFinished());
                 }
                 ProcessLogger.PROTOCOL_CONNECTION_LOGGER.tracef("Sending end of message");
                 out.write(ProtocolConstants.CHUNK_END);

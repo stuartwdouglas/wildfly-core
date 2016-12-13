@@ -121,13 +121,10 @@ public class DownloadServerLogDialog extends JDialog implements ActionListener, 
 
         addStrut();
         JButton browse = new JButton("Browse ...");
-        browse.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent ae) {
-                int returnVal = fileChooser.showOpenDialog(DownloadServerLogDialog.this);
-                if (returnVal == JFileChooser.APPROVE_OPTION) {
-                    setPathField();
-                }
+        browse.addActionListener(ae -> {
+            int returnVal = fileChooser.showOpenDialog(DownloadServerLogDialog.this);
+            if (returnVal == JFileChooser.APPROVE_OPTION) {
+                setPathField();
             }
         });
         gbConst.gridwidth = GridBagConstraints.REMAINDER;
@@ -157,12 +154,7 @@ public class DownloadServerLogDialog extends JDialog implements ActionListener, 
         ok.setMnemonic(KeyEvent.VK_ENTER);
 
         JButton cancel = new JButton("Cancel");
-        cancel.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent ae) {
-                DownloadServerLogDialog.this.dispose();
-            }
-        });
+        cancel.addActionListener(ae -> DownloadServerLogDialog.this.dispose());
 
         buttonPanel.add(ok);
         buttonPanel.add(cancel);

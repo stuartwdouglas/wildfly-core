@@ -32,13 +32,7 @@ class ActiveOperationImpl<T, A> extends AsyncFutureTask<T> implements ActiveOper
 
     // All active operations have to use the direct executor for now. At least we need to make sure
     // completion/cancellation/cleanup are executed before further requests are handled.
-    private static final Executor directExecutor = new Executor() {
-
-        @Override
-        public void execute(final Runnable command) {
-            command.run();
-        }
-    };
+    private static final Executor directExecutor = command -> command.run();
 
     private static final List<Cancellable> CANCEL_REQUESTED = Collections.emptyList();
 

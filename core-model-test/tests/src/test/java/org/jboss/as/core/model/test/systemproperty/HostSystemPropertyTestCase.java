@@ -71,11 +71,8 @@ public class HostSystemPropertyTestCase extends AbstractSystemPropertyTest {
         return "host-systemproperties.xml";
     }
 
-    private ModelInitializer BOOT_OP_MODEL_INITIALIZER = new ModelInitializer() {
-        @Override
-        public void populateModel(Resource rootResource) {
-            Resource host = Resource.Factory.create();
-            rootResource.registerChild(PARENT.getElement(0), host);
-        }
+    private ModelInitializer BOOT_OP_MODEL_INITIALIZER = rootResource -> {
+        Resource host = Resource.Factory.create();
+        rootResource.registerChild(PARENT.getElement(0), host);
     };
 }

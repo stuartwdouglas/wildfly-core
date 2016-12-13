@@ -75,17 +75,14 @@ class AttributeTransformationRule extends TransformationRule {
                     return rejectedAttributes.getOperationRejectDescription();
                 }
             };
-            resultTransformer = new OperationResultTransformer() {
-                @Override
-                public ModelNode transformResult(ModelNode result) {
-                    ModelNode res = result;
-                    if (!result.hasDefined(OUTCOME) || SUCCESS.equals(result.get(OUTCOME).asString())) {
-                        res = result.clone();
-                        res.get(OUTCOME).set(FAILED);
-                        res.get(FAILURE_DESCRIPTION).set(policy.getFailureDescription());
-                    }
-                    return res;
+            resultTransformer = result -> {
+                ModelNode res = result;
+                if (!result.hasDefined(OUTCOME) || SUCCESS.equals(result.get(OUTCOME).asString())) {
+                    res = result.clone();
+                    res.get(OUTCOME).set(FAILED);
+                    res.get(FAILURE_DESCRIPTION).set(policy.getFailureDescription());
                 }
+                return res;
             };
         }
 

@@ -34,7 +34,6 @@ import java.math.BigInteger;
 
 import org.jboss.as.controller.ManagementModel;
 import org.jboss.as.controller.ModelOnlyWriteAttributeHandler;
-import org.jboss.as.controller.OperationContext;
 import org.jboss.as.controller.OperationDefinition;
 import org.jboss.as.controller.OperationFailedException;
 import org.jboss.as.controller.OperationStepHandler;
@@ -150,28 +149,25 @@ public class CastAttributeOperationTestCase extends AbstractControllerTestBase {
 
         ManagementResourceRegistration rootRegistration = managementModel.getRootResourceRegistration();
         GlobalOperationHandlers.registerGlobalOperations(rootRegistration, processType);
-        rootRegistration.registerOperationHandler(SETUP_OP_DEF, new OperationStepHandler() {
-            @Override
-            public void execute(OperationContext context, ModelNode operation) throws OperationFailedException {
-                final ModelNode model = new ModelNode();
-                //Atttributes
-                model.get("profile", "profileA", NAME).set("profileA");
-                model.get("profile", "profileA", "subsystem", "subsystem1", BOOLEAN_ATT_NAME).set(true);
-                model.get("profile", "profileA", "subsystem", "subsystem1", LONG_ATT_NAME).set(1000L);
-                model.get("profile", "profileB", NAME).set("profileB");
-                model.get("profile", "profileB", "subsystem", "subsystem1", BOOLEAN_ATT_NAME).set(new ValueExpression("${boolean-value}"));
-                model.get("profile", "profileB", "subsystem", "subsystem1", LONG_ATT_NAME).set(new ValueExpression("${long-value}"));
-                model.get("profile", "profilType", NAME).set("profilType");
-                model.get("profile", "profilType", "subsystem", "subsystem1", BOOLEAN_ATT_NAME).set(true);
-                model.get("profile", "profilType", "subsystem", "subsystem1", LONG_ATT_NAME).set(1000L);
-                model.get("profile", "profilType", "subsystem", "subsystem1", STRING_ATT_NAME).set("wildfly");
-                model.get("profile", "profilType", "subsystem", "subsystem1", DOUBLE_ATT_NAME).set(1.0D);
-                model.get("profile", "profilType", "subsystem", "subsystem1", INT_ATT_NAME).set(100);
-                model.get("profile", "profilType", "subsystem", "subsystem1", BYTES_ATT_NAME).set("wildfly".getBytes(UTF_8));
-                model.get("profile", "profilType", "subsystem", "subsystem1", BIGINT_ATT_NAME).set(new BigInteger("100"));
-                model.get("profile", "profilType", "subsystem", "subsystem1", BIGDEC_ATT_NAME).set(new BigDecimal("10.0"));
-                createModel(context, model);
-            }
+        rootRegistration.registerOperationHandler(SETUP_OP_DEF, (context, operation) -> {
+            final ModelNode model = new ModelNode();
+            //Atttributes
+            model.get("profile", "profileA", NAME).set("profileA");
+            model.get("profile", "profileA", "subsystem", "subsystem1", BOOLEAN_ATT_NAME).set(true);
+            model.get("profile", "profileA", "subsystem", "subsystem1", LONG_ATT_NAME).set(1000L);
+            model.get("profile", "profileB", NAME).set("profileB");
+            model.get("profile", "profileB", "subsystem", "subsystem1", BOOLEAN_ATT_NAME).set(new ValueExpression("${boolean-value}"));
+            model.get("profile", "profileB", "subsystem", "subsystem1", LONG_ATT_NAME).set(new ValueExpression("${long-value}"));
+            model.get("profile", "profilType", NAME).set("profilType");
+            model.get("profile", "profilType", "subsystem", "subsystem1", BOOLEAN_ATT_NAME).set(true);
+            model.get("profile", "profilType", "subsystem", "subsystem1", LONG_ATT_NAME).set(1000L);
+            model.get("profile", "profilType", "subsystem", "subsystem1", STRING_ATT_NAME).set("wildfly");
+            model.get("profile", "profilType", "subsystem", "subsystem1", DOUBLE_ATT_NAME).set(1.0D);
+            model.get("profile", "profilType", "subsystem", "subsystem1", INT_ATT_NAME).set(100);
+            model.get("profile", "profilType", "subsystem", "subsystem1", BYTES_ATT_NAME).set("wildfly".getBytes(UTF_8));
+            model.get("profile", "profilType", "subsystem", "subsystem1", BIGINT_ATT_NAME).set(new BigInteger("100"));
+            model.get("profile", "profilType", "subsystem", "subsystem1", BIGDEC_ATT_NAME).set(new BigDecimal("10.0"));
+            createModel(context, model);
         }
         );
 

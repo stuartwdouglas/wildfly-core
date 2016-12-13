@@ -59,25 +59,22 @@ public interface ArgumentValueConverter {
         protected abstract ModelNode fromNonDMRString(CommandContext ctx, String value) throws CommandFormatException;
     }
 
-    ArgumentValueConverter DEFAULT = new ArgumentValueConverter() {
-        @Override
-        public ModelNode fromString(CommandContext ctx, String value) throws CommandFormatException {
-            if (value == null) {
-                return new ModelNode();
-            }
-            if(ctx.isResolveParameterValues()) {
-                value = CLIExpressionResolver.resolveLax(value);
-            }
-            ModelNode toSet = null;
-            try {
-                toSet = ModelNode.fromString(value);
-            } catch (Exception e) {
-                final ArgumentValueCallbackHandler handler = new ArgumentValueCallbackHandler();
-                StateParser.parse(value, handler, ArgumentValueInitialState.INSTANCE);
-                toSet = handler.getResult();
-            }
-            return toSet;
+    ArgumentValueConverter DEFAULT = (ctx, value) -> {
+        if (value == null) {
+            return new ModelNode();
         }
+        if(ctx.isResolveParameterValues()) {
+            value = CLIExpressionResolver.resolveLax(value);
+        }
+        ModelNode toSet = null;
+        try {
+            toSet = ModelNode.fromString(value);
+        } catch (Exception e) {
+            final ArgumentValueCallbackHandler handler = new ArgumentValueCallbackHandler();
+            StateParser.parse(value, handler, ArgumentValueInitialState.INSTANCE);
+            toSet = handler.getResult();
+        }
+        return toSet;
     };
 
     /**

@@ -40,7 +40,6 @@ import org.jboss.as.core.model.test.TestModelType;
 import org.jboss.as.core.model.test.util.ServerConfigInitializers;
 import org.jboss.as.domain.controller.resources.ProfileResourceDefinition;
 import org.jboss.as.model.test.ModelTestUtils;
-import org.jboss.dmr.ModelNode;
 import org.junit.Assert;
 import org.junit.Test;
 
@@ -76,11 +75,9 @@ public class ShippedConfigurationsModelTestCase extends AbstractCoreModelTest {
                         rootResource.registerChild(PathElement.pathElement(PROFILE, "full-ha"), Resource.Factory.create());
                     }
                 },
-                new ModelWriteSanitizer() {
-                    public ModelNode sanitize(ModelNode model) {
-                        model.remove(PROFILE);
-                        return model;
-                    }
+                model -> {
+                    model.remove(PROFILE);
+                    return model;
                 });
     }
 

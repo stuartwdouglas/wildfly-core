@@ -53,18 +53,16 @@ public class CommandState extends DefaultParsingState {
                 ctx.enterState(argList);
             }
         });
-        this.setReturnHandler(new CharacterHandler() {
-            @Override
-            public void handle(ParsingContext ctx) throws CommandFormatException {
-                if(ctx.isEndOfContent()) {
-                    ctx.leaveState();
-                    return;
-                }
-                final CharacterHandler handler = getHandler(ctx.getCharacter());
-                if(handler != null) {
-                    handler.handle(ctx);
-                }
-            }});
+        this.setReturnHandler(ctx -> {
+            if(ctx.isEndOfContent()) {
+                ctx.leaveState();
+                return;
+            }
+            final CharacterHandler handler = getHandler(ctx.getCharacter());
+            if(handler != null) {
+                handler.handle(ctx);
+            }
+        });
         enterState(OutputTargetState.OUTPUT_REDIRECT_CHAR, outputRedirect);
     }
 }

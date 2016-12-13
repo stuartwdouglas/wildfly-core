@@ -21,10 +21,7 @@
  */
 package org.jboss.as.cli.parsing.operation.header;
 
-import org.jboss.as.cli.CommandFormatException;
-import org.jboss.as.cli.parsing.CharacterHandler;
 import org.jboss.as.cli.parsing.DefaultParsingState;
-import org.jboss.as.cli.parsing.ParsingContext;
 
 
 /**
@@ -38,14 +35,12 @@ public class InSeriesState extends DefaultParsingState {
 
     InSeriesState() {
         super(ID);
-        setDefaultHandler(new CharacterHandler(){
-            @Override
-            public void handle(ParsingContext ctx) throws CommandFormatException {
-                if(Character.isWhitespace(ctx.getCharacter())) {
-                    ctx.leaveState();
-                } else {
-                    ctx.getCallbackHandler().character(ctx);
-                }
-            }});
+        setDefaultHandler(ctx -> {
+            if(Character.isWhitespace(ctx.getCharacter())) {
+                ctx.leaveState();
+            } else {
+                ctx.getCallbackHandler().character(ctx);
+            }
+        });
     }
 }

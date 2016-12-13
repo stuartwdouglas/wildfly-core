@@ -130,18 +130,15 @@ public abstract class RemoteFileRequestAndHandler {
         expectHeader(input, protocol.paramFilePath());
         final String filePath = input.readUTF();
 
-        ManagementRequestContext.AsyncTask<Void> task = new ManagementRequestContext.AsyncTask<Void>() {
-            @Override
-            public void execute(ManagementRequestContext<Void> context) throws RequestProcessingException, IOException {
-                final File localPath = reader.readRootFile(rootId, filePath);
-                FlushableDataOutput output = context.writeMessage(ManagementResponseHeader.create(context.getRequestHeader()));
-                try {
-                    writeResponse(localPath, output);
-                    output.close();
-                    resultHandler.done(null); // call stack (AsyncTaskRunner created by ManagementRequestContext) handles failures
-                } finally {
-                    StreamUtils.safeClose(output);
-                }
+        ManagementRequestContext.AsyncTask<Void> task = context1 -> {
+            final File localPath = reader.readRootFile(rootId, filePath);
+            FlushableDataOutput output = context1.writeMessage(ManagementResponseHeader.create(context1.getRequestHeader()));
+            try {
+                writeResponse(localPath, output);
+                output.close();
+                resultHandler.done(null); // call stack (AsyncTaskRunner created by ManagementRequestContext) handles failures
+            } finally {
+                StreamUtils.safeClose(output);
             }
         };
 

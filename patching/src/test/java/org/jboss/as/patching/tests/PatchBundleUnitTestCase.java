@@ -330,12 +330,7 @@ public class PatchBundleUnitTestCase extends AbstractPatchingTest {
         try {
             final OutputStream os = new FileOutputStream(multiPatchXml);
             try {
-                PatchBundleXml.marshal(os, new BundledPatch() {
-                    @Override
-                    public List<BundledPatchEntry> getPatches() {
-                        return entries;
-                    }
-                });
+                PatchBundleXml.marshal(os, () -> entries);
             } finally {
                 safeClose(os);
             }

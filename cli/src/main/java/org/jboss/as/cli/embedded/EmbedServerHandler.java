@@ -30,7 +30,6 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 
 import org.jboss.as.cli.CliEvent;
-import org.jboss.as.cli.CliEventListener;
 import org.jboss.as.cli.CommandContext;
 import org.jboss.as.cli.CommandFormatException;
 import org.jboss.as.cli.CommandLineException;
@@ -278,12 +277,9 @@ class EmbedServerHandler extends CommandHandlerWithHelp {
             ctx.bindClient(mcc);
 
             // Stop the server on any disconnect event
-            ctx.addEventListener(new CliEventListener() {
-                @Override
-                public void cliEvent(CliEvent event, CommandContext ctx) {
-                    if (event == CliEvent.DISCONNECTED) {
-                        StopEmbeddedServerHandler.cleanup(serverReference);
-                    }
+            ctx.addEventListener((event, ctx1) -> {
+                if (event == CliEvent.DISCONNECTED) {
+                    StopEmbeddedServerHandler.cleanup(serverReference);
                 }
             });
 

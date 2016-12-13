@@ -162,49 +162,46 @@ public class ReadChildrenResourcesHandler implements OperationStepHandler {
         @Override
         public void execute(OperationContext context, ModelNode operation) throws OperationFailedException {
 
-            context.addStep(new OperationStepHandler() {
-                @Override
-                public void execute(OperationContext context, ModelNode operation) throws OperationFailedException {
-                    Map<String, ModelNode> sortedChildren = new TreeMap<String, ModelNode>();
-                    boolean failed = false;
-                    for (Map.Entry<PathElement, ModelNode> entry : resources.entrySet()) {
-                        PathElement path = entry.getKey();
-                        ModelNode value = entry.getValue();
-                        if (!value.has(FAILURE_DESCRIPTION)) {
-                            if (value.hasDefined(RESULT)) {
-                                sortedChildren.put(path.getValue(), value.get(RESULT));
-                            } else {
-                                // A child did not produce a response. We don't know if the definition
-                                // of our resource indicates the child that has disappeared must be
-                                // present, so we don't want to produce a response for our resource
-                                // without the child if our resource is now gone as well.
-                                // So, see if our resource has disappeared as well.
-                                if (!filteredData.isAddressFiltered(address, path)) {
-                                    // Wasn't filtered. Confirm our resource still exists
-                                    context.readResourceFromRoot(address, false);
-                                } // else there's no result because it was just filtered
+            context.addStep((context1, operation1) -> {
+                Map<String, ModelNode> sortedChildren = new TreeMap<String, ModelNode>();
+                boolean failed = false;
+                for (Map.Entry<PathElement, ModelNode> entry : resources.entrySet()) {
+                    PathElement path = entry.getKey();
+                    ModelNode value = entry.getValue();
+                    if (!value.has(FAILURE_DESCRIPTION)) {
+                        if (value.hasDefined(RESULT)) {
+                            sortedChildren.put(path.getValue(), value.get(RESULT));
+                        } else {
+                            // A child did not produce a response. We don't know if the definition
+                            // of our resource indicates the child that has disappeared must be
+                            // present, so we don't want to produce a response for our resource
+                            // without the child if our resource is now gone as well.
+                            // So, see if our resource has disappeared as well.
+                            if (!filteredData.isAddressFiltered(address, path)) {
+                                // Wasn't filtered. Confirm our resource still exists
+                                context1.readResourceFromRoot(address, false);
+                            } // else there's no result because it was just filtered
 
-                            }
-                        } else if (!failed && value.hasDefined(FAILURE_DESCRIPTION)) {
-                            context.getFailureDescription().set(value.get(FAILURE_DESCRIPTION));
-                            failed = true;
+                        }
+                    } else if (!failed && value.hasDefined(FAILURE_DESCRIPTION)) {
+                        context1.getFailureDescription().set(value.get(FAILURE_DESCRIPTION));
+                        failed = true;
+                    }
+                }
+
+                if (!failed) {
+                    boolean hasFilteredData = filteredData.hasFilteredData();
+                    final ModelNode result = context1.getResult();
+                    result.setEmptyObject();
+
+                    for (Map.Entry<String, ModelNode> entry : sortedChildren.entrySet()) {
+                        if (!hasFilteredData || !filteredData.isAddressFiltered(address, PathElement.pathElement(childType, entry.getKey()))) {
+                            result.get(entry.getKey()).set(entry.getValue());
                         }
                     }
 
-                    if (!failed) {
-                        boolean hasFilteredData = filteredData.hasFilteredData();
-                        final ModelNode result = context.getResult();
-                        result.setEmptyObject();
-
-                        for (Map.Entry<String, ModelNode> entry : sortedChildren.entrySet()) {
-                            if (!hasFilteredData || !filteredData.isAddressFiltered(address, PathElement.pathElement(childType, entry.getKey()))) {
-                                result.get(entry.getKey()).set(entry.getValue());
-                            }
-                        }
-
-                        if (hasFilteredData) {
-                            context.getResponseHeaders().get(ACCESS_CONTROL).set(filteredData.toModelNode());
-                        }
+                    if (hasFilteredData) {
+                        context1.getResponseHeaders().get(ACCESS_CONTROL).set(filteredData.toModelNode());
                     }
                 }
             }, OperationContext.Stage.VERIFY);

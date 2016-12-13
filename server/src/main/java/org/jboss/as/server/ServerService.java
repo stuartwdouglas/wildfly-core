@@ -217,11 +217,7 @@ public final class ServerService extends AbstractControllerService {
 
         final ThreadGroup threadGroup = new ThreadGroup("ServerService ThreadGroup");
         final String namePattern = "ServerService Thread Pool -- %t";
-        final ThreadFactory threadFactory = doPrivileged(new PrivilegedAction<ThreadFactory>() {
-            public ThreadFactory run() {
-                return new JBossThreadFactory(threadGroup, Boolean.FALSE, null, namePattern, null, null);
-            }
-        });
+        final ThreadFactory threadFactory = doPrivileged((PrivilegedAction<ThreadFactory>) () -> new JBossThreadFactory(threadGroup, Boolean.FALSE, null, namePattern, null, null));
 
         // TODO determine why QueuelessThreadPoolService makes boot take > 35 secs
 //        final QueuelessThreadPoolService serverExecutorService = new QueuelessThreadPoolService(Integer.MAX_VALUE, false, new TimeSpec(TimeUnit.SECONDS, 5));
@@ -267,12 +263,7 @@ public final class ServerService extends AbstractControllerService {
                         runningModeControl, vaultReader, configuration.getExtensionRegistry(),
                         getExecutorServiceInjector().getOptionalValue() != null,
                         (PathManagerService)injectedPathManagerService.getValue(),
-                        new DomainServerCommunicationServices.OperationIDUpdater() {
-                            @Override
-                            public void updateOperationID(final int operationID) {
-                                DomainServerCommunicationServices.updateOperationID(operationID);
-                            }
-                        },
+                        operationID -> DomainServerCommunicationServices.updateOperationID(operationID),
                         authorizer,
                         securityIdentitySupplier,
                         super.getAuditLogger(),
@@ -401,12 +392,7 @@ public final class ServerService extends AbstractControllerService {
             // Die!
             final String message = ServerLogger.ROOT_LOGGER.unsuccessfulBoot();
             bootstrapListener.bootFailure(message);
-            SystemExiter.logAndExit(new SystemExiter.ExitLogger() {
-                @Override
-                public void logExit() {
-                    ServerLogger.ROOT_LOGGER.fatal(message);
-                }
-            }, 1);
+            SystemExiter.logAndExit(() -> ServerLogger.ROOT_LOGGER.fatal(message), 1);
         }
     }
 
@@ -474,15 +460,12 @@ public final class ServerService extends AbstractControllerService {
 
             if (executorService != null) {
                 context.asynchronous();
-                Thread executorShutdown = new Thread(new Runnable() {
-                    @Override
-                    public void run() {
-                        try {
-                            executorService.shutdown();
-                        } finally {
-                            executorService = null;
-                            context.complete();
-                        }
+                Thread executorShutdown = new Thread(() -> {
+                    try {
+                        executorService.shutdown();
+                    } finally {
+                        executorService = null;
+                        context.complete();
                     }
                 }, "ServerExecutorService Shutdown Thread");
                 executorShutdown.start();
@@ -519,15 +502,12 @@ public final class ServerService extends AbstractControllerService {
 
         @Override
         public synchronized void stop(final StopContext context) {
-            Runnable r = new Runnable() {
-                @Override
-                public void run() {
-                    try {
-                        scheduledExecutorService.shutdown();
-                    } finally {
-                        scheduledExecutorService = null;
-                        context.complete();
-                    }
+            Runnable r = () -> {
+                try {
+                    scheduledExecutorService.shutdown();
+                } finally {
+                    scheduledExecutorService = null;
+                    context.complete();
                 }
             };
             try {

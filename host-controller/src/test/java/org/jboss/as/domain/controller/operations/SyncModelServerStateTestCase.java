@@ -672,12 +672,7 @@ public class SyncModelServerStateTestCase extends AbstractControllerTestBase  {
             final ManagementSecurityIdentitySupplier securityIdentitySupplier = new ManagementSecurityIdentitySupplier();
             final HostRegistrations hostRegistrations = null;
             final DomainHostExcludeRegistry domainHostExcludeRegistry = new DomainHostExcludeRegistry();
-            final MutableRootResourceRegistrationProvider rootResourceRegistrationProvider = new MutableRootResourceRegistrationProvider() {
-                @Override
-                public ManagementResourceRegistration getRootResourceRegistrationForUpdate(OperationContext context) {
-                    return managementModel.getRootResourceRegistration();
-                }
-            };
+            final MutableRootResourceRegistrationProvider rootResourceRegistrationProvider = context -> managementModel.getRootResourceRegistration();
             DomainRootDefinition domain = new DomainRootDefinition(domainController, hostControllerEnvironment, configurationPersister,
                     repository, repository, isMaster, hostControllerInfo, extensionRegistry, ignoredDomainResourceRegistry,
                     pathManager, authorizer, securityIdentitySupplier, hostRegistrations, domainHostExcludeRegistry, rootResourceRegistrationProvider);

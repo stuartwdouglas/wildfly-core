@@ -103,14 +103,12 @@ public class ProductConfig implements Serializable {
 
     private static String getProductConf(String home) {
         final String defaultVal = home + File.separator + "bin" + File.separator + "product.conf";
-        PrivilegedAction<String> action = new PrivilegedAction<String>() {
-            public String run() {
-                String env = System.getenv("JBOSS_PRODUCT_CONF");
-                if (env == null) {
-                    env = defaultVal;
-                }
-                return env;
+        PrivilegedAction<String> action = () -> {
+            String env = System.getenv("JBOSS_PRODUCT_CONF");
+            if (env == null) {
+                env = defaultVal;
             }
+            return env;
         };
 
         return System.getSecurityManager() == null ? action.run() : AccessController.doPrivileged(action);
@@ -183,24 +181,21 @@ public class ProductConfig implements Serializable {
             return;
         }
 
-        PrivilegedAction<Void> action = new PrivilegedAction<Void>() {
-            @Override
-            public Void run() {
-                for (Map.Entry<Object, Object> entry : propConfProps.entrySet()) {
-                    String key = (String)entry.getKey();
-                    if (!key.equals("slot") && System.getProperty(key) == null) {
-                        //Only set the property if it was not defined by other means
-                        //System properties defined in standalone.xml, domain.xml or host.xml will overwrite
-                        //this as specified in https://issues.jboss.org/browse/AS7-6380
+        PrivilegedAction<Void> action = () -> {
+            for (Map.Entry<Object, Object> entry : propConfProps.entrySet()) {
+                String key = (String)entry.getKey();
+                if (!key.equals("slot") && System.getProperty(key) == null) {
+                    //Only set the property if it was not defined by other means
+                    //System properties defined in standalone.xml, domain.xml or host.xml will overwrite
+                    //this as specified in https://issues.jboss.org/browse/AS7-6380
 
-                        System.setProperty(key, (String)entry.getValue());
+                    System.setProperty(key, (String)entry.getValue());
 
-                        //Add it to the provided properties used on reload by the server environment
-                        providedProperties.put(key, entry.getValue());
-                    }
+                    //Add it to the provided properties used on reload by the server environment
+                    providedProperties.put(key, entry.getValue());
                 }
-                return null;
             }
+            return null;
         };
         if (System.getSecurityManager() == null) {
             action.run();

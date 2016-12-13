@@ -22,7 +22,6 @@
 package org.jboss.as.cli.parsing.arguments;
 
 import org.jboss.as.cli.CommandFormatException;
-import org.jboss.as.cli.parsing.CharacterHandler;
 import org.jboss.as.cli.parsing.DefaultParsingState;
 import org.jboss.as.cli.parsing.LineBreakHandler;
 import org.jboss.as.cli.parsing.ParsingContext;
@@ -45,19 +44,17 @@ public class CompositeState extends DefaultParsingState {
     public CompositeState(boolean list, final ArgumentValueState value) {
         super(list ? LIST : OBJECT);
 
-        setEnterHandler(new CharacterHandler(){
-            @Override
-            public void handle(ParsingContext ctx) throws CommandFormatException {
-                final char c = ctx.getCharacter();
-                if(c == '{') {
-                    ctx.lookFor('}');
-                } else if(c == '[') {
-                    ctx.lookFor(']');
-                } else {
-                    ctx.enterState(value);
-                }
-                ctx.activateControl('=');
-            }});
+        setEnterHandler(ctx -> {
+            final char c = ctx.getCharacter();
+            if(c == '{') {
+                ctx.lookFor('}');
+            } else if(c == '[') {
+                ctx.lookFor(']');
+            } else {
+                ctx.enterState(value);
+            }
+            ctx.activateControl('=');
+        });
         setDefaultHandler(new LineBreakHandler(false, false){
             @Override
             protected void doHandle(ParsingContext ctx) throws CommandFormatException {
@@ -73,28 +70,26 @@ public class CompositeState extends DefaultParsingState {
         enterState(',', ListItemSeparatorState.INSTANCE);
         enterState('[', this);
         enterState('{', this);
-        setReturnHandler(new CharacterHandler(){
-            @Override
-            public void handle(ParsingContext ctx) throws CommandFormatException {
-                if(ctx.isEndOfContent()) {
-                    return;
+        setReturnHandler(ctx -> {
+            if(ctx.isEndOfContent()) {
+                return;
+            }
+            final char c = ctx.getCharacter();
+            if(c == '=' || c == '>' /*alternative equals =>*/) {
+                ctx.deactivateControl('=');
+                return;
+            }
+            ctx.activateControl('=');
+            if(c == ',') {
+                return;
+            }
+            if(c == ']' || c == '}') {
+                if(ctx.meetIfLookedFor(c)) {
+                    ctx.leaveState();
                 }
-                final char c = ctx.getCharacter();
-                if(c == '=' || c == '>' /*alternative equals =>*/) {
-                    ctx.deactivateControl('=');
-                    return;
-                }
-                ctx.activateControl('=');
-                if(c == ',') {
-                    return;
-                }
-                if(c == ']' || c == '}') {
-                    if(ctx.meetIfLookedFor(c)) {
-                        ctx.leaveState();
-                    }
-                    return;
-                }
-                getHandler(c).handle(ctx);
-            }});
+                return;
+            }
+            getHandler(c).handle(ctx);
+        });
     }
 }

@@ -41,7 +41,6 @@ import java.security.PrivilegedAction;
 import java.util.Collections;
 import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.Callable;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -131,13 +130,11 @@ class DeploymentScannerAdd implements OperationStepHandler {
                 bootTimeScanner = null;
             }
 
-            context.addStep(new OperationStepHandler() {
-                public void execute(final OperationContext context, final ModelNode operation) throws OperationFailedException {
-                    performRuntime(context, operation, model, scheduledExecutorService, bootTimeScanner);
+            context.addStep((context12, operation12) -> {
+                performRuntime(context12, operation12, model, scheduledExecutorService, bootTimeScanner);
 
-                    // We count on the context's automatic service removal on rollback
-                    context.completeStep(OperationContext.ResultHandler.NOOP_RESULT_HANDLER);
-                }
+                // We count on the context's automatic service removal on rollback
+                context12.completeStep(OperationContext.ResultHandler.NOOP_RESULT_HANDLER);
             }, OperationContext.Stage.RUNTIME);
 
 
@@ -148,16 +145,13 @@ class DeploymentScannerAdd implements OperationStepHandler {
                 final CountDownLatch deploymentDoneLatch = new CountDownLatch(1);
                 final DeploymentOperations deploymentOps = new BootTimeScannerDeployment(deploymentOperation, deploymentDoneLatch, deploymentResults, scanDoneLatch);
 
-                scheduledExecutorService.submit(new Runnable() {
-                    @Override
-                    public void run() {
-                        try {
-                            bootTimeScanner.bootTimeScan(deploymentOps);
-                        } catch (Throwable t){
-                            DeploymentScannerLogger.ROOT_LOGGER.initialScanFailed(t);
-                        } finally {
-                            scanDoneLatch.countDown();
-                        }
+                scheduledExecutorService.submit(() -> {
+                    try {
+                        bootTimeScanner.bootTimeScan(deploymentOps);
+                    } catch (Throwable t){
+                        DeploymentScannerLogger.ROOT_LOGGER.initialScanFailed(t);
+                    } finally {
+                        scanDoneLatch.countDown();
                     }
                 });
                 boolean interrupted = false;
@@ -173,14 +167,11 @@ class DeploymentScannerAdd implements OperationStepHandler {
                         context.addStep(result, op, handler, OperationContext.Stage.MODEL);
 
                         stepCompleted = true;
-                        context.completeStep(new OperationContext.ResultHandler() {
-                            @Override
-                            public void handleResult(OperationContext.ResultAction resultAction, OperationContext context, ModelNode operation) {
-                                try {
-                                    deploymentResults.set(result);
-                                } finally {
-                                    deploymentDoneLatch.countDown();
-                                }
+                        context.completeStep((resultAction, context1, operation1) -> {
+                            try {
+                                deploymentResults.set(result);
+                            } finally {
+                                deploymentDoneLatch.countDown();
                             }
                         });
                         asyncCountDown = true;
@@ -209,11 +200,7 @@ class DeploymentScannerAdd implements OperationStepHandler {
     }
 
     static ScheduledExecutorService createScannerExecutorService() {
-        final ThreadFactory threadFactory = doPrivileged(new PrivilegedAction<ThreadFactory>() {
-            public ThreadFactory run() {
-                return new JBossThreadFactory(new ThreadGroup("DeploymentScanner-threads"), Boolean.FALSE, null, "%G - %t", null, null);
-            }
-        });
+        final ThreadFactory threadFactory = doPrivileged((PrivilegedAction<ThreadFactory>) () -> new JBossThreadFactory(new ThreadGroup("DeploymentScanner-threads"), Boolean.FALSE, null, "%G - %t", null, null));
         return Executors.newScheduledThreadPool(2, threadFactory);
     }
 
@@ -253,12 +240,9 @@ class DeploymentScannerAdd implements OperationStepHandler {
         public Future<ModelNode> deploy(final ModelNode operation, final ExecutorService executorService) {
             try {
                 deploymentOperation.set(operation);
-                final FutureTask<ModelNode> task = new FutureTask<ModelNode>(new Callable<ModelNode>() {
-                    @Override
-                    public ModelNode call() throws Exception {
-                        deploymentDoneLatch.await();
-                        return deploymentResults.get();
-                    }
+                final FutureTask<ModelNode> task = new FutureTask<ModelNode>(() -> {
+                    deploymentDoneLatch.await();
+                    return deploymentResults.get();
                 });
                 executorService.submit(task);
                 return task;

@@ -144,38 +144,23 @@ public class AuditLogLoggerResourceDefinition extends SimpleResourceDefinition {
             }
 
             if (auditLoggerProvider != null) {
-                context.addStep(new OperationStepHandler() {
-                    public void execute(final OperationContext context, final ModelNode operation) throws OperationFailedException {
-                        final boolean wasReadOnly = auditLoggerProvider.isLogReadOnly();
-                        final AuditLogger.Status oldStatus = auditLoggerProvider.getLoggerStatus();
+                context.addStep((context14, operation14) -> {
+                    final boolean wasReadOnly = auditLoggerProvider.isLogReadOnly();
+                    final AuditLogger.Status oldStatus = auditLoggerProvider.getLoggerStatus();
 
-                        auditLoggerProvider.setLogBoot(AuditLogLoggerResourceDefinition.LOG_BOOT.resolveModelAttribute(context, model).asBoolean());
-                        auditLoggerProvider.setLogReadOnly(AuditLogLoggerResourceDefinition.LOG_READ_ONLY.resolveModelAttribute(context, model).asBoolean());
-                        boolean enabled = AuditLogLoggerResourceDefinition.ENABLED.resolveModelAttribute(context, model).asBoolean();
-                        final AuditLogger.Status status = enabled ? AuditLogger.Status.LOGGING : AuditLogger.Status.DISABLED;
-                        // Change the logger status in a new step to give any subsequent handler adds a chance
-                        // to run before we flush any queued up log records
-                        context.addStep(new OperationStepHandler() {
-                            @Override
-                            public void execute(OperationContext context, ModelNode operation) throws OperationFailedException {
-                                auditLoggerProvider.setLoggerStatus(status);
-                                context.completeStep(new OperationContext.RollbackHandler() {
-                                    @Override
-                                    public void handleRollback(OperationContext context, ModelNode operation) {
-                                        auditLoggerProvider.setLoggerStatus(oldStatus);
-                                    }
-                                });
-                            }
-                        }, OperationContext.Stage.RUNTIME);
+                    auditLoggerProvider.setLogBoot(AuditLogLoggerResourceDefinition.LOG_BOOT.resolveModelAttribute(context14, model).asBoolean());
+                    auditLoggerProvider.setLogReadOnly(AuditLogLoggerResourceDefinition.LOG_READ_ONLY.resolveModelAttribute(context14, model).asBoolean());
+                    boolean enabled = AuditLogLoggerResourceDefinition.ENABLED.resolveModelAttribute(context14, model).asBoolean();
+                    final AuditLogger.Status status = enabled ? AuditLogger.Status.LOGGING : AuditLogger.Status.DISABLED;
+                    // Change the logger status in a new step to give any subsequent handler adds a chance
+                    // to run before we flush any queued up log records
+                    context14.addStep((context13, operation13) -> {
+                        auditLoggerProvider.setLoggerStatus(status);
+                        context13.completeStep((context12, operation12) -> auditLoggerProvider.setLoggerStatus(oldStatus));
+                    }, OperationContext.Stage.RUNTIME);
 
 
-                        context.completeStep(new OperationContext.RollbackHandler() {
-                            @Override
-                            public void handleRollback(OperationContext context, ModelNode operation) {
-                                auditLoggerProvider.setLogReadOnly(wasReadOnly);
-                            }
-                        });
-                    }
+                    context14.completeStep((context1, operation1) -> auditLoggerProvider.setLogReadOnly(wasReadOnly));
                 }, OperationContext.Stage.RUNTIME);
             }
             context.completeStep(OperationContext.RollbackHandler.NOOP_ROLLBACK_HANDLER);
@@ -199,22 +184,17 @@ public class AuditLogLoggerResourceDefinition extends SimpleResourceDefinition {
             // to turn off the superclass work
             if (auditLogger != null) {
 
-                context.addStep(new OperationStepHandler() {
-                    public void execute(OperationContext context, ModelNode operation) throws OperationFailedException {
+                context.addStep((context12, operation) -> {
 
-                        final boolean wasReadOnly = auditLogger.isLogReadOnly();
-                        final AuditLogger.Status oldStatus = auditLogger.getLoggerStatus();
+                    final boolean wasReadOnly = auditLogger.isLogReadOnly();
+                    final AuditLogger.Status oldStatus = auditLogger.getLoggerStatus();
 
-                        auditLogger.setLoggerStatus(AuditLogger.Status.DISABLE_NEXT);
+                    auditLogger.setLoggerStatus(AuditLogger.Status.DISABLE_NEXT);
 
-                        context.completeStep(new OperationContext.RollbackHandler() {
-                            @Override
-                            public void handleRollback(OperationContext context, ModelNode operation) {
-                                auditLogger.setLogReadOnly(wasReadOnly);
-                                auditLogger.setLoggerStatus(oldStatus);
-                            }
-                        });
-                    }
+                    context12.completeStep((context1, operation1) -> {
+                        auditLogger.setLogReadOnly(wasReadOnly);
+                        auditLogger.setLoggerStatus(oldStatus);
+                    });
                 }, OperationContext.Stage.RUNTIME);
             }
 

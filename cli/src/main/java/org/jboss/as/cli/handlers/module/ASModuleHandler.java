@@ -30,7 +30,6 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
-import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -52,7 +51,6 @@ import org.jboss.as.cli.handlers.WindowsFilenameTabCompleter;
 import org.jboss.as.cli.impl.ArgumentWithListValue;
 import org.jboss.as.cli.impl.ArgumentWithValue;
 import org.jboss.as.cli.impl.DefaultCompleter;
-import org.jboss.as.cli.impl.DefaultCompleter.CandidatesProvider;
 import org.jboss.as.cli.impl.FileSystemPathArgument;
 import org.jboss.as.cli.operation.ParsedCommandLine;
 import org.jboss.as.cli.parsing.ExpressionBaseState;
@@ -109,11 +107,7 @@ public class ASModuleHandler extends CommandHandlerWithHelp {
     private static final String ACTION_ADD = "add";
     private static final String ACTION_REMOVE = "remove";
 
-    private final ArgumentWithValue action = new ArgumentWithValue(this, new DefaultCompleter(new CandidatesProvider(){
-        @Override
-        public Collection<String> getAllCandidates(CommandContext ctx) {
-            return Arrays.asList(new String[]{ACTION_ADD, ACTION_REMOVE});
-        }}), 0, "--action");
+    private final ArgumentWithValue action = new ArgumentWithValue(this, new DefaultCompleter(ctx -> Arrays.asList(new String[]{ACTION_ADD, ACTION_REMOVE})), 0, "--action");
 
     private final ArgumentWithValue name;
     private final ArgumentWithValue mainClass;
@@ -135,22 +129,19 @@ public class ASModuleHandler extends CommandHandlerWithHelp {
 
         moduleRootDir = new FileSystemPathArgument(this, pathCompleter, "--module-root-dir");
 
-        name = new ArgumentWithValue(this, new CommandLineCompleter() {
-            @Override
-            public int complete(CommandContext ctx, String buffer, int cursor, List<String> candidates) {
-                try {
-                    String currentAction = action.getValue(ctx.getParsedCommandLine());
-                    // suggest only modules from user's repository, not system modules
-                    final ModuleNameTabCompleter moduleNameCompleter = ModuleNameTabCompleter.completer(getModulesDir(ctx))
-                            .excludeNonModuleFolders(ACTION_REMOVE.equals(currentAction))
-                            .includeSystemModules(ACTION_ADD.equals(currentAction))
-                            .build();
+        name = new ArgumentWithValue(this, (ctx16, buffer, cursor, candidates) -> {
+            try {
+                String currentAction = action.getValue(ctx16.getParsedCommandLine());
+                // suggest only modules from user's repository, not system modules
+                final ModuleNameTabCompleter moduleNameCompleter = ModuleNameTabCompleter.completer(getModulesDir(ctx16))
+                        .excludeNonModuleFolders(ACTION_REMOVE.equals(currentAction))
+                        .includeSystemModules(ACTION_ADD.equals(currentAction))
+                        .build();
 
-                    candidates.addAll(moduleNameCompleter.complete(buffer));
-                    return 0;
-                } catch (CommandLineException e) {
-                    return -1;
-                }
+                candidates.addAll(moduleNameCompleter.complete(buffer));
+                return 0;
+            } catch (CommandLineException e) {
+                return -1;
             }
         }, "--name") {
             @Override
@@ -169,15 +160,13 @@ public class ASModuleHandler extends CommandHandlerWithHelp {
 
         mainClass = new AddModuleArgument("--main-class");
 
-        resources = new AddModuleArgument("--resources", new CommandLineCompleter(){
-            @Override
-            public int complete(CommandContext ctx, String buffer, int cursor, List<String> candidates) {
-                final int lastSeparator = buffer.lastIndexOf(PATH_SEPARATOR);
-                if(lastSeparator >= 0) {
-                    return lastSeparator + 1 + pathCompleter.complete(ctx, buffer.substring(lastSeparator + 1), cursor, candidates);
-                }
-                return pathCompleter.complete(ctx, buffer, cursor, candidates);
-            }}) {
+        resources = new AddModuleArgument("--resources", (ctx15, buffer, cursor, candidates) -> {
+            final int lastSeparator = buffer.lastIndexOf(PATH_SEPARATOR);
+            if(lastSeparator >= 0) {
+                return lastSeparator + 1 + pathCompleter.complete(ctx15, buffer.substring(lastSeparator + 1), cursor, candidates);
+            }
+            return pathCompleter.complete(ctx15, buffer, cursor, candidates);
+        }) {
             @Override
             public String getValue(ParsedCommandLine args) {
                 String value = super.getValue(args);
@@ -202,15 +191,13 @@ public class ASModuleHandler extends CommandHandlerWithHelp {
             }
         };
 
-        absoluteResources = new AddModuleArgument("--absolute-resources", new CommandLineCompleter(){
-            @Override
-            public int complete(CommandContext ctx, String buffer, int cursor, List<String> candidates) {
-                final int lastSeparator = buffer.lastIndexOf(PATH_SEPARATOR);
-                if(lastSeparator >= 0) {
-                    return lastSeparator + 1 + pathCompleter.complete(ctx, buffer.substring(lastSeparator + 1), cursor, candidates);
-                }
-                return pathCompleter.complete(ctx, buffer, cursor, candidates);
-            }}) {
+        absoluteResources = new AddModuleArgument("--absolute-resources", (ctx14, buffer, cursor, candidates) -> {
+            final int lastSeparator = buffer.lastIndexOf(PATH_SEPARATOR);
+            if(lastSeparator >= 0) {
+                return lastSeparator + 1 + pathCompleter.complete(ctx14, buffer.substring(lastSeparator + 1), cursor, candidates);
+            }
+            return pathCompleter.complete(ctx14, buffer, cursor, candidates);
+        }) {
             @Override
             public String getValue(ParsedCommandLine args) {
                 String value = super.getValue(args);
@@ -237,19 +224,9 @@ public class ASModuleHandler extends CommandHandlerWithHelp {
 
         resourceDelimiter = new AddModuleArgument("--resource-delimiter");
 
-        dependencies = new AddModuleListArgument("--dependencies", new CommandLineCompleter(){
-            @Override
-            public int complete(CommandContext ctx, String buffer, int cursor, List<String> candidates) {
-                return doCompleteDependencies(ctx, buffer, cursor, candidates);
-            }
-        });
+        dependencies = new AddModuleListArgument("--dependencies", (ctx13, buffer, cursor, candidates) -> doCompleteDependencies(ctx13, buffer, cursor, candidates));
 
-        exportDependencies = new AddModuleListArgument("--export-dependencies", new CommandLineCompleter() {
-            @Override
-            public int complete(CommandContext ctx, String buffer, int cursor, List<String> candidates) {
-                return doCompleteDependencies(ctx, buffer, cursor, candidates);
-            }
-        });
+        exportDependencies = new AddModuleListArgument("--export-dependencies", (ctx12, buffer, cursor, candidates) -> doCompleteDependencies(ctx12, buffer, cursor, candidates));
 
         props = new AddModuleListArgument("--properties");
 
@@ -261,25 +238,23 @@ public class ASModuleHandler extends CommandHandlerWithHelp {
             }
         };
 
-        slot = new ArgumentWithValue(this, new DefaultCompleter(new CandidatesProvider() {
-            @Override
-            public Collection<String> getAllCandidates(CommandContext ctx) {
-                final String moduleName = name.getValue(ctx.getParsedCommandLine());
-                if(moduleName == null) {
-                    return java.util.Collections.emptyList();
-                }
+        slot = new ArgumentWithValue(this, new DefaultCompleter(ctx1 -> {
+            final String moduleName = name.getValue(ctx1.getParsedCommandLine());
+            if(moduleName == null) {
+                return java.util.Collections.emptyList();
+            }
 
-                final File moduleDir;
-                try {
-                    moduleDir = new File(getModulesDir(ctx), moduleName.replace('.', File.separatorChar));
-                } catch (CommandLineException e) {
-                    return java.util.Collections.emptyList();
-                }
-                if(!moduleDir.exists()) {
-                    return java.util.Collections.emptyList();
-                }
-                return Arrays.asList(moduleDir.list());
-            }})
+            final File moduleDir;
+            try {
+                moduleDir = new File(getModulesDir(ctx1), moduleName.replace('.', File.separatorChar));
+            } catch (CommandLineException e) {
+                return java.util.Collections.emptyList();
+            }
+            if(!moduleDir.exists()) {
+                return java.util.Collections.emptyList();
+            }
+            return Arrays.asList(moduleDir.list());
+        })
         , "--slot");
 
         moduleArg.addCantAppearAfter(mainClass);

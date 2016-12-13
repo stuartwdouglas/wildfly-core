@@ -92,21 +92,18 @@ class NotificationSupports {
         public synchronized void emit(Notification... notifications) {
             queue.addAll(Arrays.asList(notifications));
 
-            executor.execute(new Runnable() {
-                @Override
-                public void run() {
-                    lock.writeLock().lock();
-                    try {
-                        while (true) {
-                            Notification notification = queue.poll();
-                            if (notification == null) {
-                                break;
-                            }
-                            fireNotifications(registry, notification);
+            executor.execute(() -> {
+                lock.writeLock().lock();
+                try {
+                    while (true) {
+                        Notification notification = queue.poll();
+                        if (notification == null) {
+                            break;
                         }
-                    } finally {
-                        lock.writeLock().unlock();
+                        fireNotifications(registry, notification);
                     }
+                } finally {
+                    lock.writeLock().unlock();
                 }
             });
         }

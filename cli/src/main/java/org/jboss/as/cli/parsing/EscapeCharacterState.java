@@ -63,15 +63,13 @@ public final class EscapeCharacterState extends BaseParsingState {
     EscapeCharacterState(boolean keepEscape) {
         super(ID);
         this.keepEscape = keepEscape;
-        setEnterHandler(new CharacterHandler(){
-            @Override
-            public void handle(ParsingContext ctx) throws CommandFormatException {
-                if(EscapeCharacterState.this.keepEscape ||
-                        // not sure about this: if the input ends on '\' it's added to the content
-                        ctx.getInput().length() - ctx.getLocation() == 1) {
-                    ctx.getCallbackHandler().character(ctx);
-                }
-            }});
+        setEnterHandler(ctx -> {
+            if(EscapeCharacterState.this.keepEscape ||
+                    // not sure about this: if the input ends on '\' it's added to the content
+                    ctx.getInput().length() - ctx.getLocation() == 1) {
+                ctx.getCallbackHandler().character(ctx);
+            }
+        });
     }
 
     @Override

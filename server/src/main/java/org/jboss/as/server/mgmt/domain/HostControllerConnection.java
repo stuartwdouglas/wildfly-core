@@ -308,16 +308,13 @@ class HostControllerConnection extends FutureManagementChannel {
         @Override
         public void handleRequest(final DataInput input, final ActiveOperation.ResultHandler<Boolean> resultHandler, final ManagementRequestContext<Void> context) throws IOException {
             final byte param = input.readByte();
-            context.executeAsync(new ManagementRequestContext.AsyncTask<Void>() {
-                @Override
-                public void execute(ManagementRequestContext<Void> voidManagementRequestContext) throws Exception {
-                    if(param == DomainServerProtocol.PARAM_OK) {
-                        // Still in sync with the HC
-                        resultHandler.done(Boolean.TRUE);
-                    } else {
-                        // Out of sync, set restart-required
-                        resultHandler.done(Boolean.FALSE);
-                    }
+            context.executeAsync(voidManagementRequestContext -> {
+                if(param == DomainServerProtocol.PARAM_OK) {
+                    // Still in sync with the HC
+                    resultHandler.done(Boolean.TRUE);
+                } else {
+                    // Out of sync, set restart-required
+                    resultHandler.done(Boolean.FALSE);
                 }
             }, false);
         }

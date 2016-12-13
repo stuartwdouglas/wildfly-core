@@ -21,7 +21,6 @@
 */
 package org.jboss.as.remoting;
 
-import java.io.IOException;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
@@ -39,7 +38,6 @@ import org.jboss.msc.service.StartException;
 import org.jboss.msc.service.StopContext;
 import org.jboss.msc.value.InjectedValue;
 import org.jboss.remoting3.Channel;
-import org.jboss.remoting3.CloseHandler;
 import org.jboss.remoting3.Endpoint;
 import org.jboss.remoting3.OpenListener;
 import org.jboss.remoting3.Registration;
@@ -128,33 +126,30 @@ public abstract class AbstractChannelOpenListenerService implements Service<Void
         for (final ManagementChannelShutdownHandle handle : handlesCopy) {
             handle.shutdown();
         }
-        final Runnable shutdownTask = new Runnable() {
-            @Override
-            public void run() {
-                final long end = System.currentTimeMillis() + CHANNEL_SHUTDOWN_TIMEOUT;
-                boolean interrupted = Thread.currentThread().isInterrupted();
-                try {
-                    for (final ManagementChannelShutdownHandle handle : handlesCopy) {
-                        final long remaining = end - System.currentTimeMillis();
-                        try {
-                            if (!interrupted && !handle.awaitCompletion(remaining, TimeUnit.MILLISECONDS)) {
-                                ControllerLogger.ROOT_LOGGER.gracefulManagementChannelHandlerShutdownTimedOut(CHANNEL_SHUTDOWN_TIMEOUT);
-                            }
-                            trackerService.unregisterTracker(handle);
-                        } catch (InterruptedException e) {
-                            interrupted = true;
-                            ControllerLogger.ROOT_LOGGER.gracefulManagementChannelHandlerShutdownFailed(e);
-                        } catch (Exception e) {
-                            ControllerLogger.ROOT_LOGGER.gracefulManagementChannelHandlerShutdownFailed(e);
-                        } finally {
-                            handle.shutdownNow();
+        final Runnable shutdownTask = () -> {
+            final long end = System.currentTimeMillis() + CHANNEL_SHUTDOWN_TIMEOUT;
+            boolean interrupted = Thread.currentThread().isInterrupted();
+            try {
+                for (final ManagementChannelShutdownHandle handle : handlesCopy) {
+                    final long remaining = end - System.currentTimeMillis();
+                    try {
+                        if (!interrupted && !handle.awaitCompletion(remaining, TimeUnit.MILLISECONDS)) {
+                            ControllerLogger.ROOT_LOGGER.gracefulManagementChannelHandlerShutdownTimedOut(CHANNEL_SHUTDOWN_TIMEOUT);
                         }
+                        trackerService.unregisterTracker(handle);
+                    } catch (InterruptedException e) {
+                        interrupted = true;
+                        ControllerLogger.ROOT_LOGGER.gracefulManagementChannelHandlerShutdownFailed(e);
+                    } catch (Exception e) {
+                        ControllerLogger.ROOT_LOGGER.gracefulManagementChannelHandlerShutdownFailed(e);
+                    } finally {
+                        handle.shutdownNow();
                     }
-                } finally {
-                    context.complete();
-                    if (interrupted) {
-                        Thread.currentThread().interrupt();
-                    }
+                }
+            } finally {
+                context.complete();
+                if (interrupted) {
+                    Thread.currentThread().interrupt();
                 }
             }
         };
@@ -175,13 +170,11 @@ public abstract class AbstractChannelOpenListenerService implements Service<Void
         final ManagementChannelShutdownHandle handle = handleChannelOpened(channel);
         trackerService.registerTracker(handle);
         handles.add(handle);
-        channel.addCloseHandler(new CloseHandler<Channel>() {
-            public void handleClose(final Channel closed, final IOException exception) {
-                handles.remove(handle);
-                handle.shutdownNow();
-                trackerService.unregisterTracker(handle);
-                RemotingLogger.ROOT_LOGGER.tracef("Handling close for %s", handle);
-            }
+        channel.addCloseHandler((closed, exception) -> {
+            handles.remove(handle);
+            handle.shutdownNow();
+            trackerService.unregisterTracker(handle);
+            RemotingLogger.ROOT_LOGGER.tracef("Handling close for %s", handle);
         });
     }
 

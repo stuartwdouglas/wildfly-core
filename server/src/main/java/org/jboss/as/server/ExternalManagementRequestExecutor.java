@@ -100,11 +100,7 @@ public class ExternalManagementRequestExecutor implements Service<ExecutorServic
     @Override
     public synchronized void start(StartContext context) throws StartException {
         final String namePattern = "External Management Request Threads -- %t";
-        final ThreadFactory threadFactory = doPrivileged(new PrivilegedAction<ThreadFactory>() {
-            public ThreadFactory run() {
-                return new JBossThreadFactory(threadGroup, Boolean.FALSE, null, namePattern, null, null);
-            }
-        });
+        final ThreadFactory threadFactory = doPrivileged((PrivilegedAction<ThreadFactory>) () -> new JBossThreadFactory(threadGroup, Boolean.FALSE, null, namePattern, null, null));
 
         final BlockingQueue<Runnable> workQueue = new LinkedBlockingQueue<Runnable>(WORK_QUEUE_SIZE);
         int poolSize = getPoolSize();
@@ -116,15 +112,12 @@ public class ExternalManagementRequestExecutor implements Service<ExecutorServic
     public synchronized void stop(final StopContext context) {
 
         if (executorService != null) {
-            Runnable r = new Runnable() {
-                @Override
-                public void run() {
-                    try {
-                        executorService.shutdown();
-                    } finally {
-                        executorService = null;
-                        context.complete();
-                    }
+            Runnable r = () -> {
+                try {
+                    executorService.shutdown();
+                } finally {
+                    executorService = null;
+                    context.complete();
                 }
             };
             final ExecutorService executorService = injectedExecutor.getValue();

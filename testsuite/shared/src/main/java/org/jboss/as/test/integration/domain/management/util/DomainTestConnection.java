@@ -38,7 +38,6 @@ import org.jboss.as.protocol.mgmt.ManagementChannelAssociation;
 import org.jboss.as.protocol.mgmt.ManagementChannelHandler;
 import org.jboss.as.protocol.mgmt.ManagementClientChannelStrategy;
 import org.jboss.remoting3.Channel;
-import org.jboss.remoting3.CloseHandler;
 import org.jboss.remoting3.Connection;
 import org.xnio.IoFuture;
 import org.xnio.OptionMap;
@@ -135,15 +134,12 @@ class DomainTestConnection implements Closeable {
                 return connection;
             }
             connection = ProtocolConnectionUtils.connectSync(clientConfiguration, callbackHandler, Collections.emptyMap(), null);
-            connection.addCloseHandler(new CloseHandler<Connection>() {
-                @Override
-                public void handleClose(Connection old, IOException exception) {
-                    synchronized (DomainTestConnection.this) {
-                        if(connection == old) {
-                            connection = null;
-                        }
-                        DomainTestConnection.this.notifyAll();
+            connection.addCloseHandler((old, exception) -> {
+                synchronized (DomainTestConnection.this) {
+                    if(connection == old) {
+                        connection = null;
                     }
+                    DomainTestConnection.this.notifyAll();
                 }
             });
             return connection;
@@ -234,17 +230,14 @@ class DomainTestConnection implements Closeable {
                 throw ProtocolLogger.ROOT_LOGGER.channelTimedOut();
             }
             final Channel channel = future.get();
-            channel.addCloseHandler(new CloseHandler<Channel>() {
-                @Override
-                public void handleClose(final Channel old, final IOException e) {
-                    synchronized (ChannelStrategy.this) {
-                        if(ChannelStrategy.this.channel == old) {
-                            ChannelStrategy.this.handler.handleClose(old, e);
-                            ChannelStrategy.this.channel = null;
-                        }
+            channel.addCloseHandler((old, e) -> {
+                synchronized (ChannelStrategy.this) {
+                    if(ChannelStrategy.this.channel == old) {
+                        ChannelStrategy.this.handler.handleClose(old, e);
+                        ChannelStrategy.this.channel = null;
                     }
-                    handler.handleChannelClosed(old, e);
                 }
+                handler.handleChannelClosed(old, e);
             });
             return channel;
         }

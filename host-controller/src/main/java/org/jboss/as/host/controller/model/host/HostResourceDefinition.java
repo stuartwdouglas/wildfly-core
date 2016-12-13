@@ -45,7 +45,6 @@ import org.jboss.as.controller.descriptions.ModelDescriptionConstants;
 import org.jboss.as.controller.extension.ExtensionRegistry;
 import org.jboss.as.controller.extension.ExtensionRegistryType;
 import org.jboss.as.controller.extension.ExtensionResourceDefinition;
-import org.jboss.as.controller.extension.MutableRootResourceRegistrationProvider;
 import org.jboss.as.controller.operations.common.NamespaceAddHandler;
 import org.jboss.as.controller.operations.common.NamespaceRemoveHandler;
 import org.jboss.as.controller.operations.common.ProcessStateAttributeHandler;
@@ -377,12 +376,7 @@ public class HostResourceDefinition extends SimpleResourceDefinition {
         //Extensions
         hostRegistration.registerSubModel(new ExtensionResourceDefinition(hostExtensionRegistry, true,
                 ExtensionRegistryType.HOST,
-                new MutableRootResourceRegistrationProvider() {
-                    @Override
-                    public ManagementResourceRegistration getRootResourceRegistrationForUpdate(OperationContext context) {
-                        return hostRegistration;
-                    }
-                }));
+                context -> hostRegistration));
 
         // System Properties
         hostRegistration.registerSubModel(SystemPropertyResourceDefinition.createForDomainOrHost(SystemPropertyResourceDefinition.Location.HOST));

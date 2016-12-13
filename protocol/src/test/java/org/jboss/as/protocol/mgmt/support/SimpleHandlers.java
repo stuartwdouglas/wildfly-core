@@ -40,7 +40,6 @@ import org.jboss.as.protocol.mgmt.ManagementRequestHandler;
 import org.jboss.as.protocol.mgmt.ManagementRequestHeader;
 import org.jboss.as.protocol.mgmt.ProtocolUtils;
 import org.jboss.remoting3.Channel;
-import org.jboss.remoting3.CloseHandler;
 import org.jboss.threads.AsyncFuture;
 
 
@@ -125,17 +124,9 @@ public class SimpleHandlers {
                                   final ManagementRequestContext<Void> context) throws IOException {
 
             final int data = readRequest(input);
-            context.executeAsync(new ManagementRequestContext.AsyncTask<Void>() {
-                @Override
-                public void execute(ManagementRequestContext<Void> context) throws Exception {
-                    ProtocolUtils.writeResponse(new ProtocolUtils.ResponseWriter() {
-                        @Override
-                        public void write(final FlushableDataOutput output) throws IOException {
-                            writeResponse(output, data);
-                        }
-                    }, context);
-                    resultHandler.done(null);
-                }
+            context.executeAsync(context1 -> {
+                ProtocolUtils.writeResponse(output -> writeResponse(output, data), context1);
+                resultHandler.done(null);
             });
         }
     }
@@ -206,12 +197,7 @@ public class SimpleHandlers {
 
         public static SimpleClient create(final Channel channel, final ExecutorService executorService) {
             final SimpleClient client = new SimpleClient(channel, executorService);
-            channel.addCloseHandler(new CloseHandler<Channel>() {
-                @Override
-                public void handleClose(Channel closed, IOException exception) {
-                    client.shutdownNow();
-                }
-            });
+            channel.addCloseHandler((closed, exception) -> client.shutdownNow());
             channel.receiveMessage(ManagementChannelReceiver.createDelegating(client));
             return client;
         }

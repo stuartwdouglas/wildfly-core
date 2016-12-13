@@ -74,12 +74,9 @@ public class ExtensionRemoveHandler implements OperationStepHandler {
             throw new OperationFailedException(isex.getMessage());
         }
 
-        context.completeStep(new OperationContext.RollbackHandler() {
-            @Override
-            public void handleRollback(OperationContext context, ModelNode operation) {
-                // Restore the extension to the ExtensionRegistry and the ManagementResourceRegistration tree
-                ExtensionAddHandler.initializeExtension(extensionRegistry, module, rootRegistration, extensionRegistryType);
-            }
+        context.completeStep((context1, operation1) -> {
+            // Restore the extension to the ExtensionRegistry and the ManagementResourceRegistration tree
+            ExtensionAddHandler.initializeExtension(extensionRegistry, module, rootRegistration, extensionRegistryType);
         });
     }
 }

@@ -23,7 +23,6 @@
 package org.jboss.as.cli.embedded;
 
 import org.jboss.logmanager.LogContext;
-import org.jboss.logmanager.LogContextSelector;
 import org.jboss.stdio.SimpleStdioContextSelector;
 import org.jboss.stdio.StdioContext;
 import org.wildfly.security.manager.WildFlySecurityManager;
@@ -50,12 +49,7 @@ class EnvironmentRestorer {
             if (logContext == LogContext.getSystemLogContext()) {
                 LogContext.setLogContextSelector(LogContext.DEFAULT_LOG_CONTEXT_SELECTOR);
             } else {
-                LogContext.setLogContextSelector(new LogContextSelector() {
-                    @Override
-                    public LogContext getLogContext() {
-                        return logContext;
-                    }
-                });
+                LogContext.setLogContextSelector(() -> logContext);
             }
             EmbeddedLogContext.clearLogContext();
             logContextSelectorRestored = true;

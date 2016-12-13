@@ -171,13 +171,10 @@ public class ApplyExtensionsHandler implements OperationStepHandler {
             }
         }
 
-        context.completeStep(new OperationContext.RollbackHandler() {
-            @Override
-            public void handleRollback(OperationContext context, ModelNode operation) {
-                for (Map.Entry<String, Resource> entry : installedExtensions.entrySet()) {
-                    String module = entry.getKey();
-                    extensionRegistry.removeExtension(entry.getValue(), module, rootRegistration);
-                }
+        context.completeStep((context1, operation1) -> {
+            for (Map.Entry<String, Resource> entry : installedExtensions.entrySet()) {
+                String module = entry.getKey();
+                extensionRegistry.removeExtension(entry.getValue(), module, rootRegistration);
             }
         });
     }

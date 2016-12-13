@@ -29,7 +29,6 @@ import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.util.Arrays;
 import java.util.Collections;
-import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -519,12 +518,7 @@ public class ModelControllerMBeanTestCase extends AbstractSubsystemTest {
         //All attributes should be read-only
         MBeanAttributeInfo[] attributes = info.getAttributes();
         Assert.assertEquals(14, attributes.length);
-        Arrays.sort(attributes, new Comparator<MBeanAttributeInfo>() {
-            @Override
-            public int compare(MBeanAttributeInfo o1, MBeanAttributeInfo o2) {
-                return o1.getName().compareTo(o2.getName());
-            }
-        });
+        Arrays.sort(attributes, (o1, o2) -> o1.getName().compareTo(o2.getName()));
         assertAttributeDescription(attributes[0], "bigdec", expressions ? String.class.getName() : BigDecimal.class.getName(), "bigdec", true, writable);
         assertAttributeDescription(attributes[1], "bigint", expressions ? String.class.getName() : BigInteger.class.getName(), "bigint", true, writable);
         assertAttributeDescription(attributes[2], "boolean", expressions ? String.class.getName() : Boolean.class.getName(), "boolean", true, writable);
@@ -1223,13 +1217,10 @@ public class ModelControllerMBeanTestCase extends AbstractSubsystemTest {
 
         final CountDownLatch notificationEmitted = new CountDownLatch(1);
         final AtomicReference<Notification> notification = new AtomicReference<>();
-        NotificationListener listener = new NotificationListener() {
-            @Override
-            public void handleNotification(javax.management.Notification notif, Object handback) {
-                notification.set(notif);
-                notificationEmitted.countDown();
+        NotificationListener listener = (notif, handback) -> {
+            notification.set(notif);
+            notificationEmitted.countDown();
 
-            }
         };
         NotificationFilterSupport filter = new NotificationFilterSupport();
         filter.enableType(AttributeChangeNotification.ATTRIBUTE_CHANGE);

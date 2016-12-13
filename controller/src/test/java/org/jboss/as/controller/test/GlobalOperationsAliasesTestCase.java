@@ -67,9 +67,7 @@ import org.jboss.as.controller.AttributeDefinition;
 import org.jboss.as.controller.CompositeOperationHandler;
 import org.jboss.as.controller.ManagementModel;
 import org.jboss.as.controller.ModelOnlyWriteAttributeHandler;
-import org.jboss.as.controller.OperationContext;
 import org.jboss.as.controller.OperationFailedException;
-import org.jboss.as.controller.OperationStepHandler;
 import org.jboss.as.controller.PathAddress;
 import org.jboss.as.controller.PathElement;
 import org.jboss.as.controller.ResourceBuilder;
@@ -103,43 +101,40 @@ public class GlobalOperationsAliasesTestCase extends AbstractGlobalOperationsTes
         GlobalOperationHandlers.registerGlobalOperations(rootRegistration, processType);
         GlobalNotifications.registerGlobalNotifications(rootRegistration, processType);
 
-        rootRegistration.registerOperationHandler(TestUtils.SETUP_OPERATION_DEF, new OperationStepHandler() {
-                    @Override
-                    public void execute(OperationContext context, ModelNode operation) throws OperationFailedException {
-                        final ModelNode model = new ModelNode();
-                        //Atttributes
-                        model.get("profile", "profileA", "name").set("Profile A");
-                        model.get("profile", "profileA", "subsystem", "subsystem1", "attr1").add(1);
-                        model.get("profile", "profileA", "subsystem", "subsystem1", "attr1").add(2);
-                        //Children
-                        model.get("profile", "profileA", "subsystem", "subsystem1", "type1", "thing1", "name").set("Name11");
-                        model.get("profile", "profileA", "subsystem", "subsystem1", "type1", "thing1", "value").set("201");
-                        model.get("profile", "profileA", "subsystem", "subsystem1", "type1", "thing2", "name").set("Name12");
-                        model.get("profile", "profileA", "subsystem", "subsystem1", "type1", "thing2", "value").set("202");
-                        model.get("profile", "profileA", "subsystem", "subsystem1", "type2", "other", "name").set("Name2");
+        rootRegistration.registerOperationHandler(TestUtils.SETUP_OPERATION_DEF, (context, operation) -> {
+            final ModelNode model = new ModelNode();
+            //Atttributes
+            model.get("profile", "profileA", "name").set("Profile A");
+            model.get("profile", "profileA", "subsystem", "subsystem1", "attr1").add(1);
+            model.get("profile", "profileA", "subsystem", "subsystem1", "attr1").add(2);
+            //Children
+            model.get("profile", "profileA", "subsystem", "subsystem1", "type1", "thing1", "name").set("Name11");
+            model.get("profile", "profileA", "subsystem", "subsystem1", "type1", "thing1", "value").set("201");
+            model.get("profile", "profileA", "subsystem", "subsystem1", "type1", "thing2", "name").set("Name12");
+            model.get("profile", "profileA", "subsystem", "subsystem1", "type1", "thing2", "value").set("202");
+            model.get("profile", "profileA", "subsystem", "subsystem1", "type2", "other", "name").set("Name2");
 
-                        model.get("profile", "profileB", "name").set("Profile B");
+            model.get("profile", "profileB", "name").set("Profile B");
 
-                        model.get("profile", "profileC", "name").set("Profile C");
-                        model.get("profile", "profileC", "subsystem", "subsystem4");
-                        model.get("profile", "profileC", "subsystem", "subsystem5", "name").set("Test");
+            model.get("profile", "profileC", "name").set("Profile C");
+            model.get("profile", "profileC", "subsystem", "subsystem4");
+            model.get("profile", "profileC", "subsystem", "subsystem5", "name").set("Test");
 
-                        model.get("profile", "profileD", "name").set("Profile D");
-                        model.get("profile", "profileD", "subsystem", "subsystem3");
-                        model.get("profile", "profileD", "subsystem", "subsystem3", "service", "squatter1", "name").set("TestSquatter1");
-                        model.get("profile", "profileD", "subsystem", "subsystem3", "service", "squatter1", "thing1").set("squatter");
-                        model.get("profile", "profileD", "subsystem", "subsystem3", "service", "squatter3", "name").set("TestSquatter3");
-                        model.get("profile", "profileD", "subsystem", "subsystem3", "service", "squatter3", "thing3").set("squatter");
+            model.get("profile", "profileD", "name").set("Profile D");
+            model.get("profile", "profileD", "subsystem", "subsystem3");
+            model.get("profile", "profileD", "subsystem", "subsystem3", "service", "squatter1", "name").set("TestSquatter1");
+            model.get("profile", "profileD", "subsystem", "subsystem3", "service", "squatter1", "thing1").set("squatter");
+            model.get("profile", "profileD", "subsystem", "subsystem3", "service", "squatter3", "name").set("TestSquatter3");
+            model.get("profile", "profileD", "subsystem", "subsystem3", "service", "squatter3", "thing3").set("squatter");
 
-                        model.get("profile", "profileE", "name").set("Profile E");
-                        model.get("profile", "profileE", "subsystem", "subsystem7");
-                        model.get("profile", "profileE", "subsystem", "subsystem7", "type", "one");
-                        model.get("profile", "profileE", "subsystem", "subsystem7", "type", "one", "squatter", "one");
-                        model.get("profile", "profileE", "subsystem", "subsystem7", "type", "one", "wildcard", "one");
+            model.get("profile", "profileE", "name").set("Profile E");
+            model.get("profile", "profileE", "subsystem", "subsystem7");
+            model.get("profile", "profileE", "subsystem", "subsystem7", "type", "one");
+            model.get("profile", "profileE", "subsystem", "subsystem7", "type", "one", "squatter", "one");
+            model.get("profile", "profileE", "subsystem", "subsystem7", "type", "one", "wildcard", "one");
 
-                        createModel(context, model);
-                    }
-                }
+            createModel(context, model);
+        }
         );
 
         ResourceDefinition profileDef = ResourceBuilder.Factory.create(PathElement.pathElement("profile", "*"),
@@ -244,27 +239,17 @@ public class GlobalOperationsAliasesTestCase extends AbstractGlobalOperationsTes
                     }
                 });
         profileSub1Reg.registerOperationHandler(TestUtils.createOperationDefinition("testA1-1", TestUtils.createAttribute("paramA1", ModelType.INT)),
-                new OperationStepHandler() {
-                    @Override
-                    public void execute(OperationContext context, ModelNode operation) {
-                    }
+                (context, operation) -> {
                 }
         );
 
         profileSub1Reg.registerOperationHandler(TestUtils.createOperationDefinition("testA1-2", TestUtils.createAttribute("paramA2", ModelType.STRING)),
-                new OperationStepHandler() {
-                    @Override
-                    public void execute(OperationContext context, ModelNode operation) {
-                    }
+                (context, operation) -> {
                 }
         );
 
         profileASub2Reg.registerOperationHandler(TestUtils.createOperationDefinition("testA2", TestUtils.createAttribute("paramB", ModelType.LONG)),
-                new OperationStepHandler() {
-
-                    @Override
-                    public void execute(OperationContext context, ModelNode operation) {
-                    }
+                (context, operation) -> {
                 }
         );
 
@@ -273,13 +258,7 @@ public class GlobalOperationsAliasesTestCase extends AbstractGlobalOperationsTes
 
         ManagementResourceRegistration profileCSub5Reg = profileReg.registerSubModel(
                 new SimpleResourceDefinition(PathElement.pathElement("subsystem", "subsystem5"), new NonResolvingResourceDescriptionResolver()));
-        profileCSub5Reg.registerReadOnlyAttribute(TestUtils.createAttribute("name", ModelType.STRING), new OperationStepHandler() {
-
-            @Override
-            public void execute(OperationContext context, ModelNode operation) {
-                context.getResult().set("Overridden by special read handler");
-            }
-        });
+        profileCSub5Reg.registerReadOnlyAttribute(TestUtils.createAttribute("name", ModelType.STRING), (context, operation) -> context.getResult().set("Overridden by special read handler"));
 
         ResourceDefinition profileCSub5Type1RegDef = ResourceBuilder.Factory.create(PathElement.pathElement("type1", "thing1"),
                 new NonResolvingResourceDescriptionResolver())
@@ -290,11 +269,7 @@ public class GlobalOperationsAliasesTestCase extends AbstractGlobalOperationsTes
                 new SimpleResourceDefinition(PathElement.pathElement("subsystem", "subsystem6"), new NonResolvingResourceDescriptionResolver()));
 
         profileCSub6Reg.registerOperationHandler(TestUtils.createOperationDefinition("testA", true),
-                new OperationStepHandler() {
-
-                    @Override
-                    public void execute(OperationContext context, ModelNode operation) {
-                    }
+                (context, operation) -> {
                 }
         );
 

@@ -19,8 +19,6 @@
 
 package org.jboss.as.cli.gui.component;
 
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
 import java.io.File;
 import java.io.IOException;
 import javax.swing.JButton;
@@ -39,16 +37,13 @@ public class BrowseButton extends JButton {
 
     public BrowseButton(final JDialog parentDialog, final JTextField targetField) {
         super("Browse ...");
-        addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent ae) {
-                int returnVal = fileChooser.showOpenDialog(parentDialog);
-                if (returnVal == JFileChooser.APPROVE_OPTION) {
-                    try {
-                        targetField.setText(fileChooser.getSelectedFile().getCanonicalPath());
-                    } catch (IOException e) {
-                        e.printStackTrace();
-                    }
+        addActionListener(ae -> {
+            int returnVal = fileChooser.showOpenDialog(parentDialog);
+            if (returnVal == JFileChooser.APPROVE_OPTION) {
+                try {
+                    targetField.setText(fileChooser.getSelectedFile().getCanonicalPath());
+                } catch (IOException e) {
+                    e.printStackTrace();
                 }
             }
         });

@@ -397,12 +397,7 @@ public class AbstractAuditLogHandlerTestCase extends ManagementControllerTestBas
     }
 
     protected FilenameFilter createLogFilenameFilter(final String filenamePrefix) {
-        return new FilenameFilter() {
-            @Override
-            public boolean accept(File dir, String name) {
-                return name.startsWith(filenamePrefix);
-            }
-        };
+        return (dir, name) -> name.startsWith(filenamePrefix);
     }
 
     @Override

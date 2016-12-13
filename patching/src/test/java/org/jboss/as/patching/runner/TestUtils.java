@@ -144,19 +144,16 @@ public class TestUtils {
     }
 
     public static File createModule0(final File baseDir, final String moduleName, final String... resourcesContents) throws IOException {
-        final ContentTask task = new ContentTask() {
-            @Override
-            public String[] writeContent(File mainDir) throws IOException {
-                String[] resourceFileNames = new String[resourcesContents.length];
-                for (int i = 0; i < resourcesContents.length; i++) {
-                    String content = resourcesContents[i];
-                    File f = File.createTempFile("test", i + ".tmp", mainDir);
-                    String fileName = f.getName();
-                    resourceFileNames[i] = fileName;
-                    dump(f, content);
-                }
-                return resourceFileNames;
+        final ContentTask task = mainDir -> {
+            String[] resourceFileNames = new String[resourcesContents.length];
+            for (int i = 0; i < resourcesContents.length; i++) {
+                String content = resourcesContents[i];
+                File f = File.createTempFile("test", i + ".tmp", mainDir);
+                String fileName = f.getName();
+                resourceFileNames[i] = fileName;
+                dump(f, content);
             }
+            return resourceFileNames;
         };
         return createModule0(baseDir, moduleName, task);
     }
@@ -225,12 +222,7 @@ public class TestUtils {
         File bundleXMLFile = new File(dir, "patches.xml");
         FileOutputStream fos = new FileOutputStream(bundleXMLFile);
         try {
-            PatchBundleXml.marshal(fos, new BundledPatch() {
-                @Override
-                public List<BundledPatchEntry> getPatches() {
-                    return patches;
-                }
-            });
+            PatchBundleXml.marshal(fos, () -> patches);
         } finally {
             safeClose(fos);
         }

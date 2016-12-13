@@ -267,13 +267,9 @@ public class DomainLifecycleUtil {
     }
 
     public Future<Void> startAsync() {
-        Callable<Void> c = new Callable<Void>() {
-
-            @Override
-            public Void call() throws Exception {
-                start();
-                return null;
-            }
+        Callable<Void> c = () -> {
+            start();
+            return null;
         };
 
         return getExecutorService().submit(c);
@@ -320,13 +316,9 @@ public class DomainLifecycleUtil {
     }
 
     public Future<Void> stopAsync() {
-        Callable<Void> c = new Callable<Void>() {
-
-            @Override
-            public Void call() throws Exception {
-                stop();
-                return null;
-            }
+        Callable<Void> c = () -> {
+            stop();
+            return null;
         };
 
         return Executors.newSingleThreadExecutor(threadFactory).submit(c);

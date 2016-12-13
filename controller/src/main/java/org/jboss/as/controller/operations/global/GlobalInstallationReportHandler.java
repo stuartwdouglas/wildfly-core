@@ -153,27 +153,24 @@ public class GlobalInstallationReportHandler extends GlobalOperationHandlers.Abs
         if (null != context.getProcessType()) {
             switch (context.getProcessType()) {
                 case HOST_CONTROLLER:
-                    context.addStep(new OperationStepHandler() {
-                        @Override
-                        public void execute(OperationContext context, ModelNode operation) throws OperationFailedException {
-                            context.addStep(assemblyHandler, OperationContext.Stage.VERIFY, true);
-                            String host = Util.getNameFromAddress(context.getCurrentAddress());
-                            PathAddress hostAddress = context.getCurrentAddress();
-                            ModelNode hostModel = context.readResource(PathAddress.EMPTY_ADDRESS).getModel();
-                            final String hostOrganization = hostModel.hasDefined(ORGANIZATION) ? hostModel.get(ORGANIZATION).asString() : defaultOrganization;
-                            addHostReport(context, hostAddress, host, servers);
-                            if (hostOrganization != null) {
-                                serverOrganizations.put(hostOrganization, hostOrganization);
-                            }
-                            Set<String> hostServers = context.readResource(PathAddress.EMPTY_ADDRESS).getChildrenNames(SERVER);
-                            hostServers.stream().forEach((server) -> {
-                                String nodeName = host + ":" + server;
-                                addServerReport(context, hostAddress.append(SERVER, server), nodeName, servers);
-                                if(hostOrganization != null) {
-                                    serverOrganizations.put(nodeName, hostOrganization);
-                                }
-                            });
+                    context.addStep((context1, operation1) -> {
+                        context1.addStep(assemblyHandler, OperationContext.Stage.VERIFY, true);
+                        String host = Util.getNameFromAddress(context1.getCurrentAddress());
+                        PathAddress hostAddress = context1.getCurrentAddress();
+                        ModelNode hostModel = context1.readResource(PathAddress.EMPTY_ADDRESS).getModel();
+                        final String hostOrganization = hostModel.hasDefined(ORGANIZATION) ? hostModel.get(ORGANIZATION).asString() : defaultOrganization;
+                        addHostReport(context1, hostAddress, host, servers);
+                        if (hostOrganization != null) {
+                            serverOrganizations.put(hostOrganization, hostOrganization);
                         }
+                        Set<String> hostServers = context1.readResource(PathAddress.EMPTY_ADDRESS).getChildrenNames(SERVER);
+                        hostServers.stream().forEach((server) -> {
+                            String nodeName = host + ":" + server;
+                            addServerReport(context1, hostAddress.append(SERVER, server), nodeName, servers);
+                            if(hostOrganization != null) {
+                                serverOrganizations.put(nodeName, hostOrganization);
+                            }
+                        });
                     }, OperationContext.Stage.RUNTIME);
                     break;
                 case STANDALONE_SERVER:
@@ -229,26 +226,23 @@ public class GlobalInstallationReportHandler extends GlobalOperationHandlers.Abs
     }
 
     public static OperationStepHandler createDomainOperation() {
-        return new OperationStepHandler() {
-            @Override
-            public void execute(OperationContext context, ModelNode operation) throws OperationFailedException {
-                Resource res = context.readResourceFromRoot(PathAddress.EMPTY_ADDRESS,false);
-                Set<String> hosts = res.getChildrenNames(HOST);
-                String hostName = hosts.iterator().next();
-                PathAddress address = PathAddress.pathAddress(PathElement.pathElement(HOST));
-                //Hacky part we are getting the handler from a real host and calling the operation on /host=*
-                OperationEntry entry = context.getRootResourceRegistration().getOperationEntry(PathAddress.pathAddress(PathElement.pathElement(HOST, hostName)), OPERATION_NAME);
-                ModelNode reportOperation = Util.getEmptyOperation(OPERATION_NAME, address.toModelNode());
-                if (operation.hasDefined(CREATE_REPORT_DEFINITION.getName())) {
-                    reportOperation.get(CREATE_REPORT_DEFINITION.getName()).set(operation.get(CREATE_REPORT_DEFINITION.getName()));
-                    if (operation.hasDefined(FILE_FORMAT_DEFINITION.getName())) {
-                        reportOperation.get(FILE_FORMAT_DEFINITION.getName()).set(operation.get(FILE_FORMAT_DEFINITION.getName()));
-                    }
+        return (context, operation) -> {
+            Resource res = context.readResourceFromRoot(PathAddress.EMPTY_ADDRESS,false);
+            Set<String> hosts = res.getChildrenNames(HOST);
+            String hostName = hosts.iterator().next();
+            PathAddress address = PathAddress.pathAddress(PathElement.pathElement(HOST));
+            //Hacky part we are getting the handler from a real host and calling the operation on /host=*
+            OperationEntry entry = context.getRootResourceRegistration().getOperationEntry(PathAddress.pathAddress(PathElement.pathElement(HOST, hostName)), OPERATION_NAME);
+            ModelNode reportOperation = Util.getEmptyOperation(OPERATION_NAME, address.toModelNode());
+            if (operation.hasDefined(CREATE_REPORT_DEFINITION.getName())) {
+                reportOperation.get(CREATE_REPORT_DEFINITION.getName()).set(operation.get(CREATE_REPORT_DEFINITION.getName()));
+                if (operation.hasDefined(FILE_FORMAT_DEFINITION.getName())) {
+                    reportOperation.get(FILE_FORMAT_DEFINITION.getName()).set(operation.get(FILE_FORMAT_DEFINITION.getName()));
                 }
-                if (entry != null) {
-                    OperationStepHandler osh = entry.getOperationHandler();
-                    context.addStep(reportOperation, osh, OperationContext.Stage.MODEL);
-                }
+            }
+            if (entry != null) {
+                OperationStepHandler osh = entry.getOperationHandler();
+                context.addStep(reportOperation, osh, OperationContext.Stage.MODEL);
             }
         };
     }

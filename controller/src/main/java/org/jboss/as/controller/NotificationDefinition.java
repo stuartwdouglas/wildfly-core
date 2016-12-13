@@ -83,11 +83,6 @@ public class NotificationDefinition {
     public interface DataValueDescriptor {
         ModelNode describe(ResourceBundle bundle);
 
-        DataValueDescriptor NO_DATA = new DataValueDescriptor() {
-            @Override
-            public ModelNode describe(ResourceBundle bundle) {
-                return null;
-            }
-        };
+        DataValueDescriptor NO_DATA = bundle -> null;
     }
 }

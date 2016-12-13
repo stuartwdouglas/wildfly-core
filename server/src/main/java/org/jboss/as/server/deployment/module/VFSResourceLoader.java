@@ -109,11 +109,7 @@ public class VFSResourceLoader extends AbstractResourceLoader implements Iterabl
         this.root = root;
         this.rootName = rootName;
         try {
-            manifest = checking ? doPrivileged(new PrivilegedExceptionAction<Manifest>() {
-                public Manifest run() throws IOException {
-                    return VFSUtils.getManifest(root);
-                }
-            }) : VFSUtils.getManifest(root);
+            manifest = checking ? doPrivileged((PrivilegedExceptionAction<Manifest>) () -> VFSUtils.getManifest(root)) : VFSUtils.getManifest(root);
         } catch (PrivilegedActionException pe) {
             try {
                 throw pe.getException();
@@ -129,43 +125,41 @@ public class VFSResourceLoader extends AbstractResourceLoader implements Iterabl
     /** {@inheritDoc} */
     public ClassSpec getClassSpec(final String name) throws IOException {
         try {
-            return doPrivileged(new PrivilegedExceptionAction<ClassSpec>() {
-                public ClassSpec run() throws Exception {
-                    final VirtualFile file = root.getChild(name);
-                    if (!file.exists()) {
-                        return null;
-                    }
-                    final long size = file.getSize();
-                    final ClassSpec spec = new ClassSpec();
-                    synchronized (VFSResourceLoader.this) {
-                        final InputStream is = file.openStream();
-                        try {
-                            if (size <= Integer.MAX_VALUE) {
-                                final int castSize = (int) size;
-                                byte[] bytes = new byte[castSize];
-                                int a = 0, res;
-                                while ((res = is.read(bytes, a, castSize - a)) > 0) {
-                                    a += res;
-                                }
-                                // consume remainder so that cert check doesn't fail in case of wonky JARs
-                                while (is.read() != -1) {}
-                                // done
-                                is.close();
-                                spec.setBytes(bytes);
-                                final CodeSigner[] entryCodeSigners = file.getCodeSigners();
-                                final CodeSigners codeSigners = entryCodeSigners == null || entryCodeSigners.length == 0 ? EMPTY_CODE_SIGNERS : new CodeSigners(entryCodeSigners);
-                                CodeSource codeSource = codeSources.get(codeSigners);
-                                if (codeSource == null) {
-                                    codeSources.put(codeSigners, codeSource = new CodeSource(rootUrl, entryCodeSigners));
-                                }
-                                spec.setCodeSource(codeSource);
-                                return spec;
-                            } else {
-                                throw ServerLogger.ROOT_LOGGER.resourceTooLarge();
+            return doPrivileged((PrivilegedExceptionAction<ClassSpec>) () -> {
+                final VirtualFile file = root.getChild(name);
+                if (!file.exists()) {
+                    return null;
+                }
+                final long size = file.getSize();
+                final ClassSpec spec = new ClassSpec();
+                synchronized (VFSResourceLoader.this) {
+                    final InputStream is = file.openStream();
+                    try {
+                        if (size <= Integer.MAX_VALUE) {
+                            final int castSize = (int) size;
+                            byte[] bytes = new byte[castSize];
+                            int a = 0, res;
+                            while ((res = is.read(bytes, a, castSize - a)) > 0) {
+                                a += res;
                             }
-                        } finally {
-                            VFSUtils.safeClose(is);
+                            // consume remainder so that cert check doesn't fail in case of wonky JARs
+                            while (is.read() != -1) {}
+                            // done
+                            is.close();
+                            spec.setBytes(bytes);
+                            final CodeSigner[] entryCodeSigners = file.getCodeSigners();
+                            final CodeSigners codeSigners = entryCodeSigners == null || entryCodeSigners.length == 0 ? EMPTY_CODE_SIGNERS : new CodeSigners(entryCodeSigners);
+                            CodeSource codeSource = codeSources.get(codeSigners);
+                            if (codeSource == null) {
+                                codeSources.put(codeSigners, codeSource = new CodeSource(rootUrl, entryCodeSigners));
+                            }
+                            spec.setCodeSource(codeSource);
+                            return spec;
+                        } else {
+                            throw ServerLogger.ROOT_LOGGER.resourceTooLarge();
                         }
+                    } finally {
+                        VFSUtils.safeClose(is);
                     }
                 }
             });
@@ -202,18 +196,16 @@ public class VFSResourceLoader extends AbstractResourceLoader implements Iterabl
 
     /** {@inheritDoc} */
     public Resource getResource(final String name) {
-        return doPrivileged(new PrivilegedAction<Resource>() {
-            public Resource run() {
-                try {
-                    final VirtualFile file = root.getChild(PathUtils.canonicalize(name));
-                    if (!file.exists()) {
-                        return null;
-                    }
-                    return new VFSEntryResource(file.getPathNameRelativeTo(root), file, file.toURL());
-                } catch (MalformedURLException e) {
-                    // must be invalid...?  (todo: check this out)
+        return doPrivileged((PrivilegedAction<Resource>) () -> {
+            try {
+                final VirtualFile file = root.getChild(PathUtils.canonicalize(name));
+                if (!file.exists()) {
                     return null;
                 }
+                return new VFSEntryResource(file.getPathNameRelativeTo(root), file, file.toURL());
+            } catch (MalformedURLException e) {
+                // must be invalid...?  (todo: check this out)
+                return null;
             }
         });
     }
@@ -241,12 +233,7 @@ public class VFSResourceLoader extends AbstractResourceLoader implements Iterabl
             }
         }
 
-        FilterVirtualFileVisitor visitor = new FilterVirtualFileVisitor(new VirtualFileFilter() {
-            @Override
-            public boolean accepts(VirtualFile file) {
-                return file.isDirectory();
-            }
-        }, VisitorAttributes.RECURSE);
+        FilterVirtualFileVisitor visitor = new FilterVirtualFileVisitor(file -> file.isDirectory(), VisitorAttributes.RECURSE);
         try {
             root.visit(visitor);
         } catch (IOException e) {
@@ -267,12 +254,7 @@ public class VFSResourceLoader extends AbstractResourceLoader implements Iterabl
         if (startPath.length() > 1 && child == root) {
             return Collections.<Resource>emptySet().iterator();
         }
-        VirtualFileFilter filter = new VirtualFileFilter() {
-            @Override
-            public boolean accepts(VirtualFile file) {
-                return file.isFile();
-            }
-        };
+        VirtualFileFilter filter = file -> file.isFile();
         final Iterator<VirtualFile> children;
         try {
             children = (recursive ? child.getChildrenRecursively(filter) : child.getChildren(filter)).iterator();

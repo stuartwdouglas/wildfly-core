@@ -48,20 +48,14 @@ public class FileSystemDeploymentScanHandler implements OperationStepHandler {
 
     @Override
     public void execute(OperationContext context, ModelNode operation) throws OperationFailedException {
-        context.addStep(new OperationStepHandler() {
-            @Override
-            public void execute(OperationContext context, ModelNode operation) throws OperationFailedException {
-                final FileSystemDeploymentService scanner = getExistingScanner(context, operation);
-                if (scanner != null) {
-                    context.completeStep(new OperationContext.ResultHandler() {
-                        @Override
-                        public void handleResult(OperationContext.ResultAction resultAction, OperationContext context, ModelNode operation) {
-                            if (resultAction == OperationContext.ResultAction.KEEP) {
-                                scanner.singleScan();
-                            }
-                        }
-                    });
-                }
+        context.addStep((context12, operation12) -> {
+            final FileSystemDeploymentService scanner = getExistingScanner(context12, operation12);
+            if (scanner != null) {
+                context12.completeStep((resultAction, context1, operation1) -> {
+                    if (resultAction == OperationContext.ResultAction.KEEP) {
+                        scanner.singleScan();
+                    }
+                });
             }
         }, OperationContext.Stage.RUNTIME);
     }

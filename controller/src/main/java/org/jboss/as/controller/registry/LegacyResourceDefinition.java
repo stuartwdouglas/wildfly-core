@@ -26,7 +26,6 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.Locale;
 import java.util.Map;
 
 import org.jboss.as.controller.PathAddress;
@@ -93,12 +92,7 @@ public class LegacyResourceDefinition implements ResourceDefinition {
      */
     @Override
     public DescriptionProvider getDescriptionProvider(ImmutableManagementResourceRegistration resourceRegistration) {
-        return new DescriptionProvider() {
-            @Override
-            public ModelNode getModelDescription(Locale locale) {
-                return description;
-            }
-        };
+        return locale -> description;
     }
 
     /**

@@ -34,7 +34,6 @@ import javax.swing.JRadioButton;
 import javax.swing.JTable;
 import javax.swing.ListSelectionModel;
 import javax.swing.event.ChangeEvent;
-import javax.swing.table.TableCellRenderer;
 import javax.swing.table.TableModel;
 
 /**
@@ -54,43 +53,20 @@ public class DeploymentTable extends JTable {
         setAutoCreateRowSorter(true);
 
         setDefaultRenderer(String.class,
-                new TableCellRenderer() {
-                    public Component getTableCellRendererComponent(JTable table,
-                            Object value,
-                            boolean isSelected,
-                            boolean hasFocus,
-                            int row,
-                            int column) {
-                        JLabel label = new JLabel((String)value);
-                        JPanel panel = new JPanel(new BorderLayout());
-                        panel.add(label, BorderLayout.CENTER);
-                        return panel;
-                    }
+                (table, value, isSelected, hasFocus, row, column) -> {
+                    JLabel label = new JLabel((String)value);
+                    JPanel panel = new JPanel(new BorderLayout());
+                    panel.add(label, BorderLayout.CENTER);
+                    return panel;
                 });
 
         setDefaultRenderer(JRadioButton.class,
-                new TableCellRenderer() {
-                    public Component getTableCellRendererComponent(JTable table,
-                            Object value,
-                            boolean isSelected,
-                            boolean hasFocus,
-                            int row,
-                            int column) {
-                        return (JRadioButton) value;
-                    }
-                });
+                (table, value, isSelected, hasFocus, row, column) -> (JRadioButton) value);
 
         setDefaultRenderer(List.class,
-                new TableCellRenderer() {
-                    public Component getTableCellRendererComponent(JTable table,
-                            Object value,
-                            boolean isSelected,
-                            boolean hasFocus,
-                            int row,
-                            int column) {
-                        List<String> values = (List<String>)value;
-                        return new JComboBox(new Vector(values));
-                    }
+                (table, value, isSelected, hasFocus, row, column) -> {
+                    List<String> values = (List<String>)value;
+                    return new JComboBox(new Vector(values));
                 });
 
         setDefaultEditor(JRadioButton.class, new RadioButtonEditor(new JCheckBox()));

@@ -46,13 +46,7 @@ class LdapUserSearcherFactory {
     protected static final int searchTimeLimit = 10000; // TODO - Maybe make configurable.
 
     static LdapSearcher<LdapEntry, String> createForUsernameIsDn() {
-        return new LdapSearcher<LdapEntry, String>() {
-
-            @Override
-            public LdapEntry search(LdapConnectionHandler connectionHandler, String suppliedName) {
-                return new LdapEntry(suppliedName, suppliedName);
-            }
-        };
+        return (connectionHandler, suppliedName) -> new LdapEntry(suppliedName, suppliedName);
     }
 
     static LdapSearcher<LdapEntry, String> createForUsernameFilter(final String baseDn, final boolean recursive, final String userDnAttribute, final String attribute, final String usernameLoad) {

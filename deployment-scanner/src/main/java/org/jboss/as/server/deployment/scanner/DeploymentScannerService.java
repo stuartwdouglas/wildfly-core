@@ -167,12 +167,7 @@ public class DeploymentScannerService implements Service<DeploymentScanner> {
     public synchronized void start(StartContext context) throws StartException {
         try {
 
-            final DeploymentOperations.Factory factory = new DeploymentOperations.Factory() {
-                @Override
-                public DeploymentOperations create() {
-                    return new DefaultDeploymentOperations(controllerValue.getValue().createClient(scheduledExecutorValue.getValue()));
-                }
-            };
+            final DeploymentOperations.Factory factory = () -> new DefaultDeploymentOperations(controllerValue.getValue().createClient(scheduledExecutorValue.getValue()));
 
             //if this is the first start we want to use the same scanner that was used at boot time
             if (scanner == null) {

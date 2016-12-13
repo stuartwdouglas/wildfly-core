@@ -32,7 +32,6 @@ import org.jboss.as.controller.OperationContext;
 import org.jboss.as.controller.OperationContext.ResultAction;
 import org.jboss.as.controller.OperationContext.Stage;
 import org.jboss.as.controller.OperationFailedException;
-import org.jboss.as.controller.OperationStepHandler;
 import org.jboss.as.controller.PathAddress;
 import org.jboss.as.controller.PathElement;
 import org.jboss.as.controller.ProcessType;
@@ -99,19 +98,11 @@ public class JmxAuditLogHandlerReferenceResourceDefinition extends SimpleResourc
         protected void performRuntime(OperationContext context, ModelNode operation, ModelNode model)
                 throws OperationFailedException {
             auditLogger.getUpdater().addHandlerReference(PathAddress.pathAddress(operation.require(OP_ADDR)));
-            context.addStep(new OperationStepHandler() {
-                @Override
-                public void execute(OperationContext context, ModelNode operation) throws OperationFailedException {
-                    context.completeStep(new OperationContext.ResultHandler() {
-                        @Override
-                        public void handleResult(ResultAction resultAction, OperationContext context, ModelNode operation) {
-                            if (resultAction == ResultAction.KEEP) {
-                                auditLogger.getUpdater().applyChanges();
-                            }
-                        }
-                    });
+            context.addStep((context12, operation12) -> context12.completeStep((resultAction, context1, operation1) -> {
+                if (resultAction == ResultAction.KEEP) {
+                    auditLogger.getUpdater().applyChanges();
                 }
-            }, Stage.RUNTIME);
+            }), Stage.RUNTIME);
         }
 
         @Override
@@ -173,19 +164,11 @@ public class JmxAuditLogHandlerReferenceResourceDefinition extends SimpleResourc
         @Override
         protected void performRuntime(OperationContext context, ModelNode operation, ModelNode model) throws OperationFailedException {
             auditLogger.getUpdater().removeHandlerReference(PathAddress.pathAddress(operation.require(OP_ADDR)));
-            context.addStep(new OperationStepHandler() {
-                @Override
-                public void execute(OperationContext context, ModelNode operation) throws OperationFailedException {
-                    context.completeStep(new OperationContext.ResultHandler() {
-                        @Override
-                        public void handleResult(ResultAction resultAction, OperationContext context, ModelNode operation) {
-                            if (resultAction == ResultAction.KEEP) {
-                                auditLogger.getUpdater().applyChanges();
-                            }
-                        }
-                    });
+            context.addStep((context12, operation12) -> context12.completeStep((resultAction, context1, operation1) -> {
+                if (resultAction == ResultAction.KEEP) {
+                    auditLogger.getUpdater().applyChanges();
                 }
-            }, Stage.RUNTIME);
+            }), Stage.RUNTIME);
         }
 
         @Override

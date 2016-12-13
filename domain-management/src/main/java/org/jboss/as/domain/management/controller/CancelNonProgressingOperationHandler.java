@@ -89,12 +89,9 @@ public class CancelNonProgressingOperationHandler implements OperationStepHandle
                     pa.append(PathElement.pathElement(ACTIVE_OPERATION, toCancel)));
             final ModelNode response = new ModelNode();
             context.addStep(response, op, CancelActiveOperationHandler.INSTANCE, OperationContext.Stage.MODEL, true);
-            context.completeStep(new OperationContext.ResultHandler() {
-                @Override
-                public void handleResult(OperationContext.ResultAction resultAction, OperationContext context, ModelNode operation) {
-                    if (response.hasDefined(RESULT) && response.get(RESULT).asBoolean()) {
-                        context.getResult().set(toCancel);
-                    }
+            context.completeStep((resultAction, context1, operation1) -> {
+                if (response.hasDefined(RESULT) && response.get(RESULT).asBoolean()) {
+                    context1.getResult().set(toCancel);
                 }
             });
         } else {

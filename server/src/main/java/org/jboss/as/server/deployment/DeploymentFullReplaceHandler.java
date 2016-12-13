@@ -172,21 +172,18 @@ public class DeploymentFullReplaceHandler implements OperationStepHandler {
             DeploymentHandlerUtil.undeploy(context, operation, name, runtimeName, vaultReader);
         }
 
-        context.completeStep(new OperationContext.ResultHandler() {
-            @Override
-            public void handleResult(ResultAction resultAction, OperationContext context, ModelNode operation) {
-                if (resultAction == ResultAction.KEEP) {
-                    if (replacedHash != null  && (newHash == null || !Arrays.equals(replacedHash, newHash))) {
-                        // The old content is no longer used; clean from repos
-                        contentRepository.removeContent(ModelContentReference.fromModelAddress(address, replacedHash));
-                    }
-                    if (newHash != null) {
-                        contentRepository.addContentReference(ModelContentReference.fromModelAddress(address, newHash));
-                    }
-                } else if (newHash != null && (replacedHash == null || !Arrays.equals(replacedHash, newHash))) {
-                    // Due to rollback, the new content isn't used; clean from repos
-                    contentRepository.removeContent(ModelContentReference.fromModelAddress(address, newHash));
+        context.completeStep((resultAction, context1, operation1) -> {
+            if (resultAction == ResultAction.KEEP) {
+                if (replacedHash != null  && (newHash == null || !Arrays.equals(replacedHash, newHash))) {
+                    // The old content is no longer used; clean from repos
+                    contentRepository.removeContent(ModelContentReference.fromModelAddress(address, replacedHash));
                 }
+                if (newHash != null) {
+                    contentRepository.addContentReference(ModelContentReference.fromModelAddress(address, newHash));
+                }
+            } else if (newHash != null && (replacedHash == null || !Arrays.equals(replacedHash, newHash))) {
+                // Due to rollback, the new content isn't used; clean from repos
+                contentRepository.removeContent(ModelContentReference.fromModelAddress(address, newHash));
             }
         });
     }

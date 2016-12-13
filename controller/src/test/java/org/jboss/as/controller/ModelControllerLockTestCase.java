@@ -217,27 +217,21 @@ public class ModelControllerLockTestCase {
 
         final ModelControllerLock lock = new ModelControllerLock();
 
-        Runnable a = new Runnable() {
-            @Override
-            public void run() {
-                try {
-                    lock.lock(OP1);
-                    assertFalse(lock.lockInterruptibly(OP2, DEFAULT_TIMEOUT, DEFAULT_TIMEUNIT));
-                } catch (Exception e) {
-                    throw new RuntimeException(e);
-                }
+        Runnable a = () -> {
+            try {
+                lock.lock(OP1);
+                assertFalse(lock.lockInterruptibly(OP2, DEFAULT_TIMEOUT, DEFAULT_TIMEUNIT));
+            } catch (Exception e) {
+                throw new RuntimeException(e);
             }
         };
 
-        Runnable b = new Runnable() {
-            @Override
-            public void run() {
-                try {
-                    assertFalse(lock.lockInterruptibly(OP2, DEFAULT_TIMEOUT, DEFAULT_TIMEUNIT));
-                    lock.unlock(OP1);
-                } catch (Exception e) {
-                    throw new RuntimeException(e);
-                }
+        Runnable b = () -> {
+            try {
+                assertFalse(lock.lockInterruptibly(OP2, DEFAULT_TIMEOUT, DEFAULT_TIMEUNIT));
+                lock.unlock(OP1);
+            } catch (Exception e) {
+                throw new RuntimeException(e);
             }
         };
 
@@ -256,32 +250,26 @@ public class ModelControllerLockTestCase {
 
         final ModelControllerLock lock = new ModelControllerLock();
 
-        Runnable a = new Runnable() {
-            @Override
-            public void run() {
-                try {
-                    lock.lockShared(OP1);
-                    assertFalse(lock.lockInterruptibly(OP2, DEFAULT_TIMEOUT, DEFAULT_TIMEUNIT));
-                    assertTrue(lock.lockSharedInterruptibly(OP2, DEFAULT_TIMEOUT, DEFAULT_TIMEUNIT));
-                    assertFalse(lock.lockInterruptibly(OP1, DEFAULT_TIMEOUT, DEFAULT_TIMEUNIT));
-                } catch (Exception e) {
-                    throw new RuntimeException(e);
-                }
+        Runnable a = () -> {
+            try {
+                lock.lockShared(OP1);
+                assertFalse(lock.lockInterruptibly(OP2, DEFAULT_TIMEOUT, DEFAULT_TIMEUNIT));
+                assertTrue(lock.lockSharedInterruptibly(OP2, DEFAULT_TIMEOUT, DEFAULT_TIMEUNIT));
+                assertFalse(lock.lockInterruptibly(OP1, DEFAULT_TIMEOUT, DEFAULT_TIMEUNIT));
+            } catch (Exception e) {
+                throw new RuntimeException(e);
             }
         };
 
-        Runnable b = new Runnable() {
-            @Override
-            public void run() {
-                try {
-                    assertFalse(lock.lockInterruptibly(OP2, DEFAULT_TIMEOUT, DEFAULT_TIMEUNIT));
-                    lock.unlockShared(OP2);
-                    lock.unlockShared(OP1);
-                    assertTrue(lock.lockInterruptibly(OP2, DEFAULT_TIMEOUT, DEFAULT_TIMEUNIT));
-                    lock.unlock(OP2);
-                } catch (Exception e) {
-                    throw new RuntimeException(e);
-                }
+        Runnable b = () -> {
+            try {
+                assertFalse(lock.lockInterruptibly(OP2, DEFAULT_TIMEOUT, DEFAULT_TIMEUNIT));
+                lock.unlockShared(OP2);
+                lock.unlockShared(OP1);
+                assertTrue(lock.lockInterruptibly(OP2, DEFAULT_TIMEOUT, DEFAULT_TIMEUNIT));
+                lock.unlock(OP2);
+            } catch (Exception e) {
+                throw new RuntimeException(e);
             }
         };
 

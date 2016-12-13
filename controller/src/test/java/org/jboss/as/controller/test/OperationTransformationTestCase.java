@@ -82,19 +82,11 @@ public class OperationTransformationTestCase {
     private final Resource resourceRoot = Resource.Factory.create();
     private final GlobalTransformerRegistry registry = new GlobalTransformerRegistry();
     private final ManagementResourceRegistration resourceRegistration = ManagementResourceRegistration.Factory.forProcessType(ProcessType.EMBEDDED_SERVER).createRegistration(ROOT);
-    private final OperationTransformer NOOP_TRANSFORMER = new OperationTransformer() {
-        @Override
-        public TransformedOperation transformOperation(TransformationContext context, PathAddress address, ModelNode operation) {
-            return new TransformedOperation(new ModelNode(), OperationResultTransformer.ORIGINAL_RESULT);
-        }
-    };
-    private final OperationTransformer OPERATION_TRANSFORMER = new OperationTransformer() {
-        @Override
-        public TransformedOperation transformOperation(TransformationContext context, PathAddress address, ModelNode operation) throws OperationFailedException {
-            final ModelNode transformed = operation.clone();
-            transformed.get("param1").set("value1");
-            return new TransformedOperation(transformed, OperationResultTransformer.ORIGINAL_RESULT);
-        }
+    private final OperationTransformer NOOP_TRANSFORMER = (context, address, operation) -> new OperationTransformer.TransformedOperation(new ModelNode(), OperationResultTransformer.ORIGINAL_RESULT);
+    private final OperationTransformer OPERATION_TRANSFORMER = (context, address, operation) -> {
+        final ModelNode transformed = operation.clone();
+        transformed.get("param1").set("value1");
+        return new OperationTransformer.TransformedOperation(transformed, OperationResultTransformer.ORIGINAL_RESULT);
     };
 
     @Before
@@ -339,12 +331,7 @@ public class OperationTransformationTestCase {
 
     private static final ResourceDefinition ROOT = new SimpleResourceDefinition(PathElement.pathElement("test"), new NonResolvingResourceDescriptionResolver());
 
-    private static final ExpressionResolver resolver = new ExpressionResolver() {
-        @Override
-        public ModelNode resolveExpressions(ModelNode node) throws OperationFailedException {
-            return node;
-        }
-    };
+    private static final ExpressionResolver resolver = node -> node;
 
     private static class MockTransformationContext implements TransformationContext {
 

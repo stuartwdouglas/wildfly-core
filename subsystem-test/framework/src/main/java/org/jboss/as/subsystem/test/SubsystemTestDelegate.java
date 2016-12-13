@@ -753,12 +753,7 @@ final class SubsystemTestDelegate {
         private boolean skipReverseCheck;
         private AdditionalInitialization reverseCheckConfig;
         private ModelFixer reverseCheckModelFixer;
-        private OperationFixer reverseCheckOperationFixer = new OperationFixer() {
-            @Override
-            public ModelNode fixOperation(ModelNode operation) {
-                return operation;
-            }
-        };
+        private OperationFixer reverseCheckOperationFixer = operation -> operation;
 
         public LegacyKernelServiceInitializerImpl(AdditionalInitialization additionalInit, ModelTestControllerVersion version, ModelVersion modelVersion) {
             this.classLoaderBuilder = new ChildFirstClassLoaderBuilder(version.isEap());

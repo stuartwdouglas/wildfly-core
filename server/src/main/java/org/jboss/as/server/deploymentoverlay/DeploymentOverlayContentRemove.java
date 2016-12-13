@@ -55,15 +55,12 @@ public class DeploymentOverlayContentRemove implements OperationStepHandler {
             hash = null;
         }
         context.removeResource(PathAddress.EMPTY_ADDRESS);
-        context.completeStep(new OperationContext.ResultHandler() {
-            @Override
-            public void handleResult(OperationContext.ResultAction resultAction, OperationContext context, ModelNode operation) {
-                if (resultAction != OperationContext.ResultAction.ROLLBACK) {
-                    //check that if this is a server group level op the referenced deployment overlay exists
-                    if (hash != null) {
-                        final PathAddress address = PathAddress.pathAddress(operation.get(OP_ADDR));
-                        contentRepository.removeContent(ModelContentReference.fromModelAddress(address, hash));
-                    }
+        context.completeStep((resultAction, context1, operation1) -> {
+            if (resultAction != OperationContext.ResultAction.ROLLBACK) {
+                //check that if this is a server group level op the referenced deployment overlay exists
+                if (hash != null) {
+                    final PathAddress address1 = PathAddress.pathAddress(operation1.get(OP_ADDR));
+                    contentRepository.removeContent(ModelContentReference.fromModelAddress(address1, hash));
                 }
             }
         });

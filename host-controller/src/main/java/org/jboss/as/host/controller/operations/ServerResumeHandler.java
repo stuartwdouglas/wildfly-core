@@ -69,16 +69,13 @@ public class ServerResumeHandler implements OperationStepHandler {
         final String serverName = element.getValue();
         final BlockingTimeout blockingTimeout = BlockingTimeout.Factory.getProxyBlockingTimeout(context);
 
-        context.addStep(new OperationStepHandler() {
-            @Override
-            public void execute(final OperationContext context, final ModelNode operation) throws OperationFailedException {
-                // WFLY-2189 trigger a write-runtime authz check
-                context.getServiceRegistry(true);
+        context.addStep((context1, operation1) -> {
+            // WFLY-2189 trigger a write-runtime authz check
+            context1.getServiceRegistry(true);
 
-                final List<ModelNode> errorResponses = serverInventory.resumeServers(Collections.singleton(serverName), blockingTimeout);
-                if ( !errorResponses.isEmpty() ){
-                    context.getFailureDescription().set(errorResponses.get(0));
-                }
+            final List<ModelNode> errorResponses = serverInventory.resumeServers(Collections.singleton(serverName), blockingTimeout);
+            if ( !errorResponses.isEmpty() ){
+                context1.getFailureDescription().set(errorResponses.get(0));
             }
         }, OperationContext.Stage.RUNTIME);
     }

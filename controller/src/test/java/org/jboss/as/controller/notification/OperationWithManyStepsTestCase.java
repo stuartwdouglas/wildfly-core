@@ -33,9 +33,7 @@ import static org.junit.Assert.fail;
 import org.jboss.as.controller.AttributeDefinition;
 import org.jboss.as.controller.ManagementModel;
 import org.jboss.as.controller.NotificationDefinition;
-import org.jboss.as.controller.OperationContext;
 import org.jboss.as.controller.OperationFailedException;
-import org.jboss.as.controller.OperationStepHandler;
 import org.jboss.as.controller.PathAddress;
 import org.jboss.as.controller.SimpleAttributeDefinition;
 import org.jboss.as.controller.SimpleAttributeDefinitionBuilder;
@@ -78,37 +76,31 @@ public class OperationWithManyStepsTestCase extends AbstractControllerTestBase {
                         .setParameters(FAIL_FIRST_STEP, FAIL_SECOND_STEP)
                         .setPrivateEntry()
                         .build(),
-                new OperationStepHandler() {
-                    @Override
-                    public void execute(OperationContext context, ModelNode operation) throws OperationFailedException {
-                        boolean failFirstStep = FAIL_FIRST_STEP.resolveModelAttribute(context, operation).asBoolean();
-                        boolean rollback = ROLLBACK.resolveModelAttribute(context, operation).asBoolean();
+                (context, operation) -> {
+                    boolean failFirstStep = FAIL_FIRST_STEP.resolveModelAttribute(context, operation).asBoolean();
+                    boolean rollback = ROLLBACK.resolveModelAttribute(context, operation).asBoolean();
 
-                        System.out.println("send 1st notification");
-                        context.emit(new Notification(MY_NOTIFICATION_TYPE, PathAddress.pathAddress(operation.get(OP_ADDR)), MESSAGE1));
+                    System.out.println("send 1st notification");
+                    context.emit(new Notification(MY_NOTIFICATION_TYPE, PathAddress.pathAddress(operation.get(OP_ADDR)), MESSAGE1));
 
-                        if (failFirstStep) {
-                            throw new OperationFailedException("1st step failed");
+                    if (failFirstStep) {
+                        throw new OperationFailedException("1st step failed");
+                    }
+
+                    context.addStep((context1, operation1) -> {
+                        boolean failSecondStep = FAIL_SECOND_STEP.resolveModelAttribute(context1, operation1).asBoolean();
+
+                        System.out.println("send 2nd notification");
+                        context1.emit(new Notification(MY_NOTIFICATION_TYPE, PathAddress.pathAddress(operation1.get(OP_ADDR)), MESSAGE2));
+
+                        if (failSecondStep) {
+                            throw new OperationFailedException("2nd step failed");
                         }
+                    }, RUNTIME);
 
-                        context.addStep(new OperationStepHandler() {
-                            @Override
-                            public void execute(OperationContext context, ModelNode operation) throws OperationFailedException {
-                                boolean failSecondStep = FAIL_SECOND_STEP.resolveModelAttribute(context, operation).asBoolean();
-
-                                System.out.println("send 2nd notification");
-                                context.emit(new Notification(MY_NOTIFICATION_TYPE, PathAddress.pathAddress(operation.get(OP_ADDR)), MESSAGE2));
-
-                                if (failSecondStep) {
-                                    throw new OperationFailedException("2nd step failed");
-                                }
-                            }
-                        }, RUNTIME);
-
-                        if (rollback) {
-                            context.getFailureDescription().set("rolled back");
-                            context.setRollbackOnly();
-                        }
+                    if (rollback) {
+                        context.getFailureDescription().set("rolled back");
+                        context.setRollbackOnly();
                     }
                 }
         );

@@ -103,12 +103,7 @@ public class DeployerChainAddHandler implements OperationStepHandler {
             // add one to come later" business could go on forever. But any operation that does that with
             // a DUP-add step is just broken and should just find another way.
 
-            context.addStep(new OperationStepHandler() {
-                public void execute(OperationContext context, ModelNode operation) throws OperationFailedException {
-
-                    context.addStep(new FinalRuntimeStepHandler(), OperationContext.Stage.RUNTIME);
-                }
-            }, OperationContext.Stage.RUNTIME);
+            context.addStep((context1, operation1) -> context1.addStep(new FinalRuntimeStepHandler(), OperationContext.Stage.RUNTIME), OperationContext.Stage.RUNTIME);
         }
     }
 
@@ -129,12 +124,7 @@ public class DeployerChainAddHandler implements OperationStepHandler {
             }
             DeployerChainsService.addService(context.getServiceTarget(), finalDeployers);
 
-            context.completeStep(new OperationContext.RollbackHandler() {
-                @Override
-                public void handleRollback(OperationContext context, ModelNode operation) {
-                    context.removeService(Services.JBOSS_DEPLOYMENT_CHAINS);
-                }
-            });
+            context.completeStep((context1, operation1) -> context1.removeService(Services.JBOSS_DEPLOYMENT_CHAINS));
         }
     }
 

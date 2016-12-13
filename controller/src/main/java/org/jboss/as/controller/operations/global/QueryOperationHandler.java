@@ -55,7 +55,6 @@ import org.jboss.as.controller.operations.validation.StringLengthValidator;
 import org.jboss.as.controller.registry.ImmutableManagementResourceRegistration;
 import org.jboss.as.controller.transform.OperationResultTransformer;
 import org.jboss.as.controller.transform.OperationTransformer;
-import org.jboss.as.controller.transform.TransformationContext;
 import org.jboss.dmr.ModelNode;
 import org.jboss.dmr.ModelType;
 import org.jboss.dmr.Property;
@@ -148,22 +147,19 @@ public final class QueryOperationHandler extends GlobalOperationHandlers.Abstrac
         public void execute(OperationContext context, ModelNode operation) throws OperationFailedException {
 
             context.completeStep(
-                    new OperationContext.ResultHandler() {
-                        @Override
-                        public void handleResult(OperationContext.ResultAction resultAction, OperationContext context, ModelNode operation) {
-                            if (context.hasResult() || filter.isDefined()) {
-                                ModelNode result = context.getResult();
-                                try {
-                                    filterAndReduce(filter, operator, select, result);
-                                } catch (OperationFailedException e) {
-                                    if (!context.hasFailureDescription()) {
-                                        context.getFailureDescription().set(e.getMessage());
-                                    } // else there already was a failure; don't overwrite its message
-                                }
-                            } // else there is no filter to run, and 'reduce' will only run when
-                              // the filtered result is defined, so no point calling filterAndReduce
+                    (resultAction, context1, operation1) -> {
+                        if (context1.hasResult() || filter.isDefined()) {
+                            ModelNode result = context1.getResult();
+                            try {
+                                filterAndReduce(filter, operator, select, result);
+                            } catch (OperationFailedException e) {
+                                if (!context1.hasFailureDescription()) {
+                                    context1.getFailureDescription().set(e.getMessage());
+                                } // else there already was a failure; don't overwrite its message
+                            }
+                        } // else there is no filter to run, and 'reduce' will only run when
+                          // the filtered result is defined, so no point calling filterAndReduce
 
-                        }
                     }
             );
 
@@ -286,14 +282,11 @@ public final class QueryOperationHandler extends GlobalOperationHandlers.Abstrac
      * Transformer for this operation for slave Host Controllers running versions prior to
      * WildFly Core 1.0 (i.e. AS 7, EAP 6 and WildFly 8).
      */
-    public static final OperationTransformer TRANSFORMER = new OperationTransformer() {
-        @Override
-        public TransformedOperation transformOperation(TransformationContext context, PathAddress address, ModelNode operation) throws OperationFailedException {
-            ModelNode transformedOp = Util.createEmptyOperation(READ_RESOURCE_OPERATION, address);
-            transformedOp.get(INCLUDE_RUNTIME).set(true);
-            ResultTransformer rt = new ResultTransformer(operation, address);
-            return new TransformedOperation(transformedOp, rt);
-        }
+    public static final OperationTransformer TRANSFORMER = (context, address, operation) -> {
+        ModelNode transformedOp = Util.createEmptyOperation(READ_RESOURCE_OPERATION, address);
+        transformedOp.get(INCLUDE_RUNTIME).set(true);
+        ResultTransformer rt = new ResultTransformer(operation, address);
+        return new OperationTransformer.TransformedOperation(transformedOp, rt);
     };
 
     private static class ResultTransformer implements OperationResultTransformer {

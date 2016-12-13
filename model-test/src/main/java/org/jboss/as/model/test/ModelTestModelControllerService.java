@@ -36,8 +36,6 @@ import org.jboss.as.controller.ControlledProcessState;
 import org.jboss.as.controller.ExpressionResolver;
 import org.jboss.as.controller.ManagementModel;
 import org.jboss.as.controller.ModelController;
-import org.jboss.as.controller.OperationContext;
-import org.jboss.as.controller.OperationFailedException;
 import org.jboss.as.controller.OperationStepHandler;
 import org.jboss.as.controller.PathAddress;
 import org.jboss.as.controller.PathElement;
@@ -383,12 +381,9 @@ public abstract class ModelTestModelControllerService extends AbstractController
         final AtomicReference<Resource> resourceRef = new AtomicReference<Resource>();
         ModelNode fakeOP = new ModelNode();
         fakeOP.get(OP).set("fake");
-        ((ModelTestKernelServicesImpl<?>)kernelServices).internalExecute(fakeOP, new OperationStepHandler() {
-            @Override
-            public void execute(OperationContext context, ModelNode operation) throws OperationFailedException {
-                resourceRef.set(context.readResourceFromRoot(PathAddress.EMPTY_ADDRESS, true));
-                context.getResult().setEmptyObject();
-            }
+        ((ModelTestKernelServicesImpl<?>)kernelServices).internalExecute(fakeOP, (context, operation) -> {
+            resourceRef.set(context.readResourceFromRoot(PathAddress.EMPTY_ADDRESS, true));
+            context.getResult().setEmptyObject();
         });
         Resource rootResource = resourceRef.get();
         Assert.assertNotNull(rootResource);

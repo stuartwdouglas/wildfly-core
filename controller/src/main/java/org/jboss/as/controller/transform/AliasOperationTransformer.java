@@ -89,12 +89,9 @@ public class AliasOperationTransformer implements CombinedTransformer {
      * @return the operation address transformer
      */
     public static AliasOperationTransformer replaceLastElement(final PathElement element) {
-        return create(new AddressTransformer() {
-            @Override
-            public PathAddress transformAddress(final PathAddress original) {
-                final PathAddress address = original.subAddress(0, original.size() -1);
-                return address.append(element);
-            }
+        return create(original -> {
+            final PathAddress address = original.subAddress(0, original.size() -1);
+            return address.append(element);
         });
     }
 

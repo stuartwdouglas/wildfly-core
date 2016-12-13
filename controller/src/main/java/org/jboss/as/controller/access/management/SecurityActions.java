@@ -62,24 +62,11 @@ class SecurityActions {
 
         AccessAuditContext currentContext();
 
-        AccessAuditContextActions NON_PRIVILEGED = new AccessAuditContextActions() {
-
-            @Override
-            public AccessAuditContext currentContext() {
-                return AccessAuditContext.currentAccessAuditContext();
-            }
-        };
+        AccessAuditContextActions NON_PRIVILEGED = () -> AccessAuditContext.currentAccessAuditContext();
 
         AccessAuditContextActions PRIVILEGED = new AccessAuditContextActions() {
 
-            private final PrivilegedAction<AccessAuditContext> PRIVILEGED_ACTION = new PrivilegedAction<AccessAuditContext>() {
-
-                @Override
-                public AccessAuditContext run() {
-                    return NON_PRIVILEGED.currentContext();
-                }
-
-            };
+            private final PrivilegedAction<AccessAuditContext> PRIVILEGED_ACTION = () -> NON_PRIVILEGED.currentContext();
 
             @Override
             public AccessAuditContext currentContext() {
@@ -93,22 +80,10 @@ class SecurityActions {
 
         ServerAuthenticationContext createServerAuthenticationContext(final SecurityDomain securityDomain);
 
-        ElytronActions NON_PRIVILEGED = new ElytronActions() {
+        ElytronActions NON_PRIVILEGED = securityDomain -> securityDomain.createNewAuthenticationContext();
 
-            @Override
-            public ServerAuthenticationContext createServerAuthenticationContext(final SecurityDomain securityDomain) {
-                return securityDomain.createNewAuthenticationContext();
-            }
-        };
-
-        ElytronActions PRIVILEGED = new ElytronActions() {
-
-            @Override
-            public ServerAuthenticationContext createServerAuthenticationContext(final SecurityDomain securityDomain) {
-                return doPrivileged((PrivilegedAction<ServerAuthenticationContext>) (() -> NON_PRIVILEGED
-                        .createServerAuthenticationContext(securityDomain)));
-            }
-        };
+        ElytronActions PRIVILEGED = securityDomain -> doPrivileged((PrivilegedAction<ServerAuthenticationContext>) (() -> NON_PRIVILEGED
+                .createServerAuthenticationContext(securityDomain)));
     }
 
 }

@@ -45,24 +45,21 @@ public class DeploymentStatusHandler implements OperationStepHandler {
         final ModelNode deployment = context.readResource(PathAddress.EMPTY_ADDRESS).getModel();
         final boolean isEnabled = ENABLED.resolveModelAttribute(context, deployment).asBoolean();
         final String runtimeName = RUNTIME_NAME.resolveModelAttribute(context, deployment).asString();
-        context.addStep(new OperationStepHandler() {
-            @Override
-            public void execute(final OperationContext context, final ModelNode operation) throws OperationFailedException {
-                final ModelNode result = context.getResult();
-                if (!isEnabled) {
-                    result.set(AbstractDeploymentUnitService.DeploymentStatus.STOPPED.toString());
-                } else {
-                    final ServiceController<?> controller = context.getServiceRegistry(false).getService(Services.deploymentUnitName(runtimeName));
-                    if (controller != null) {
-                        if (controller.getSubstate() == ServiceController.Substate.WONT_START &&
-                                controller.getState() == ServiceController.State.DOWN) {
-                            result.set(AbstractDeploymentUnitService.DeploymentStatus.STOPPED.toString());
-                        } else {
-                            result.set(((AbstractDeploymentUnitService) controller.getService()).getStatus().toString());
-                        }
+        context.addStep((context1, operation1) -> {
+            final ModelNode result = context1.getResult();
+            if (!isEnabled) {
+                result.set(AbstractDeploymentUnitService.DeploymentStatus.STOPPED.toString());
+            } else {
+                final ServiceController<?> controller = context1.getServiceRegistry(false).getService(Services.deploymentUnitName(runtimeName));
+                if (controller != null) {
+                    if (controller.getSubstate() == ServiceController.Substate.WONT_START &&
+                            controller.getState() == ServiceController.State.DOWN) {
+                        result.set(AbstractDeploymentUnitService.DeploymentStatus.STOPPED.toString());
                     } else {
-                        result.set(NO_METRICS);
+                        result.set(((AbstractDeploymentUnitService) controller.getService()).getStatus().toString());
                     }
+                } else {
+                    result.set(NO_METRICS);
                 }
             }
         }, OperationContext.Stage.RUNTIME);

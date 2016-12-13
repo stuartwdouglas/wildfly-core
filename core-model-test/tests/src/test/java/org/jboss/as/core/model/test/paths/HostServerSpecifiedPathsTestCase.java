@@ -52,12 +52,7 @@ public class HostServerSpecifiedPathsTestCase extends AbstractSpecifiedPathsTest
 
     @Override
     protected ModelInitializer createEmptyModelInitalizer() {
-        return new ModelInitializer() {
-            @Override
-            public void populateModel(Resource rootResource) {
-                rootResource.registerChild(getPathsParent().getLastElement(), Resource.Factory.create());
-            }
-        };
+        return rootResource -> rootResource.registerChild(getPathsParent().getLastElement(), Resource.Factory.create());
     }
 
     @Override

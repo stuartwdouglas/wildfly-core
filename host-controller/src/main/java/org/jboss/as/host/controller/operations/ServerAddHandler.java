@@ -31,7 +31,6 @@ import org.jboss.as.controller.AbstractAddStepHandler;
 import org.jboss.as.controller.ControlledProcessState;
 import org.jboss.as.controller.OperationContext;
 import org.jboss.as.controller.OperationFailedException;
-import org.jboss.as.controller.OperationStepHandler;
 import org.jboss.as.controller.PathAddress;
 import org.jboss.as.controller.PathElement;
 import org.jboss.as.controller.registry.PlaceholderResource;
@@ -92,12 +91,7 @@ public class ServerAddHandler extends AbstractAddStepHandler {
         runningServerAdd.get(OP).set(ADD);
         runningServerAdd.get(OP_ADDR).set(running.toModelNode());
 
-        context.addStep(runningServerAdd, new OperationStepHandler() {
-            @Override
-            public void execute(final OperationContext context, final ModelNode operation) throws OperationFailedException {
-                context.addResource(PathAddress.EMPTY_ADDRESS, PlaceholderResource.INSTANCE);
-            }
-        }, OperationContext.Stage.MODEL, true);
+        context.addStep(runningServerAdd, (context1, operation1) -> context1.addResource(PathAddress.EMPTY_ADDRESS, PlaceholderResource.INSTANCE), OperationContext.Stage.MODEL, true);
     }
 
     protected boolean requiresRuntime(OperationContext context) {

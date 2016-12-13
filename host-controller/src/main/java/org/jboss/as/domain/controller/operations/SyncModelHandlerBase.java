@@ -99,16 +99,13 @@ abstract class SyncModelHandlerBase implements OperationStepHandler {
             remoteExtensions.remove(extension);
         }
 
-        context.addStep(new OperationStepHandler() {
-            @Override
-            public void execute(OperationContext context, ModelNode operation) throws OperationFailedException {
-                final HostControllerRegistrationHandler.OperationExecutor operationExecutor = parameters.getOperationExecutor();
-                final ModelNode result = localOperations.get(RESULT);
-                final SyncModelOperationHandler handler =
-                        new SyncModelOperationHandler(result.asList(), remote, remoteExtensions,
-                                parameters, readOperationHandler.getOrderedChildTypes());
-                context.addStep(operation, handler, OperationContext.Stage.MODEL, true);
-            }
+        context.addStep((context1, operation1) -> {
+            final HostControllerRegistrationHandler.OperationExecutor operationExecutor1 = parameters.getOperationExecutor();
+            final ModelNode result = localOperations.get(RESULT);
+            final SyncModelOperationHandler handler =
+                    new SyncModelOperationHandler(result.asList(), remote, remoteExtensions,
+                            parameters, readOperationHandler.getOrderedChildTypes());
+            context1.addStep(operation1, handler, OperationContext.Stage.MODEL, true);
         }, OperationContext.Stage.MODEL, true);
     }
 

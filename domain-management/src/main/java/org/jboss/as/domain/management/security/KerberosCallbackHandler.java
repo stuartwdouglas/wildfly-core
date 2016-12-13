@@ -25,7 +25,6 @@ package org.jboss.as.domain.management.security;
 import static org.jboss.as.domain.management.logging.DomainManagementLogger.SECURITY_LOGGER;
 import static org.jboss.as.domain.management.security.SecurityRealmService.LOADED_USERNAME_KEY;
 
-import java.io.IOException;
 import java.util.Collections;
 import java.util.Map;
 import java.util.Set;
@@ -100,29 +99,25 @@ public class KerberosCallbackHandler implements Service<CallbackHandlerService>,
     }
 
     public CallbackHandler getCallbackHandler(final Map<String, Object> sharedState) {
-        return new CallbackHandler() {
-
-            @Override
-            public void handle(Callback[] callbacks) throws IOException, UnsupportedCallbackException {
-                for (Callback current : callbacks) {
-                    if (current instanceof AuthorizeCallback) {
-                        AuthorizeCallback acb = (AuthorizeCallback) current;
-                        boolean authorized = acb.getAuthenticationID().equals(acb.getAuthorizationID());
-                        if (authorized) {
-                            String userName = acb.getAuthenticationID();
-                            int atIndex = acb.getAuthenticationID().indexOf('@');
-                            if (removeRealm && atIndex > 0) {
-                                sharedState.put(LOADED_USERNAME_KEY, userName.substring(0, atIndex));
-                            }
-                        } else {
-                            SECURITY_LOGGER.tracef(
-                                    "Checking 'AuthorizeCallback', authorized=false, authenticationID=%s, authorizationID=%s.",
-                                    acb.getAuthenticationID(), acb.getAuthorizationID());
+        return callbacks -> {
+            for (Callback current : callbacks) {
+                if (current instanceof AuthorizeCallback) {
+                    AuthorizeCallback acb = (AuthorizeCallback) current;
+                    boolean authorized = acb.getAuthenticationID().equals(acb.getAuthorizationID());
+                    if (authorized) {
+                        String userName = acb.getAuthenticationID();
+                        int atIndex = acb.getAuthenticationID().indexOf('@');
+                        if (removeRealm && atIndex > 0) {
+                            sharedState.put(LOADED_USERNAME_KEY, userName.substring(0, atIndex));
                         }
-                        acb.setAuthorized(authorized);
                     } else {
-                        throw new UnsupportedCallbackException(current);
+                        SECURITY_LOGGER.tracef(
+                                "Checking 'AuthorizeCallback', authorized=false, authenticationID=%s, authorizationID=%s.",
+                                acb.getAuthenticationID(), acb.getAuthorizationID());
                     }
+                    acb.setAuthorized(authorized);
+                } else {
+                    throw new UnsupportedCallbackException(current);
                 }
             }
         };

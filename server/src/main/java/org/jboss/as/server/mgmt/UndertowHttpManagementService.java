@@ -121,12 +121,7 @@ public class UndertowHttpManagementService implements Service<HttpManagement> {
         @Override
         public void addManagementGetRemapContext(String contextName, final PathRemapper remapper) {
             Assert.assertNotNull(serverManagement);
-            serverManagement.addManagementGetRemapContext(contextName, new ManagementHttpServer.PathRemapper() {
-                @Override
-                public String remapPath(String originalPath) {
-                    return remapper.remapPath(originalPath);
-                }
-            });
+            serverManagement.addManagementGetRemapContext(contextName, originalPath -> remapper.remapPath(originalPath));
         }
 
         @Override

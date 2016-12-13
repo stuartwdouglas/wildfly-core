@@ -51,7 +51,6 @@ import org.jboss.as.controller.registry.ManagementResourceRegistration;
 import org.jboss.as.controller.registry.Resource;
 import org.jboss.as.controller.transform.OperationTransformer;
 import org.jboss.as.controller.transform.ResourceTransformationContext;
-import org.jboss.as.controller.transform.ResourceTransformer;
 import org.jboss.as.controller.transform.TransformationContext;
 import org.jboss.as.controller.transform.TransformationTarget;
 import org.jboss.as.controller.transform.TransformationTargetImpl;
@@ -798,16 +797,13 @@ public class AttributesTestCase {
                 return true;
             }
         }, "discard");
-        builder.setCustomResourceTransformer(new ResourceTransformer() {
-            @Override
-            public void transformResource(ResourceTransformationContext context, PathAddress address, Resource resource) throws OperationFailedException {
-                Resource untransformed = context.readResource(PathAddress.EMPTY_ADDRESS);
-                ModelNode model = untransformed.getModel();
-                Assert.assertTrue(model.hasDefined("discard"));
-                Assert.assertTrue(model.get("discard").asBoolean());
+        builder.setCustomResourceTransformer((context, address, resource) -> {
+            Resource untransformed = context.readResource(PathAddress.EMPTY_ADDRESS);
+            ModelNode model = untransformed.getModel();
+            Assert.assertTrue(model.hasDefined("discard"));
+            Assert.assertTrue(model.get("discard").asBoolean());
 
-                context.addTransformedResource(PathAddress.EMPTY_ADDRESS, resource);
-            }
+            context.addTransformedResource(PathAddress.EMPTY_ADDRESS, resource);
         });
         TransformationDescription.Tools.register(builder.build(), transformersSubRegistration);
 

@@ -45,11 +45,7 @@ public final class ModuleDependencyProcessor implements DeploymentUnitProcessor 
     private static final SerializableClassRegistry REGISTRY;
 
     static {
-        REGISTRY = AccessController.doPrivileged(new PrivilegedAction<SerializableClassRegistry>() {
-            public SerializableClassRegistry run() {
-                return SerializableClassRegistry.getInstance();
-            }
-        });
+        REGISTRY = AccessController.doPrivileged((PrivilegedAction<SerializableClassRegistry>) () -> SerializableClassRegistry.getInstance());
     }
 
     /**

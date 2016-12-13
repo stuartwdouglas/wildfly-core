@@ -226,12 +226,7 @@ public class TransformersLogger {
     }
 
     public void logDiscardedResourceWarning(PathAddress address, String host) {
-        messageQueue.add(new LogEntry() {
-            @Override
-            public String getMessage() {
-                return ControllerLogger.ROOT_LOGGER.discardedResourceTransformation(address, host);
-            }
-        });
+        messageQueue.add(() -> ControllerLogger.ROOT_LOGGER.discardedResourceTransformation(address, host));
     }
 
     /**
@@ -239,12 +234,7 @@ public class TransformersLogger {
      * @param message the warning message. Cannot be {@code null}
      */
     public void logWarning(final String message) {
-        messageQueue.add(new LogEntry() {
-            @Override
-            public String getMessage() {
-                return message;
-            }
-        });
+        messageQueue.add(() -> message);
     }
 
     /**

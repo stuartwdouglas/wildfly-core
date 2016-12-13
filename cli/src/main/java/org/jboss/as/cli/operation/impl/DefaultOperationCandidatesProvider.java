@@ -415,99 +415,61 @@ public class DefaultOperationCandidatesProvider implements OperationCandidatesPr
     }
 
     static {
-        final CommandLineCompleterFactory attrNameCompleter = new CommandLineCompleterFactory(){
-            @Override
-            public CommandLineCompleter createCompleter(CommandContext ctx, OperationRequestAddress address) {
-                return new AttributeNamePathCompleter(address);
-            }};
+        final CommandLineCompleterFactory attrNameCompleter = (ctx, address) -> new AttributeNamePathCompleter(address);
         addGlobalOpPropCompleter(Util.UNDEFINE_ATTRIBUTE, Util.NAME, attrNameCompleter);
         addGlobalOpPropCompleter(Util.READ_ATTRIBUTE, Util.NAME, attrNameCompleter);
-        addGlobalOpPropCompleter(Util.WRITE_ATTRIBUTE, Util.NAME, new CommandLineCompleterFactory(){
-            @Override
-            public CommandLineCompleter createCompleter(CommandContext ctx, OperationRequestAddress address) {
-                return new AttributeNamePathCompleter(address, true);
-            }});
-        addGlobalOpPropCompleter(Util.WRITE_ATTRIBUTE, Util.VALUE, new CommandLineCompleterFactory(){
-            @Override
-            public CommandLineCompleter createCompleter(CommandContext ctx, OperationRequestAddress address) {
-                final String propName = ctx.getParsedCommandLine().getPropertyValue(Util.NAME);
-                if(propName == null) {
-                    return NO_CANDIDATES_COMPLETER;
-                }
+        addGlobalOpPropCompleter(Util.WRITE_ATTRIBUTE, Util.NAME, (ctx, address) -> new AttributeNamePathCompleter(address, true));
+        addGlobalOpPropCompleter(Util.WRITE_ATTRIBUTE, Util.VALUE, (ctx, address) -> {
+            final String propName = ctx.getParsedCommandLine().getPropertyValue(Util.NAME);
+            if(propName == null) {
+                return NO_CANDIDATES_COMPLETER;
+            }
 
-                final ModelNode req = new ModelNode();
-                final ModelNode addrNode = req.get(Util.ADDRESS);
-                for (OperationRequestAddress.Node node : address) {
-                    addrNode.add(node.getType(), node.getName());
-                }
-                req.get(Util.OPERATION).set(Util.READ_RESOURCE_DESCRIPTION);
-                final ModelNode response;
-                try {
-                    response = ctx.getModelControllerClient().execute(req);
-                } catch (Exception e) {
-                    return NO_CANDIDATES_COMPLETER;
-                }
-                final ModelNode result = response.get(Util.RESULT);
-                if (!result.isDefined()) {
-                    return NO_CANDIDATES_COMPLETER;
-                }
-                final ModelNode attrs = result.get(Util.ATTRIBUTES);
-                if(!attrs.isDefined()) {
-                    return NO_CANDIDATES_COMPLETER;
-                }
-                final ModelNode attrDescr = attrs.get(propName);
-                if(!attrDescr.isDefined()) {
-                    return NO_CANDIDATES_COMPLETER;
-                }
+            final ModelNode req = new ModelNode();
+            final ModelNode addrNode = req.get(Util.ADDRESS);
+            for (OperationRequestAddress.Node node : address) {
+                addrNode.add(node.getType(), node.getName());
+            }
+            req.get(Util.OPERATION).set(Util.READ_RESOURCE_DESCRIPTION);
+            final ModelNode response;
+            try {
+                response = ctx.getModelControllerClient().execute(req);
+            } catch (Exception e) {
+                return NO_CANDIDATES_COMPLETER;
+            }
+            final ModelNode result = response.get(Util.RESULT);
+            if (!result.isDefined()) {
+                return NO_CANDIDATES_COMPLETER;
+            }
+            final ModelNode attrs = result.get(Util.ATTRIBUTES);
+            if(!attrs.isDefined()) {
+                return NO_CANDIDATES_COMPLETER;
+            }
+            final ModelNode attrDescr = attrs.get(propName);
+            if(!attrDescr.isDefined()) {
+                return NO_CANDIDATES_COMPLETER;
+            }
 
-                Property prop = new Property(propName, attrDescr);
-                return getCompleter(prop, ctx, address);
-            }});
-        addGlobalOpPropCompleter(Util.READ_OPERATION_DESCRIPTION, Util.NAME, new CommandLineCompleterFactory(){
-            @Override
-            public CommandLineCompleter createCompleter(CommandContext ctx, OperationRequestAddress address) {
-                return new OperationNameCompleter(address);
-            }});
+            Property prop = new Property(propName, attrDescr);
+            return getCompleter(prop, ctx, address);
+        });
+        addGlobalOpPropCompleter(Util.READ_OPERATION_DESCRIPTION, Util.NAME, (ctx, address) -> new OperationNameCompleter(address));
 
-        final CommandLineCompleterFactory childTypeCompleter = new CommandLineCompleterFactory(){
-            @Override
-            public CommandLineCompleter createCompleter(CommandContext ctx, OperationRequestAddress address) {
-                return new ChildTypeCompleter(address);
-            }};
+        final CommandLineCompleterFactory childTypeCompleter = (ctx, address) -> new ChildTypeCompleter(address);
         addGlobalOpPropCompleter(Util.READ_CHILDREN_NAMES, Util.CHILD_TYPE, childTypeCompleter);
         addGlobalOpPropCompleter(Util.READ_CHILDREN_RESOURCES, Util.CHILD_TYPE, childTypeCompleter);
 
-        final CommandLineCompleterFactory mapAttrNameCompleter = new CommandLineCompleterFactory() {
-            @Override
-            public CommandLineCompleter createCompleter(CommandContext ctx, OperationRequestAddress address) {
-                return new AttributeNamePathCompleter(address, false,
-                        AttributeNamePathCompleter.MAP_FILTER);
-            }
-        };
+        final CommandLineCompleterFactory mapAttrNameCompleter = (ctx, address) -> new AttributeNamePathCompleter(address, false,
+                AttributeNamePathCompleter.MAP_FILTER);
 
-        final CommandLineCompleterFactory mapOnlyWritableAttrNameCompleter = new CommandLineCompleterFactory() {
-            @Override
-            public CommandLineCompleter createCompleter(CommandContext ctx, OperationRequestAddress address) {
-                return new AttributeNamePathCompleter(address, true,
-                        AttributeNamePathCompleter.MAP_FILTER);
-            }
-        };
+        final CommandLineCompleterFactory mapOnlyWritableAttrNameCompleter = (ctx, address) -> new AttributeNamePathCompleter(address, true,
+                AttributeNamePathCompleter.MAP_FILTER);
 
-        final CommandLineCompleterFactory listAttrNameCompleter = new CommandLineCompleterFactory() {
-            @Override
-            public CommandLineCompleter createCompleter(CommandContext ctx, OperationRequestAddress address) {
-                return new AttributeNamePathCompleter(address,
-                        AttributeNamePathCompleter.LIST_FILTER);
-            }
-        };
+        final CommandLineCompleterFactory listAttrNameCompleter = (ctx, address) -> new AttributeNamePathCompleter(address,
+                AttributeNamePathCompleter.LIST_FILTER);
 
-        final CommandLineCompleterFactory listOnlyWritableAttrNameCompleter = new CommandLineCompleterFactory() {
-            @Override
-            public CommandLineCompleter createCompleter(CommandContext ctx, OperationRequestAddress address) {
-                return new AttributeNamePathCompleter(address, true,
-                        AttributeNamePathCompleter.LIST_FILTER);
-            }
-        };
+        final CommandLineCompleterFactory listOnlyWritableAttrNameCompleter = (ctx, address) -> new AttributeNamePathCompleter(address, true,
+                AttributeNamePathCompleter.LIST_FILTER);
 
         addGlobalOpPropCompleter("map-put", Util.NAME, mapOnlyWritableAttrNameCompleter);
         addGlobalOpPropCompleter("map-remove", Util.NAME, mapOnlyWritableAttrNameCompleter);

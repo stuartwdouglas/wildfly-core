@@ -35,7 +35,6 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
-import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
@@ -114,22 +113,20 @@ public class S3Discovery implements DiscoveryOption {
             for (DomainControllerManagementInterface managementInterface : interfaces) {
                 data.add(new DomainControllerData(managementInterface.getProtocol().toString(), managementInterface.getHost(), managementInterface.getPort()));
             }
-            Collections.sort(data, new Comparator<DomainControllerData>() {
-                @Override
-                public int compare(DomainControllerData data, DomainControllerData otherData) {
-                    Protocol protocol = Protocol.forName(data.getProtocol());
-                    if (Protocol.REMOTE == protocol) {
-                        return 1;
+            Collections.sort(data, (data1, otherData) -> {
+                Protocol protocol = Protocol.forName(data1.getProtocol());
+                if (Protocol.REMOTE == protocol) {
+                    return 1;
+                }
+                if (Protocol.HTTPS_REMOTING == protocol || Protocol.REMOTE_HTTPS == protocol) {
+                    Protocol otherProtocol  = Protocol.forName(otherData.getProtocol());
+                    if (Protocol.REMOTE == otherProtocol) {
+                        return -1;
                     }
-                    if (Protocol.HTTPS_REMOTING == protocol || Protocol.REMOTE_HTTPS == protocol) {
-                        Protocol otherProtocol  = Protocol.forName(otherData.getProtocol());
-                        if (Protocol.REMOTE == otherProtocol) {
-                            return -1;
-                        }
-                        return 1;
-                    }
-                    return -1;
-                }});
+                    return 1;
+                }
+                return -1;
+            });
             writeToFile(data, MASTER);
         } catch (Exception e) {
             ROOT_LOGGER.cannotWriteDomainControllerData(e);

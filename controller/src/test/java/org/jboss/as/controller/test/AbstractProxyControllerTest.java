@@ -80,9 +80,6 @@ import org.jboss.as.controller.ControlledProcessState;
 import org.jboss.as.controller.ManagementModel;
 import org.jboss.as.controller.ModelController;
 import org.jboss.as.controller.ModelOnlyWriteAttributeHandler;
-import org.jboss.as.controller.OperationContext;
-import org.jboss.as.controller.OperationFailedException;
-import org.jboss.as.controller.OperationStepHandler;
 import org.jboss.as.controller.PathAddress;
 import org.jboss.as.controller.PathElement;
 import org.jboss.as.controller.ProcessType;
@@ -641,15 +638,12 @@ public abstract class AbstractProxyControllerTest {
             GlobalNotifications.registerGlobalNotifications(rootRegistration, processType);
             rootRegistration.registerOperationHandler(ValidateOperationHandler.DEFINITION, ValidateOperationHandler.INSTANCE);
 
-            rootRegistration.registerOperationHandler(TestUtils.SETUP_OPERATION_DEF, new OperationStepHandler() {
-                @Override
-                public void execute(OperationContext context, ModelNode operation) throws OperationFailedException {
-                    ModelNode mainModel = new ModelNode();
-                    mainModel.get(SERVER, "serverA");  //Create an empty node to be got from the proxied model
-                    mainModel.get("profile", "profileA").get(NAME).set("Profile A");
+            rootRegistration.registerOperationHandler(TestUtils.SETUP_OPERATION_DEF, (context, operation) -> {
+                ModelNode mainModel = new ModelNode();
+                mainModel.get(SERVER, "serverA");  //Create an empty node to be got from the proxied model
+                mainModel.get("profile", "profileA").get(NAME).set("Profile A");
 
-                    AbstractControllerTestBase.createModel(context, mainModel);
-                }
+                AbstractControllerTestBase.createModel(context, mainModel);
             });
 
             rootRegistration.registerSubModel(ResourceBuilder.Factory.create(PathElement.pathElement("profile", "*"), new NonResolvingResourceDescriptionResolver())
@@ -675,27 +669,21 @@ public abstract class AbstractProxyControllerTest {
             GlobalNotifications.registerGlobalNotifications(rootRegistration, processType);
             rootRegistration.registerOperationHandler(ValidateOperationHandler.DEFINITION, ValidateOperationHandler.INSTANCE);
             rootRegistration.registerOperationHandler(createOperationDefinition("Test"),
-                    new OperationStepHandler() {
-                        @Override
-                        public void execute(OperationContext context, ModelNode operation) {
-                            // no-op
-                        }
+                    (context, operation) -> {
+                        // no-op
                     },
                     true
             );
 
 
-            rootRegistration.registerOperationHandler(TestUtils.SETUP_OPERATION_DEF, new OperationStepHandler() {
-                        @Override
-                        public void execute(OperationContext context, ModelNode operation) throws OperationFailedException {
-                            ModelNode proxyModel = new ModelNode();
-                            proxyModel.get("serverchild", "svrA", "name").set("serverA");
-                            proxyModel.get("serverchild", "svrA", "child", "childA", "name").set("childName");
-                            proxyModel.get("serverchild", "svrA", "child", "childA", "value").set("childValue");
+            rootRegistration.registerOperationHandler(TestUtils.SETUP_OPERATION_DEF, (context, operation) -> {
+                ModelNode proxyModel = new ModelNode();
+                proxyModel.get("serverchild", "svrA", "name").set("serverA");
+                proxyModel.get("serverchild", "svrA", "child", "childA", "name").set("childName");
+                proxyModel.get("serverchild", "svrA", "child", "childA", "value").set("childValue");
 
-                            AbstractControllerTestBase.createModel(context, proxyModel);
-                        }
-                    }
+                AbstractControllerTestBase.createModel(context, proxyModel);
+            }
             );
 
             ManagementResourceRegistration serverReg = rootRegistration.registerSubModel(
@@ -745,11 +733,8 @@ public abstract class AbstractProxyControllerTest {
             serverChildReg.registerMetric(createMetric("metric", ModelType.STRING), GlobalOperationsTestCase.TestMetricHandler.INSTANCE);
 
             serverChildReg.registerOperationHandler(createOperationDefinition("test-op"),
-                    new OperationStepHandler() {
-                        @Override
-                        public void execute(OperationContext context, ModelNode operation) {
+                    (context, operation) -> {
 
-                        }
                     }
             );
         }

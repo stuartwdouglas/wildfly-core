@@ -70,16 +70,13 @@ public class RuntimeVaultReader extends AbstractVaultReader {
         Map<String, Object> vaultOptions = new HashMap<String, Object>(options);
         SecurityVault vault = null;
         try {
-            vault = AccessController.doPrivileged(new PrivilegedExceptionAction<SecurityVault>() {
-                @Override
-                public SecurityVault run() throws Exception {
-                    if (fqn == null || fqn.isEmpty()) {
-                        return SecurityVaultFactory.get();
-                    } else if (module == null ){
-                        return SecurityVaultFactory.get(fqn);
-                    } else {
-                        return SecurityVaultFactory.get(getModuleClassLoader(module), fqn);
-                    }
+            vault = AccessController.doPrivileged((PrivilegedExceptionAction<SecurityVault>) () -> {
+                if (fqn == null || fqn.isEmpty()) {
+                    return SecurityVaultFactory.get();
+                } else if (module == null ){
+                    return SecurityVaultFactory.get(fqn);
+                } else {
+                    return SecurityVaultFactory.get(getModuleClassLoader(module), fqn);
                 }
             });
         } catch (PrivilegedActionException e) {

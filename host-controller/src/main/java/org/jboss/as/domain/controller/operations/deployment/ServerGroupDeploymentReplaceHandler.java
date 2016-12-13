@@ -124,15 +124,12 @@ public class ServerGroupDeploymentReplaceHandler implements OperationStepHandler
         }
         //
         replaceResource.getModel().get(ENABLED).set(false);
-        context.completeStep(new OperationContext.ResultHandler() {
-            @Override
-            public void handleResult(OperationContext.ResultAction resultAction, OperationContext context, ModelNode operation) {
-                if (resultAction == OperationContext.ResultAction.KEEP) {
-                    //check that if this is a server group level op the referenced deployment overlay exists
-                    if (contentRepository != null && shouldCreateResource) {
-                        for(ContentReference reference : locallyAddedReferences) {
-                            contentRepository.addContentReference(reference);
-                        }
+        context.completeStep((resultAction, context1, operation1) -> {
+            if (resultAction == OperationContext.ResultAction.KEEP) {
+                //check that if this is a server group level op the referenced deployment overlay exists
+                if (contentRepository != null && shouldCreateResource) {
+                    for(ContentReference reference : locallyAddedReferences) {
+                        contentRepository.addContentReference(reference);
                     }
                 }
             }

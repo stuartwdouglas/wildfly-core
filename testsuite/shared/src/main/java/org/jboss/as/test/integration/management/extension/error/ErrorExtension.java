@@ -193,59 +193,48 @@ public class ErrorExtension implements Extension {
                     }
                     case SERVICE_START:
                     case SERVICE_STOP: {
-                        context.addStep(new OperationStepHandler() {
-                            @Override
-                            public void execute(OperationContext context, ModelNode operation) throws OperationFailedException {
+                        context.addStep((context15, operation15) -> {
 
-                                // We always add the service, regardless of whether we want it to fail in start or stop
-                                // Otherwise it's not there to fail in stop!
-                                boolean induceOOME = false; // = context.getProcessType().isServer() && !"master".equals(targetHost.asString());
-                                final ErroringService service = new ErroringService(errorPoint == ErrorPoint.SERVICE_START, induceOOME);
+                            // We always add the service, regardless of whether we want it to fail in start or stop
+                            // Otherwise it's not there to fail in stop!
+                            boolean induceOOME = false; // = context.getProcessType().isServer() && !"master".equals(targetHost.asString());
+                            final ErroringService service = new ErroringService(errorPoint == ErrorPoint.SERVICE_START, induceOOME);
 
-                                final ServiceController<?> serviceController =
-                                        context.getServiceTarget().addService(ErroringService.SERVICE_NAME, service).install();
+                            final ServiceController<?> serviceController =
+                                    context15.getServiceTarget().addService(ErroringService.SERVICE_NAME, service).install();
 
-                                if (errorPoint == ErrorPoint.SERVICE_STOP) {
-                                    // Add a separate step to remove the service, triggering stop
-                                    context.addStep(new OperationStepHandler() {
-                                        @Override
-                                        public void execute(OperationContext context, ModelNode operation) throws OperationFailedException {
-                                            // Make sure the service has started
-                                            long timeout = System.currentTimeMillis() + 30000;
-                                            boolean started;
-                                            do {
-                                                started = serviceController.getState() == ServiceController.State.UP;
-                                                if (!started) {
-                                                    try {
-                                                        Thread.sleep(10);
-                                                    } catch (InterruptedException e) {
-                                                        Thread.currentThread().interrupt();
-                                                        break;
-                                                    }
-                                                }
-                                            } while (!started && System.currentTimeMillis() < timeout);
-
-                                            if (started) {
-                                                context.removeService(ErroringService.SERVICE_NAME);
-                                            } else {
-                                                // Something's wrong.
-                                                // Tell the service not to fail any more so we can successfully
-                                                // clean it up in the rollback handler
-                                                service.errored.set(true);
-                                                throw new IllegalStateException(ErroringService.SERVICE_NAME + " service did not start; state is " + serviceController.getState());
+                            if (errorPoint == ErrorPoint.SERVICE_STOP) {
+                                // Add a separate step to remove the service, triggering stop
+                                context15.addStep((context14, operation14) -> {
+                                    // Make sure the service has started
+                                    long timeout = System.currentTimeMillis() + 30000;
+                                    boolean started;
+                                    do {
+                                        started = serviceController.getState() == ServiceController.State.UP;
+                                        if (!started) {
+                                            try {
+                                                Thread.sleep(10);
+                                            } catch (InterruptedException e) {
+                                                Thread.currentThread().interrupt();
+                                                break;
                                             }
                                         }
-                                    }, OperationContext.Stage.RUNTIME);
-                                }
+                                    } while (!started && System.currentTimeMillis() < timeout);
 
-                                // Always try and remove the service on rollback
-                                context.completeStep(new OperationContext.RollbackHandler() {
-                                    @Override
-                                    public void handleRollback(OperationContext context, ModelNode operation) {
-                                        context.removeService(ErroringService.SERVICE_NAME);
+                                    if (started) {
+                                        context14.removeService(ErroringService.SERVICE_NAME);
+                                    } else {
+                                        // Something's wrong.
+                                        // Tell the service not to fail any more so we can successfully
+                                        // clean it up in the rollback handler
+                                        service.errored.set(true);
+                                        throw new IllegalStateException(ErroringService.SERVICE_NAME + " service did not start; state is " + serviceController.getState());
                                     }
-                                });
+                                }, OperationContext.Stage.RUNTIME);
                             }
+
+                            // Always try and remove the service on rollback
+                            context15.completeStep((context13, operation13) -> context13.removeService(ErroringService.SERVICE_NAME));
                         }, OperationContext.Stage.RUNTIME);
                         break;
                     }
@@ -254,12 +243,9 @@ public class ErrorExtension implements Extension {
                         break;
                     }
                     case ROLLBACK:
-                        context.addStep(new OperationStepHandler() {
-                            @Override
-                            public void execute(OperationContext context, ModelNode operation) throws OperationFailedException {
-                                context.getFailureDescription().set("rollback");
-                                context.setRollbackOnly();
-                            }
+                        context.addStep((context12, operation12) -> {
+                            context12.getFailureDescription().set("rollback");
+                            context12.setRollbackOnly();
                         }, OperationContext.Stage.MODEL);
                         break;
                     case COMMIT:
@@ -267,13 +253,10 @@ public class ErrorExtension implements Extension {
                     default:
                         throw new IllegalStateException(errorPoint.toString());
                 }
-                context.completeStep(new OperationContext.ResultHandler() {
-                    @Override
-                    public void handleResult(OperationContext.ResultAction resultAction, OperationContext context, ModelNode operation) {
-                        if ((errorPoint == ErrorPoint.COMMIT && resultAction == OperationContext.ResultAction.KEEP)
-                            || (errorPoint == ErrorPoint.ROLLBACK && resultAction == OperationContext.ResultAction.ROLLBACK)) {
-                            error();
-                        }
+                context.completeStep((resultAction, context1, operation1) -> {
+                    if ((errorPoint == ErrorPoint.COMMIT && resultAction == OperationContext.ResultAction.KEEP)
+                        || (errorPoint == ErrorPoint.ROLLBACK && resultAction == OperationContext.ResultAction.ROLLBACK)) {
+                        error();
                     }
                 });
             }

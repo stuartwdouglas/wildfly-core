@@ -459,23 +459,17 @@ public class AttributeNamePathCompleter implements CommandLineCompleter {
 
         public InitialValueState(final AttributeNameState attrName) {
             super(ID);
-            setDefaultHandler(new CharacterHandler() {
-                @Override
-                public void handle(ParsingContext ctx) throws CommandFormatException {
-                    ctx.enterState(attrName);
-                }});
+            setDefaultHandler(ctx -> ctx.enterState(attrName));
             enterState('.', DotState.INSTANCE);
             enterState('[', OpenBracketState.INSTANCE);
-            setReturnHandler(new CharacterHandler() {
-                @Override
-                public void handle(ParsingContext ctx) throws CommandFormatException {
-                    if(!ctx.isEndOfContent()) {
-                        final char c = ctx.getCharacter();
-                        if(isAttributeNameChar(c) || c == '.' || c == '[' || c == ']') {
-                            getHandler(c).handle(ctx);
-                        }
+            setReturnHandler(ctx -> {
+                if(!ctx.isEndOfContent()) {
+                    final char c = ctx.getCharacter();
+                    if(isAttributeNameChar(c) || c == '.' || c == '[' || c == ']') {
+                        getHandler(c).handle(ctx);
                     }
-                }});
+                }
+            });
         }
     }
 
@@ -486,19 +480,14 @@ public class AttributeNamePathCompleter implements CommandLineCompleter {
 
         public AttributeNameState() {
             super(ID);
-            this.setEnterHandler(new CharacterHandler(){
-                @Override
-                public void handle(ParsingContext ctx) throws CommandFormatException {
-                    final char ch = ctx.getCharacter();
-                    final CharacterHandler handler = getHandler(ch);
-                    handler.handle(ctx);
-                }});
-            setDefaultHandler(new CharacterHandler() {
-                @Override
-                public void handle(ParsingContext ctx) throws CommandFormatException {
-                    final char c = ctx.getCharacter();
-                    WordCharacterHandler.IGNORE_LB_ESCAPE_ON.handle(ctx);
-                }
+            this.setEnterHandler(ctx -> {
+                final char ch = ctx.getCharacter();
+                final CharacterHandler handler = getHandler(ch);
+                handler.handle(ctx);
+            });
+            setDefaultHandler(ctx -> {
+                final char c = ctx.getCharacter();
+                WordCharacterHandler.IGNORE_LB_ESCAPE_ON.handle(ctx);
             });
             putHandler('.', GlobalCharacterHandlers.LEAVE_STATE_HANDLER);
             putHandler('[', GlobalCharacterHandlers.LEAVE_STATE_HANDLER);
@@ -537,11 +526,7 @@ public class AttributeNamePathCompleter implements CommandLineCompleter {
 
         OpenBracketState() {
             super(ID);
-            setDefaultHandler(new CharacterHandler() {
-                @Override
-                public void handle(ParsingContext ctx) throws CommandFormatException {
-                    ctx.enterState(ListIndexState.INSTANCE);
-                }});
+            setDefaultHandler(ctx -> ctx.enterState(ListIndexState.INSTANCE));
             setReturnHandler(GlobalCharacterHandlers.LEAVE_STATE_HANDLER);
         }
     }

@@ -65,14 +65,11 @@ public class ServerProcessStateHandler implements OperationStepHandler {
         } else {
             context.restartRequired();
         }
-        context.completeStep(new OperationContext.RollbackHandler() {
-            @Override
-            public void handleRollback(OperationContext context, ModelNode operation) {
-                if (reload) {
-                    context.revertReloadRequired();
-                } else {
-                    context.revertRestartRequired();
-                }
+        context.completeStep((context1, operation1) -> {
+            if (reload) {
+                context1.revertReloadRequired();
+            } else {
+                context1.revertRestartRequired();
             }
         });
     }

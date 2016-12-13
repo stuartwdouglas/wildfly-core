@@ -50,21 +50,13 @@ public class LocalAgeoutHistoryHandler extends PatchStreamResourceOperationStepH
 
     public static final LocalAgeoutHistoryHandler INSTANCE = new LocalAgeoutHistoryHandler();
 
-    static final FilenameFilter ALL = new FilenameFilter() {
-        @Override
-        public boolean accept(File dir, String name) {
-            return true;
-        }
-    };
+    static final FilenameFilter ALL = (dir, name) -> true;
 
-    static final FilenameFilter HISTORY_FILTER = new FilenameFilter() {
-        @Override
-        public boolean accept(File dir, String name) {
-            if (PatchXml.PATCH_XML.equals(name) || PatchXml.ROLLBACK_XML.equals(name)) {
-                return false;
-            }
-            return true;
+    static final FilenameFilter HISTORY_FILTER = (dir, name) -> {
+        if (PatchXml.PATCH_XML.equals(name) || PatchXml.ROLLBACK_XML.equals(name)) {
+            return false;
         }
+        return true;
     };
 
     @Override

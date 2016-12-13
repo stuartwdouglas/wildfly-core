@@ -26,7 +26,6 @@ import java.util.Deque;
 import java.util.Map;
 
 import io.undertow.server.HttpHandler;
-import io.undertow.server.HttpServerExchange;
 import org.apache.log4j.Logger;
 import org.wildfly.test.undertow.UndertowServiceActivator;
 
@@ -39,17 +38,14 @@ public class Log4jServiceActivator extends UndertowServiceActivator {
 
     @Override
     protected HttpHandler getHttpHandler() {
-        return new HttpHandler() {
-            @Override
-            public void handleRequest(final HttpServerExchange exchange) throws Exception {
-                final Map<String, Deque<String>> params = exchange.getQueryParameters();
-                String msg = DEFAULT_MESSAGE;
-                if (params.containsKey("msg")) {
-                    msg = getFirstValue(params, "msg");
-                }
-                LOGGER.info(msg);
-                exchange.getResponseSender().send("Response sent");
+        return exchange -> {
+            final Map<String, Deque<String>> params = exchange.getQueryParameters();
+            String msg = DEFAULT_MESSAGE;
+            if (params.containsKey("msg")) {
+                msg = getFirstValue(params, "msg");
             }
+            LOGGER.info(msg);
+            exchange.getResponseSender().send("Response sent");
         };
     }
 

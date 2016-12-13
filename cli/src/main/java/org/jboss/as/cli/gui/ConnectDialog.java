@@ -114,11 +114,7 @@ public class ConnectDialog extends JInternalFrame {
         }
         // to update GUI...
         // SwingUtilities... does not work.
-        new Thread(new Runnable() {
-            public void run() {
-                inner_start();
-            }
-        }).start();
+        new Thread(() -> inner_start()).start();
     }
 
     private void inner_start(){

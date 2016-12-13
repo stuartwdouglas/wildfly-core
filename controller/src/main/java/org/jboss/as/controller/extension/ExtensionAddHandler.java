@@ -90,12 +90,9 @@ public class ExtensionAddHandler implements OperationStepHandler {
             rootRegistration = null;
         }
 
-        context.completeStep(new OperationContext.RollbackHandler() {
-            @Override
-            public void handleRollback(OperationContext context, ModelNode operation) {
-                if (install) {
-                    extensionRegistry.removeExtension(resource, moduleName, rootRegistration);
-                }
+        context.completeStep((context1, operation1) -> {
+            if (install) {
+                extensionRegistry.removeExtension(resource, moduleName, rootRegistration);
             }
         });
     }

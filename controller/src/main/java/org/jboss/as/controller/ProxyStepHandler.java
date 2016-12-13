@@ -229,62 +229,59 @@ public class ProxyStepHandler implements OperationStepHandler {
                 context.getResult().set(preparedResult);
             }
 
-            context.completeStep(new OperationContext.ResultHandler() {
-                @Override
-                public void handleResult(OperationContext.ResultAction resultAction, OperationContext context, ModelNode operation) {
-                    boolean txCompleted = false;
+            context.completeStep((resultAction, context1, operation1) -> {
+                boolean txCompleted = false;
+                try {
+                    ModelController.OperationTransaction tx = txRef.get();
                     try {
-                        ModelController.OperationTransaction tx = txRef.get();
-                        try {
-                            if (resultAction == OperationContext.ResultAction.KEEP) {
-                                tx.commit();
-                            } else {
-                                tx.rollback();
-                            }
-                        } finally {
-                            txCompleted = true;
-                        }
-
-                        // Get the final result from the proxy and use it to update our response.
-                        // Per the ProxyOperationControl contract, this will have been provided via operationCompleted
-                        // by the time the call to OperationTransaction.commit/rollback returns
-
-                        OperationResponse finalResponse = finalResultRef.get();
-                        if (finalResponse != null) {
-                            ModelNode responseNode = finalResponse.getResponseNode();
-                            ModelNode finalResult = responseNode.get(RESULT);
-                            PathAddress currentAddress = context.getCurrentAddress();
-                            if (currentAddress.isMultiTarget()) {
-                                untranslateResultAddress(currentAddress, finalResult);
-                            }
-                            if (responseNode.hasDefined(FAILURE_DESCRIPTION)) {
-                                context.getFailureDescription().set(responseNode.get(FAILURE_DESCRIPTION));
-                                if (finalResult.isDefined()) {
-                                    context.getResult().set(finalResult);
-                                }
-                            } else {
-                                context.getResult().set(finalResult);
-                            }
-                            if (context.getProcessType() == ProcessType.HOST_CONTROLLER && responseNode.has(SERVER_GROUPS)) {
-                                context.getServerResults().set(responseNode.get(SERVER_GROUPS));
-                            }
-                            if (responseNode.hasDefined(RESPONSE_HEADERS)) {
-                                context.getResponseHeaders().set(processResponseHeaders(responseNode.get(RESPONSE_HEADERS)));
-                            }
-
-                            // Make sure any streams associated with the remote response are properly
-                            // integrated with our response
-                            ResponseAttachmentInputStreamSupport.handleDomainOperationResponseStreams(context, responseNode, finalResponse.getInputStreams());
+                        if (resultAction == OperationContext.ResultAction.KEEP) {
+                            tx.commit();
                         } else {
-                            // This is an error condition
-                            ControllerLogger.MGMT_OP_LOGGER.noFinalProxyOutcomeReceived(operation.get(OP),
-                                    operation.get(OP_ADDR), proxyController.getProxyNodeAddress().toModelNode());
+                            tx.rollback();
                         }
                     } finally {
-                        // Ensure the remote side gets a transaction outcome if we can't commit/rollback above
-                        if (!txCompleted && txRef.get() != null) {
-                            txRef.get().rollback();
+                        txCompleted = true;
+                    }
+
+                    // Get the final result from the proxy and use it to update our response.
+                    // Per the ProxyOperationControl contract, this will have been provided via operationCompleted
+                    // by the time the call to OperationTransaction.commit/rollback returns
+
+                    OperationResponse finalResponse = finalResultRef.get();
+                    if (finalResponse != null) {
+                        ModelNode responseNode = finalResponse.getResponseNode();
+                        ModelNode finalResult = responseNode.get(RESULT);
+                        PathAddress currentAddress = context1.getCurrentAddress();
+                        if (currentAddress.isMultiTarget()) {
+                            untranslateResultAddress(currentAddress, finalResult);
                         }
+                        if (responseNode.hasDefined(FAILURE_DESCRIPTION)) {
+                            context1.getFailureDescription().set(responseNode.get(FAILURE_DESCRIPTION));
+                            if (finalResult.isDefined()) {
+                                context1.getResult().set(finalResult);
+                            }
+                        } else {
+                            context1.getResult().set(finalResult);
+                        }
+                        if (context1.getProcessType() == ProcessType.HOST_CONTROLLER && responseNode.has(SERVER_GROUPS)) {
+                            context1.getServerResults().set(responseNode.get(SERVER_GROUPS));
+                        }
+                        if (responseNode.hasDefined(RESPONSE_HEADERS)) {
+                            context1.getResponseHeaders().set(processResponseHeaders(responseNode.get(RESPONSE_HEADERS)));
+                        }
+
+                        // Make sure any streams associated with the remote response are properly
+                        // integrated with our response
+                        ResponseAttachmentInputStreamSupport.handleDomainOperationResponseStreams(context1, responseNode, finalResponse.getInputStreams());
+                    } else {
+                        // This is an error condition
+                        ControllerLogger.MGMT_OP_LOGGER.noFinalProxyOutcomeReceived(operation1.get(OP),
+                                operation1.get(OP_ADDR), proxyController.getProxyNodeAddress().toModelNode());
+                    }
+                } finally {
+                    // Ensure the remote side gets a transaction outcome if we can't commit/rollback above
+                    if (!txCompleted && txRef.get() != null) {
+                        txRef.get().rollback();
                     }
                 }
             });

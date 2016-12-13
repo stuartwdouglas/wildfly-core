@@ -119,43 +119,37 @@ public class ExplodedDeploymentAddContentHandler implements OperationStepHandler
         contentItemNode.get(CONTENT_HASH.getName()).set(newHash);
         contentItemNode.get(CONTENT_ARCHIVE.getName()).set(false);
         if (!addedFiles.isEmpty() && ENABLED.resolveModelAttribute(context, deploymentResource.getModel()).asBoolean()) {
-            context.addStep(new OperationStepHandler() {
-                @Override
-                public void execute(OperationContext context, ModelNode operation) throws OperationFailedException {
-                    try {
-                        ExecutorService executor = (ExecutorService) context.getServiceRegistry(false).getRequiredService(JBOSS_SERVER_EXECUTOR).getValue();
-                        CountDownLatch latch = copy(executor, relativePaths, managementName, newHash);
-                        if (latch != null) {
-                            try {
-                                if (!latch.await(60, TimeUnit.SECONDS)) {
-                                    return;
-                                }
-                            } catch (InterruptedException e) {
-                                Thread.currentThread().interrupt();
-                                throw createFailureException(e.toString());
+            context.addStep((context12, operation12) -> {
+                try {
+                    ExecutorService executor = (ExecutorService) context12.getServiceRegistry(false).getRequiredService(JBOSS_SERVER_EXECUTOR).getValue();
+                    CountDownLatch latch = copy(executor, relativePaths, managementName, newHash);
+                    if (latch != null) {
+                        try {
+                            if (!latch.await(60, TimeUnit.SECONDS)) {
+                                return;
                             }
+                        } catch (InterruptedException e) {
+                            Thread.currentThread().interrupt();
+                            throw createFailureException(e.toString());
                         }
-                    } catch (IOException e) {
-                        throw createFailureException(e.toString());
                     }
+                } catch (IOException e) {
+                    throw createFailureException(e.toString());
                 }
             }, OperationContext.Stage.RUNTIME);
         }
-        context.completeStep(new OperationContext.ResultHandler() {
-            @Override
-            public void handleResult(ResultAction resultAction, OperationContext context, ModelNode operation) {
-                if (resultAction == ResultAction.KEEP) {
-                    if (oldHash != null  && (newHash == null || !Arrays.equals(oldHash, newHash))) {
-                        // The old content is no longer used; clean from repos
-                        contentRepository.removeContent(ModelContentReference.fromModelAddress(address, oldHash));
-                    }
-                    if (newHash != null) {
-                        contentRepository.addContentReference(ModelContentReference.fromModelAddress(address, newHash));
-                    }
-                } else if (newHash != null && (oldHash == null || !Arrays.equals(oldHash, newHash))) {
-                    // Due to rollback, the new content isn't used; clean from repos
-                    contentRepository.removeContent(ModelContentReference.fromModelAddress(address, newHash));
+        context.completeStep((resultAction, context1, operation1) -> {
+            if (resultAction == ResultAction.KEEP) {
+                if (oldHash != null  && (newHash == null || !Arrays.equals(oldHash, newHash))) {
+                    // The old content is no longer used; clean from repos
+                    contentRepository.removeContent(ModelContentReference.fromModelAddress(address, oldHash));
                 }
+                if (newHash != null) {
+                    contentRepository.addContentReference(ModelContentReference.fromModelAddress(address, newHash));
+                }
+            } else if (newHash != null && (oldHash == null || !Arrays.equals(oldHash, newHash))) {
+                // Due to rollback, the new content isn't used; clean from repos
+                contentRepository.removeContent(ModelContentReference.fromModelAddress(address, newHash));
             }
         });
     }
@@ -165,16 +159,13 @@ public class ExplodedDeploymentAddContentHandler implements OperationStepHandler
         Path runtimeDeployedPath = DeploymentHandlerUtil.getExplodedDeploymentRoot(serverEnvironment, managementName);
         if (Files.exists(runtimeDeployedPath)) {
             result = new CountDownLatch(1);
-            Runnable r = new Runnable() {
-                @Override
-                public void run() {
-                    try {
-                        contentRepository.copyExplodedContentFiles(newHash, relativePaths, runtimeDeployedPath);
-                    } catch (ExplodedContentException ex) {
-                        ServerLogger.DEPLOYMENT_LOGGER.couldNotCopyFiles(ex, managementName);
-                    } finally {
-                        result.countDown();
-                    }
+            Runnable r = () -> {
+                try {
+                    contentRepository.copyExplodedContentFiles(newHash, relativePaths, runtimeDeployedPath);
+                } catch (ExplodedContentException ex) {
+                    ServerLogger.DEPLOYMENT_LOGGER.couldNotCopyFiles(ex, managementName);
+                } finally {
+                    result.countDown();
                 }
             };
             executor.submit(r);

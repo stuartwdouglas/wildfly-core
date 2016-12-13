@@ -44,7 +44,6 @@ import org.jboss.as.controller.ManagementModel;
 import org.jboss.as.controller.OperationContext;
 import org.jboss.as.controller.OperationDefinition;
 import org.jboss.as.controller.OperationFailedException;
-import org.jboss.as.controller.OperationStepHandler;
 import org.jboss.as.controller.PathAddress;
 import org.jboss.as.controller.PathElement;
 import org.jboss.as.controller.ProcessType;
@@ -274,11 +273,8 @@ public class ReadResourceDescriptionAccessConstraintDefinitionTestCase extends A
         @Override
         public void registerOperations(ManagementResourceRegistration resourceRegistration) {
             super.registerOperations(resourceRegistration);
-            resourceRegistration.registerOperationHandler(CUSTOM_OPERATION, new OperationStepHandler() {
-                @Override
-                public void execute(OperationContext context, ModelNode operation) throws OperationFailedException {
-                    // no-op
-                }
+            resourceRegistration.registerOperationHandler(CUSTOM_OPERATION, (context, operation) -> {
+                // no-op
             });
         }
     }

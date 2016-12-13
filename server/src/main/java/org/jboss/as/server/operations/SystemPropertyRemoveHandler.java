@@ -83,17 +83,14 @@ public class SystemPropertyRemoveHandler implements OperationStepHandler {
             context.reloadRequired();
         }
 
-        context.completeStep(new OperationContext.RollbackHandler() {
-            @Override
-            public void handleRollback(OperationContext context, ModelNode operation) {
-                if (applyToRuntime) {
-                    WildFlySecurityManager.setPropertyPrivileged(name, oldValue);
-                    if (systemPropertyUpdater != null) {
-                        systemPropertyUpdater.systemPropertyUpdated(name, oldValue);
-                    }
-                } else if (reload) {
-                    context.revertReloadRequired();
+        context.completeStep((context1, operation1) -> {
+            if (applyToRuntime) {
+                WildFlySecurityManager.setPropertyPrivileged(name, oldValue);
+                if (systemPropertyUpdater != null) {
+                    systemPropertyUpdater.systemPropertyUpdated(name, oldValue);
                 }
+            } else if (reload) {
+                context1.revertReloadRequired();
             }
         });
     }

@@ -21,7 +21,6 @@
  */
 package org.jboss.as.domain.management.access;
 
-import org.jboss.as.controller.ParameterCorrector;
 import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.HOST_SCOPED_ROLE;
 import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.OP_ADDR;
 import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.SERVER_GROUP_SCOPED_ROLE;
@@ -92,20 +91,17 @@ abstract class ScopedRoleAddHandler extends AbstractAddStepHandler {
 
                         throw DomainManagementLogger.ROOT_LOGGER.badBaseRole(specifiedRole);
                     }
-                }).setCorrector(new ParameterCorrector() {
-                    @Override
-                    public ModelNode correct(ModelNode newValue, ModelNode currentValue) {
-                        Set<String> standardRoles = authorizerConfiguration.getStandardRoles();
-                        String specifiedRole = newValue.asString();
+                }).setCorrector((newValue, currentValue) -> {
+                    Set<String> standardRoles = authorizerConfiguration.getStandardRoles();
+                    String specifiedRole = newValue.asString();
 
-                        for (String current : standardRoles) {
-                            if (specifiedRole.equalsIgnoreCase(current) && specifiedRole.equals(current) == false) {
-                                return new ModelNode(current);
-                            }
+                    for (String current1 : standardRoles) {
+                        if (specifiedRole.equalsIgnoreCase(current1) && specifiedRole.equals(current1) == false) {
+                            return new ModelNode(current1);
                         }
-
-                        return newValue;
                     }
+
+                    return newValue;
                 }).build());
             } else {
                 enhanced.add(current);

@@ -22,7 +22,6 @@ import java.util.Deque;
 import java.util.Map;
 
 import io.undertow.server.HttpHandler;
-import io.undertow.server.HttpServerExchange;
 import org.wildfly.test.undertow.UndertowServiceActivator;
 
 /**
@@ -34,20 +33,17 @@ public class ModulesServiceActivator extends UndertowServiceActivator {
 
     @Override
     protected HttpHandler getHttpHandler() {
-        return new HttpHandler() {
-            @Override
-            public void handleRequest(HttpServerExchange exchange) throws Exception {
-                Map<String, Deque<String>> parameters = exchange.getQueryParameters();
-                String action = parameters.get("action").getFirst();
-                if (action.equals(ACTION_TEST_MODULE_RESOURCE)) {
-                    exchange.getResponseSender().send(ModuleResource.test());
-                    return;
-                } else if (action.equals(ACTION_TEST_ABSOLUTE_RESOURCE)) {
-                    exchange.getResponseSender().send(AbsoluteResource.test());
-                    return;
-                }
-                exchange.getResponseSender().send("wrong reponse!");
+        return exchange -> {
+            Map<String, Deque<String>> parameters = exchange.getQueryParameters();
+            String action = parameters.get("action").getFirst();
+            if (action.equals(ACTION_TEST_MODULE_RESOURCE)) {
+                exchange.getResponseSender().send(ModuleResource.test());
+                return;
+            } else if (action.equals(ACTION_TEST_ABSOLUTE_RESOURCE)) {
+                exchange.getResponseSender().send(AbsoluteResource.test());
+                return;
             }
+            exchange.getResponseSender().send("wrong reponse!");
         };
     }
 }

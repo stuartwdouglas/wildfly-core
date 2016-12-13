@@ -64,32 +64,28 @@ public class ValidatePasswordState extends AbstractValidationState {
     }
 
     private State getDetailedCheckState() {
-        return new State() {
-
-            @Override
-            public State execute() {
-                PasswordCheckResult result = stateValues.getOptions().getCheckUtil().check(false, stateValues.getUserName(), stateValues.getPassword());
-                final boolean warnResult = PasswordCheckResult.Result.WARN.equals(result.getResult());
-                final boolean rejectResult = PasswordCheckResult.Result.REJECT.equals(result.getResult());
-                switch (stateValues.getOptions().getCheckUtil().getRestrictionLevel()) {
-                    case WARN:
-                        if ((warnResult || rejectResult) && !stateValues.isSilentOrNonInteractive()) {
-                            return confirmWeakPassword(result);
-                        }
-                        break;
-                    case REJECT:
-                        if (warnResult && !stateValues.isSilentOrNonInteractive()) {
-                            return confirmWeakPassword(result);
-                        }
-                        if (rejectResult) {
-                            return new ErrorState(theConsole, result.getMessage(), getRetryState(), stateValues);
-                        }
-                        break;
-                    default:
-                        break;
-                }
-                return ValidatePasswordState.this;
+        return () -> {
+            PasswordCheckResult result = stateValues.getOptions().getCheckUtil().check(false, stateValues.getUserName(), stateValues.getPassword());
+            final boolean warnResult = PasswordCheckResult.Result.WARN.equals(result.getResult());
+            final boolean rejectResult = PasswordCheckResult.Result.REJECT.equals(result.getResult());
+            switch (stateValues.getOptions().getCheckUtil().getRestrictionLevel()) {
+                case WARN:
+                    if ((warnResult || rejectResult) && !stateValues.isSilentOrNonInteractive()) {
+                        return confirmWeakPassword(result);
+                    }
+                    break;
+                case REJECT:
+                    if (warnResult && !stateValues.isSilentOrNonInteractive()) {
+                        return confirmWeakPassword(result);
+                    }
+                    if (rejectResult) {
+                        return new ErrorState(theConsole, result.getMessage(), getRetryState(), stateValues);
+                    }
+                    break;
+                default:
+                    break;
             }
+            return ValidatePasswordState.this;
         };
     }
 

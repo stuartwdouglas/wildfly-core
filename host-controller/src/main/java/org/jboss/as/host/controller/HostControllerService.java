@@ -80,11 +80,7 @@ public class HostControllerService implements Service<AsyncFuture<ServiceContain
     public static final ServiceName HC_SCHEDULED_EXECUTOR_SERVICE_NAME = HC_SERVICE_NAME.append("scheduled", "executor");
 
     private final ThreadGroup threadGroup = new ThreadGroup("Host Controller Service Threads");
-    private final ThreadFactory threadFactory = doPrivileged(new PrivilegedAction<JBossThreadFactory>() {
-        public JBossThreadFactory run() {
-            return new JBossThreadFactory(threadGroup, Boolean.FALSE, null, "%G - %t", null, null);
-        }
-    });
+    private final ThreadFactory threadFactory = doPrivileged((PrivilegedAction<JBossThreadFactory>) () -> new JBossThreadFactory(threadGroup, Boolean.FALSE, null, "%G - %t", null, null));
     private final HostControllerEnvironment environment;
     private final HostRunningModeControl runningModeControl;
     private final ControlledProcessState processState;
@@ -243,15 +239,12 @@ public class HostControllerService implements Service<AsyncFuture<ServiceContain
 
         @Override
         public synchronized void stop(final StopContext context) {
-            Thread executorShutdown = new Thread(new Runnable() {
-                @Override
-                public void run() {
-                    try {
-                        executorService.shutdown();
-                    } finally {
-                        executorService = null;
-                        context.complete();
-                    }
+            Thread executorShutdown = new Thread(() -> {
+                try {
+                    executorService.shutdown();
+                } finally {
+                    executorService = null;
+                    context.complete();
                 }
             }, "HostController ExecutorService Shutdown Thread");
             executorShutdown.start();
@@ -281,15 +274,12 @@ public class HostControllerService implements Service<AsyncFuture<ServiceContain
 
         @Override
         public synchronized void stop(final StopContext context) {
-            Runnable r = new Runnable() {
-                @Override
-                public void run() {
-                    try {
-                        scheduledExecutorService.shutdown();
-                    } finally {
-                        scheduledExecutorService = null;
-                        context.complete();
-                    }
+            Runnable r = () -> {
+                try {
+                    scheduledExecutorService.shutdown();
+                } finally {
+                    scheduledExecutorService = null;
+                    context.complete();
                 }
             };
             try {

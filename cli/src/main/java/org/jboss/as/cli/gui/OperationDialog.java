@@ -198,11 +198,7 @@ public class OperationDialog extends JDialog {
         ok.addActionListener(new SetOperationActionListener());
 
         JButton cancel = new JButton("Cancel");
-        cancel.addActionListener(new ActionListener() {
-            public void actionPerformed(ActionEvent ae) {
-                OperationDialog.this.dispose();
-            }
-        });
+        cancel.addActionListener(ae -> OperationDialog.this.dispose());
 
         buttonPanel.add(ok);
         buttonPanel.add(cancel);

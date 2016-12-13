@@ -21,12 +21,9 @@
  */
 package org.jboss.as.cli.parsing.command;
 
-import org.jboss.as.cli.CommandFormatException;
 import org.jboss.as.cli.parsing.BackQuotesState;
-import org.jboss.as.cli.parsing.CharacterHandler;
 import org.jboss.as.cli.parsing.DefaultStateWithEndCharacter;
 import org.jboss.as.cli.parsing.ExpressionBaseState;
-import org.jboss.as.cli.parsing.ParsingContext;
 import org.jboss.as.cli.parsing.QuotesState;
 import org.jboss.as.cli.parsing.WordCharacterHandler;
 
@@ -41,13 +38,11 @@ public class ArgumentValueState extends ExpressionBaseState {
 
     ArgumentValueState() {
         super(ID, false);
-        this.setEnterHandler(new CharacterHandler() {
-            @Override
-            public void handle(ParsingContext ctx) throws CommandFormatException {
-                if(ctx.getCharacter() != '=') {
-                    getHandler(ctx.getCharacter()).handle(ctx);
-                }
-            }});
+        this.setEnterHandler(ctx -> {
+            if(ctx.getCharacter() != '=') {
+                getHandler(ctx.getCharacter()).handle(ctx);
+            }
+        });
         enterState('[', new DefaultStateWithEndCharacter("BRACKETS", ']', false, true, enterStateHandlers));
         enterState('(', new DefaultStateWithEndCharacter("PARENTHESIS", ')', false, true, enterStateHandlers));
         enterState('{', new DefaultStateWithEndCharacter("BRACES", '}', false, true, enterStateHandlers));
@@ -55,13 +50,11 @@ public class ArgumentValueState extends ExpressionBaseState {
         setDefaultHandler(new WordCharacterHandler(true, false));
         enterState('"', QuotesState.QUOTES_INCLUDED_KEEP_ESCAPES);
         enterState('`', new BackQuotesState(true, false));
-        setReturnHandler(new CharacterHandler() {
-            @Override
-            public void handle(ParsingContext ctx) throws CommandFormatException {
-                if(ctx.isEndOfContent()) {
-                    ctx.leaveState();
-                }
-            }});
+        setReturnHandler(ctx -> {
+            if(ctx.isEndOfContent()) {
+                ctx.leaveState();
+            }
+        });
     }
 
     @Override

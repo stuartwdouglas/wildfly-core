@@ -34,7 +34,6 @@ import org.jboss.as.protocol.mgmt.ManagementChannelAssociation;
 import org.jboss.as.protocol.mgmt.ManagementChannelHandler;
 import org.jboss.as.protocol.mgmt.ManagementClientChannelStrategy;
 import org.jboss.remoting3.Channel;
-import org.jboss.remoting3.CloseHandler;
 import org.jboss.remoting3.Endpoint;
 
 /**
@@ -120,12 +119,7 @@ public class RemotingModelControllerClient extends AbstractModelControllerClient
 
                 strategy = ManagementClientChannelStrategy.create(configuration, channelAssociation, clientConfiguration.getCallbackHandler(),
                         clientConfiguration.getSaslOptions(), clientConfiguration.getSSLContext(),
-                        new CloseHandler<Channel>() {
-                    @Override
-                    public void handleClose(final Channel closed, final IOException exception) {
-                        channelAssociation.handleChannelClosed(closed, exception);
-                    }
-                });
+                        (closed, exception) -> channelAssociation.handleChannelClosed(closed, exception));
             } catch (RuntimeException e) {
                 throw e;
             } catch (Exception e) {

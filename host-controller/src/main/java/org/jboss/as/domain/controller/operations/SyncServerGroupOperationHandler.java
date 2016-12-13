@@ -78,12 +78,7 @@ public class SyncServerGroupOperationHandler extends SyncModelHandlerBase {
         // Process the original
         ReadMasterDomainModelUtil.processHostModel(rc, original, original.getChild(host), parameters.getExtensionRegistry());
 
-        final Transformers.ResourceIgnoredTransformationRegistry delegate = new Transformers.ResourceIgnoredTransformationRegistry() {
-            @Override
-            public boolean isResourceTransformationIgnored(PathAddress address) {
-                return parameters.getIgnoredResourceRegistry().isResourceExcluded(address);
-            }
-        };
+        final Transformers.ResourceIgnoredTransformationRegistry delegate = address -> parameters.getIgnoredResourceRegistry().isResourceExcluded(address);
         return ReadMasterDomainModelUtil.createServerIgnoredRegistry(rc, delegate);
     }
 }

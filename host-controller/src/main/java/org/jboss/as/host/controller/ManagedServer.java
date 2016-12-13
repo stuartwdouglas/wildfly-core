@@ -415,25 +415,19 @@ class ManagedServer {
         channelAssociation.getAttachments().attach(TransactionalProtocolClient.SEND_SUBJECT, Boolean.TRUE);
         final TransactionalProtocolClient remoteClient = TransactionalProtocolHandlers.createClient(channelAssociation);
         if      (current == InternalState.RELOADING) {
-            internalSetState(new TransitionTask() {
-                @Override
-                public boolean execute(ManagedServer server) throws Exception {
-                    // Update the current remote connection
-                    protocolClient.connected(remoteClient);
-                    // clear reload required state
-                    requiresReload = false;
-                    return true;
-                }
+            internalSetState(server -> {
+                // Update the current remote connection
+                protocolClient.connected(remoteClient);
+                // clear reload required state
+                requiresReload = false;
+                return true;
             }, InternalState.RELOADING, InternalState.SERVER_STARTING);
         } else {
-            internalSetState(new TransitionTask() {
-                @Override
-                public boolean execute(final ManagedServer server) throws Exception {
-                    // Update the current remote connection
-                    protocolClient.connected(remoteClient);
-                    return true;
-                }
             // TODO we just check that we are in the correct state, perhaps introduce a new state
+            internalSetState(server -> {
+                // Update the current remote connection
+                protocolClient.connected(remoteClient);
+                return true;
             }, InternalState.SEND_STDIN, InternalState.SERVER_STARTING);
         }
         return remoteClient;

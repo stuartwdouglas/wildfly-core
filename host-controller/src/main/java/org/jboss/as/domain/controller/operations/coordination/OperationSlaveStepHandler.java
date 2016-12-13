@@ -85,34 +85,31 @@ class OperationSlaveStepHandler {
             context.reloadRequired();
         }
 
-        context.completeStep(new OperationContext.ResultHandler() {
-            @Override
-            public void handleResult(OperationContext.ResultAction resultAction, OperationContext context, ModelNode operation) {
-                hostControllerExecutionSupport.complete(resultAction == OperationContext.ResultAction.ROLLBACK);
+        context.completeStep((resultAction, context1, operation1) -> {
+            hostControllerExecutionSupport.complete(resultAction == OperationContext.ResultAction.ROLLBACK);
 
-                if (resultAction == OperationContext.ResultAction.KEEP) {
+            if (resultAction == OperationContext.ResultAction.KEEP) {
 
-                    // Replace the special format response ServerOperationsResolverHandler
-                    // used to send the prepared response to the coordinator with one that
-                    // has the final data. To save bandwidth we also drop any 'server-operations'
-                    // that were in the prepared response as those are no longer relevant.
-                    ModelNode result = context.getResult();
-                    result.setEmptyObject();
-                    ModelNode domainFormatted = hostControllerExecutionSupport.getFormattedDomainResult(localContext.getLocalResponse().get(RESULT));
-                    result.get(DOMAIN_RESULTS).set(domainFormatted);
-                } else {
-                    if (reloadRequired) {
-                        context.revertReloadRequired();
+                // Replace the special format response ServerOperationsResolverHandler
+                // used to send the prepared response to the coordinator with one that
+                // has the final data. To save bandwidth we also drop any 'server-operations'
+                // that were in the prepared response as those are no longer relevant.
+                ModelNode result = context1.getResult();
+                result.setEmptyObject();
+                ModelNode domainFormatted = hostControllerExecutionSupport.getFormattedDomainResult(localContext.getLocalResponse().get(RESULT));
+                result.get(DOMAIN_RESULTS).set(domainFormatted);
+            } else {
+                if (reloadRequired) {
+                    context1.revertReloadRequired();
+                }
+                // The actual operation failed but make sure the result still gets formatted
+                if (hostControllerExecutionSupport.getDomainOperation() != null) {
+                    ModelNode localResponse = localContext.getLocalResponse();
+                    if (localResponse.has(FAILURE_DESCRIPTION)) {
+                        context1.getFailureDescription().set(localResponse.get(FAILURE_DESCRIPTION));
                     }
-                    // The actual operation failed but make sure the result still gets formatted
-                    if (hostControllerExecutionSupport.getDomainOperation() != null) {
-                        ModelNode localResponse = localContext.getLocalResponse();
-                        if (localResponse.has(FAILURE_DESCRIPTION)) {
-                            context.getFailureDescription().set(localResponse.get(FAILURE_DESCRIPTION));
-                        }
-                        if (localResponse.has(RESULT)) {
-                            context.getResult().set(localResponse.get(RESULT));
-                        }
+                    if (localResponse.has(RESULT)) {
+                        context1.getResult().set(localResponse.get(RESULT));
                     }
                 }
             }

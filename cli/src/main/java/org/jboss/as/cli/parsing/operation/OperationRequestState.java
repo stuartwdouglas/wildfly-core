@@ -60,17 +60,15 @@ public class OperationRequestState extends DefaultParsingState {
         enterState('(', propList);
         enterState('{', headerList);
         enterState(OutputTargetState.OUTPUT_REDIRECT_CHAR, outRedirect);
-        setReturnHandler(new CharacterHandler(){
-            @Override
-            public void handle(ParsingContext ctx) throws CommandFormatException {
-                if(ctx.isEndOfContent()) {
-                    return;
-                }
-                CharacterHandler handler = enterStateHandlers.getHandler(ctx.getCharacter());
-                if(handler != null) {
-                    handler.handle(ctx);
-                }
-            }});
+        setReturnHandler(ctx -> {
+            if(ctx.isEndOfContent()) {
+                return;
+            }
+            CharacterHandler handler = enterStateHandlers.getHandler(ctx.getCharacter());
+            if(handler != null) {
+                handler.handle(ctx);
+            }
+        });
         setIgnoreWhitespaces(true);
     }
 }

@@ -32,7 +32,6 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
-import org.jboss.as.controller.ModelController;
 import org.jboss.as.controller.ModelVersion;
 import org.jboss.as.controller.OperationFailedException;
 import org.jboss.as.controller.PathAddress;
@@ -156,16 +155,13 @@ public class MainKernelServicesImpl extends AbstractKernelServicesImpl {
         KernelServices legacy = getLegacyServices(modelVersion);
         ModelNode result = new ModelNode();
          if (op.getTransformedOperation() != null) {
-            result = legacy.executeOperation(op.getTransformedOperation(), new ModelController.OperationTransactionControl() {
-                    @Override
-                    public void operationPrepared(ModelController.OperationTransaction transaction, ModelNode result) {
-                        if(op.rejectOperation(result)) {
-                            transaction.rollback();
-                        } else {
-                            transaction.commit();
-                        }
-                    }
-                });
+            result = legacy.executeOperation(op.getTransformedOperation(), (transaction, result1) -> {
+                if(op.rejectOperation(result1)) {
+                    transaction.rollback();
+                } else {
+                    transaction.commit();
+                }
+            });
         }
         OperationResultTransformer resultTransformer = op.getResultTransformer();
         if (resultTransformer != null) {

@@ -60,18 +60,15 @@ public class AccessAuthorizationDomainSlaveConfigHandler implements OperationSte
         for (AttributeDefinition ad : AccessAuthorizationResourceDefinition.CONFIG_ATTRIBUTES) {
             ad.validateAndSet(operation, model);
         }
-        context.addStep(new OperationStepHandler() {
-            @Override
-            public void execute(OperationContext context, ModelNode operation) throws OperationFailedException {
-                WritableAuthorizerConfiguration authorizerConfiguration = configurableAuthorizer.getWritableAuthorizerConfiguration();
+        context.addStep((context1, operation1) -> {
+            WritableAuthorizerConfiguration authorizerConfiguration = configurableAuthorizer.getWritableAuthorizerConfiguration();
 
-                ModelNode provider = AccessAuthorizationResourceDefinition.PROVIDER.resolveModelAttribute(context, model);
-                AccessAuthorizationProviderWriteAttributeHander.updateAuthorizer(provider, configurableAuthorizer);
-                ModelNode combinationPolicy = AccessAuthorizationResourceDefinition.PERMISSION_COMBINATION_POLICY.resolveModelAttribute(context, model);
-                AccessAuthorizationCombinationPolicyWriteAttributeHandler.updateAuthorizer(combinationPolicy, authorizerConfiguration);
+            ModelNode provider = AccessAuthorizationResourceDefinition.PROVIDER.resolveModelAttribute(context1, model);
+            AccessAuthorizationProviderWriteAttributeHander.updateAuthorizer(provider, configurableAuthorizer);
+            ModelNode combinationPolicy = AccessAuthorizationResourceDefinition.PERMISSION_COMBINATION_POLICY.resolveModelAttribute(context1, model);
+            AccessAuthorizationCombinationPolicyWriteAttributeHandler.updateAuthorizer(combinationPolicy, authorizerConfiguration);
 
-                context.completeStep(OperationContext.RollbackHandler.NOOP_ROLLBACK_HANDLER);
-            }
+            context1.completeStep(OperationContext.RollbackHandler.NOOP_ROLLBACK_HANDLER);
         }, OperationContext.Stage.RUNTIME);
     }
 }

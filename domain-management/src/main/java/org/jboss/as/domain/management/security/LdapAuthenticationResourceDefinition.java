@@ -26,7 +26,6 @@ import org.jboss.as.controller.AttributeDefinition;
 import org.jboss.as.controller.ModelVersion;
 import org.jboss.as.controller.OperationContext;
 import org.jboss.as.controller.OperationFailedException;
-import org.jboss.as.controller.OperationStepHandler;
 import org.jboss.as.controller.PathAddress;
 import org.jboss.as.controller.PathElement;
 import org.jboss.as.controller.SimpleAttributeDefinition;
@@ -139,14 +138,10 @@ public class LdapAuthenticationResourceDefinition extends LdapResourceDefinition
 
         @Override
         public void execute(OperationContext context, ModelNode operation) throws OperationFailedException {
-            context.addStep(new OperationStepHandler() {
-
-                @Override
-                public void execute(OperationContext context, ModelNode ignored) throws OperationFailedException {
-                    final Resource resource = context.readResource(PathAddress.EMPTY_ADDRESS);
-                    final ModelNode model = resource.getModel();
-                    validateAttributeCombination(model);
-                }
+            context.addStep((context1, ignored) -> {
+                final Resource resource = context1.readResource(PathAddress.EMPTY_ADDRESS);
+                final ModelNode model = resource.getModel();
+                validateAttributeCombination(model);
             }, OperationContext.Stage.MODEL);
             super.execute(context, operation);
         }

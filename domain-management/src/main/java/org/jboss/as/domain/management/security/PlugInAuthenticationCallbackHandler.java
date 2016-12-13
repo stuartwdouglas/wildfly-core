@@ -151,152 +151,149 @@ public class PlugInAuthenticationCallbackHandler extends AbstractPlugInService i
             }
         }
 
-        return new CallbackHandler() {
+        return callbacks -> {
 
-            public void handle(Callback[] callbacks) throws IOException, UnsupportedCallbackException {
+            final String realmName = getRealmName();
 
-                final String realmName = getRealmName();
+            List<Callback> toRespondTo = new LinkedList<Callback>();
 
-                List<Callback> toRespondTo = new LinkedList<Callback>();
+            String userName = null;
+            Credential credential = null;
 
-                String userName = null;
-                Credential credential = null;
+            // A single pass may be sufficient but by using a two pass approach the Callbackhandler will not
+            // fail if an unexpected order is encountered.
 
-                // A single pass may be sufficient but by using a two pass approach the Callbackhandler will not
-                // fail if an unexpected order is encountered.
+            // First Pass - is to double check no unsupported callbacks and to retrieve
+            // information from the callbacks passing in information.
+            for (Callback current : callbacks) {
+                if (current instanceof AuthorizeCallback) {
+                    toRespondTo.add(current);
+                } else if (current instanceof NameCallback) {
+                    NameCallback nameCallback = (NameCallback) current;
+                    userName = nameCallback.getDefaultName();
+                    Identity identity = ap.loadIdentity(userName, realmName);
+                    if (identity != null) {
+                        credential = identity.getCredential();
+                    }
+                } else if (current instanceof PasswordCallback) {
+                    toRespondTo.add(current);
+                } else if (current instanceof CredentialCallback) {
+                    toRespondTo.add(current);
+                } else if (current instanceof EvidenceVerifyCallback) {
+                    toRespondTo.add(current);
+                } else if (current instanceof RealmCallback) {
+                    String realm = ((RealmCallback) current).getDefaultText();
+                    if (realmName.equals(realm) == false) {
+                        throw DomainManagementLogger.ROOT_LOGGER.invalidRealm(realm, realmName);
+                    }
+                } else {
+                    throw new UnsupportedCallbackException(current);
+                }
+            }
 
-                // First Pass - is to double check no unsupported callbacks and to retrieve
-                // information from the callbacks passing in information.
-                for (Callback current : callbacks) {
-                    if (current instanceof AuthorizeCallback) {
-                        toRespondTo.add(current);
-                    } else if (current instanceof NameCallback) {
-                        NameCallback nameCallback = (NameCallback) current;
-                        userName = nameCallback.getDefaultName();
-                        Identity identity = ap.loadIdentity(userName, realmName);
-                        if (identity != null) {
-                            credential = identity.getCredential();
-                        }
-                    } else if (current instanceof PasswordCallback) {
-                        toRespondTo.add(current);
-                    } else if (current instanceof CredentialCallback) {
-                        toRespondTo.add(current);
-                    } else if (current instanceof EvidenceVerifyCallback) {
-                        toRespondTo.add(current);
-                    } else if (current instanceof RealmCallback) {
-                        String realm = ((RealmCallback) current).getDefaultText();
-                        if (realmName.equals(realm) == false) {
-                            throw DomainManagementLogger.ROOT_LOGGER.invalidRealm(realm, realmName);
+            // Second Pass - Now iterate the Callback(s) requiring a response.
+            for (Callback current : toRespondTo) {
+                if (current instanceof AuthorizeCallback) {
+                    AuthorizeCallback acb = (AuthorizeCallback) current;
+                    boolean authorized = acb.getAuthenticationID().equals(acb.getAuthorizationID());
+                    if (authorized == false) {
+                        SECURITY_LOGGER.tracef(
+                                "Checking 'AuthorizeCallback', authorized=false, authenticationID=%s, authorizationID=%s.",
+                                acb.getAuthenticationID(), acb.getAuthorizationID());
+                    }
+                    acb.setAuthorized(authorized);
+                } else if (current instanceof PasswordCallback) {
+                    if (credential == null) {
+                        SECURITY_LOGGER.tracef("User '%s' not found.", userName);
+                        throw new UserNotFoundException(userName);
+                    }
+
+                    if (credential instanceof PasswordCredential) {
+                        ((PasswordCallback) current).setPassword(((PasswordCredential) credential).getPassword());
+                    } else {
+                        throw new UnsupportedCallbackException(current);
+                    }
+                } else if (current instanceof CredentialCallback) {
+                    if (credential == null) {
+                        SECURITY_LOGGER.tracef("User '%s' not found.", userName);
+                        throw new UserNotFoundException(userName);
+                    }
+
+                    CredentialCallback credentialCallback = (CredentialCallback) current;
+                    if (PasswordCredential.class.isAssignableFrom(credentialCallback.getCredentialType()) == false) {
+                        throw new UnsupportedCallbackException(current);
+                    }
+
+                    String algorithm = credentialCallback.getAlgorithm();
+                    final PasswordFactory passwordFactory;
+                    final PasswordSpec passwordSpec;
+                    if (credential instanceof DigestCredential && (algorithm == null || ALGORITHM_DIGEST_MD5.equals(algorithm))) {
+                        passwordFactory = getPasswordFactory(ALGORITHM_DIGEST_MD5);
+                        byte[] hashed = ByteIterator.ofBytes(((DigestCredential) credential).getHash().getBytes(StandardCharsets.UTF_8)).hexDecode().drain();
+                        passwordSpec = new DigestPasswordSpec(userName, realmName, hashed);
+                    } else if (credential instanceof PasswordCredential) {
+                        if (algorithm == null || ALGORITHM_CLEAR.equals(algorithm)) {
+                            passwordFactory = getPasswordFactory(ALGORITHM_CLEAR);
+                            passwordSpec = new ClearPasswordSpec(((PasswordCredential) credential).getPassword());
+                        } else if (ALGORITHM_DIGEST_MD5.equals(algorithm)) {
+                            passwordFactory = getPasswordFactory(ALGORITHM_DIGEST_MD5);
+                            UsernamePasswordHashUtil hashUtil = getHashUtil();
+                            synchronized (hashUtil) {
+                                byte[] hashed = hashUtil
+                                        .generateHashedHexURP(userName, realmName,
+                                                ((PasswordCredential) credential).getPassword()).getBytes(StandardCharsets.UTF_8);
+                                passwordSpec = new DigestPasswordSpec(userName, realmName, hashed);
+                            }
+                        } else {
+                            throw new UnsupportedCallbackException(current);
                         }
                     } else {
                         throw new UnsupportedCallbackException(current);
                     }
-                }
 
-                // Second Pass - Now iterate the Callback(s) requiring a response.
-                for (Callback current : toRespondTo) {
-                    if (current instanceof AuthorizeCallback) {
-                        AuthorizeCallback acb = (AuthorizeCallback) current;
-                        boolean authorized = acb.getAuthenticationID().equals(acb.getAuthorizationID());
-                        if (authorized == false) {
-                            SECURITY_LOGGER.tracef(
-                                    "Checking 'AuthorizeCallback', authorized=false, authenticationID=%s, authorizationID=%s.",
-                                    acb.getAuthenticationID(), acb.getAuthorizationID());
-                        }
-                        acb.setAuthorized(authorized);
-                    } else if (current instanceof PasswordCallback) {
-                        if (credential == null) {
-                            SECURITY_LOGGER.tracef("User '%s' not found.", userName);
-                            throw new UserNotFoundException(userName);
-                        }
-
-                        if (credential instanceof PasswordCredential) {
-                            ((PasswordCallback) current).setPassword(((PasswordCredential) credential).getPassword());
-                        } else {
-                            throw new UnsupportedCallbackException(current);
-                        }
-                    } else if (current instanceof CredentialCallback) {
-                        if (credential == null) {
-                            SECURITY_LOGGER.tracef("User '%s' not found.", userName);
-                            throw new UserNotFoundException(userName);
-                        }
-
-                        CredentialCallback credentialCallback = (CredentialCallback) current;
-                        if (PasswordCredential.class.isAssignableFrom(credentialCallback.getCredentialType()) == false) {
-                            throw new UnsupportedCallbackException(current);
-                        }
-
-                        String algorithm = credentialCallback.getAlgorithm();
-                        final PasswordFactory passwordFactory;
-                        final PasswordSpec passwordSpec;
-                        if (credential instanceof DigestCredential && (algorithm == null || ALGORITHM_DIGEST_MD5.equals(algorithm))) {
-                            passwordFactory = getPasswordFactory(ALGORITHM_DIGEST_MD5);
-                            byte[] hashed = ByteIterator.ofBytes(((DigestCredential) credential).getHash().getBytes(StandardCharsets.UTF_8)).hexDecode().drain();
-                            passwordSpec = new DigestPasswordSpec(userName, realmName, hashed);
-                        } else if (credential instanceof PasswordCredential) {
-                            if (algorithm == null || ALGORITHM_CLEAR.equals(algorithm)) {
-                                passwordFactory = getPasswordFactory(ALGORITHM_CLEAR);
-                                passwordSpec = new ClearPasswordSpec(((PasswordCredential) credential).getPassword());
-                            } else if (ALGORITHM_DIGEST_MD5.equals(algorithm)) {
-                                passwordFactory = getPasswordFactory(ALGORITHM_DIGEST_MD5);
-                                UsernamePasswordHashUtil hashUtil = getHashUtil();
-                                synchronized (hashUtil) {
-                                    byte[] hashed = hashUtil
-                                            .generateHashedHexURP(userName, realmName,
-                                                    ((PasswordCredential) credential).getPassword()).getBytes(StandardCharsets.UTF_8);
-                                    passwordSpec = new DigestPasswordSpec(userName, realmName, hashed);
-                                }
-                            } else {
-                                throw new UnsupportedCallbackException(current);
-                            }
-                        } else {
-                            throw new UnsupportedCallbackException(current);
-                        }
-
-                        try {
-                            credentialCallback.setCredential(credentialCallback.getCredentialType()
-                                    .cast(new org.wildfly.security.credential.PasswordCredential(
-                                            passwordFactory.generatePassword(passwordSpec))));
-                        } catch (InvalidKeySpecException e) {
-                            throw new IllegalStateException(e);
-                        }
-                    } else if (current instanceof EvidenceVerifyCallback) {
-                        if (credential == null) {
-                            SECURITY_LOGGER.tracef("User '%s' not found.", userName);
-                            throw new UserNotFoundException(userName);
-                        }
-
-                        EvidenceVerifyCallback evc = (EvidenceVerifyCallback) current;
-                        PasswordGuessEvidence evidence = (PasswordGuessEvidence) evc.getEvidence();
-                        char[] guess = evidence.getGuess();
-
-                        if (credential instanceof PasswordCredential) {
-                            boolean verified = Arrays.equals(((PasswordCredential) credential).getPassword(), guess);
-                            if (verified == false) {
-                                SECURITY_LOGGER.tracef("Password verification failed for user '%s'", userName);
-                            }
-                            evc.setVerified(verified);
-                        } else if (credential instanceof DigestCredential) {
-                            UsernamePasswordHashUtil hashUtil = getHashUtil();
-                            String hash;
-                            synchronized (hashUtil) {
-                                hash = hashUtil.generateHashedHexURP(userName, realmName, guess);
-                            }
-                            String expected = ((DigestCredential) credential).getHash();
-                            boolean verified = expected.equals(hash);
-                            if (verified == false) {
-                                SECURITY_LOGGER.tracef("Digest verification failed for user '%s'", userName);
-                            }
-                            evc.setVerified(verified);
-                        } else if (credential instanceof ValidatePasswordCredential) {
-                            boolean verified = ((ValidatePasswordCredential) credential).validatePassword(guess);
-                            if (verified == false) {
-                                SECURITY_LOGGER.tracef("Delegated verification failed for user '%s'", userName);
-                            }
-                            evc.setVerified(verified);
-                        }
-
+                    try {
+                        credentialCallback.setCredential(credentialCallback.getCredentialType()
+                                .cast(new org.wildfly.security.credential.PasswordCredential(
+                                        passwordFactory.generatePassword(passwordSpec))));
+                    } catch (InvalidKeySpecException e) {
+                        throw new IllegalStateException(e);
                     }
+                } else if (current instanceof EvidenceVerifyCallback) {
+                    if (credential == null) {
+                        SECURITY_LOGGER.tracef("User '%s' not found.", userName);
+                        throw new UserNotFoundException(userName);
+                    }
+
+                    EvidenceVerifyCallback evc = (EvidenceVerifyCallback) current;
+                    PasswordGuessEvidence evidence = (PasswordGuessEvidence) evc.getEvidence();
+                    char[] guess = evidence.getGuess();
+
+                    if (credential instanceof PasswordCredential) {
+                        boolean verified = Arrays.equals(((PasswordCredential) credential).getPassword(), guess);
+                        if (verified == false) {
+                            SECURITY_LOGGER.tracef("Password verification failed for user '%s'", userName);
+                        }
+                        evc.setVerified(verified);
+                    } else if (credential instanceof DigestCredential) {
+                        UsernamePasswordHashUtil hashUtil = getHashUtil();
+                        String hash;
+                        synchronized (hashUtil) {
+                            hash = hashUtil.generateHashedHexURP(userName, realmName, guess);
+                        }
+                        String expected = ((DigestCredential) credential).getHash();
+                        boolean verified = expected.equals(hash);
+                        if (verified == false) {
+                            SECURITY_LOGGER.tracef("Digest verification failed for user '%s'", userName);
+                        }
+                        evc.setVerified(verified);
+                    } else if (credential instanceof ValidatePasswordCredential) {
+                        boolean verified = ((ValidatePasswordCredential) credential).validatePassword(guess);
+                        if (verified == false) {
+                            SECURITY_LOGGER.tracef("Delegated verification failed for user '%s'", userName);
+                        }
+                        evc.setVerified(verified);
+                    }
+
                 }
             }
         };

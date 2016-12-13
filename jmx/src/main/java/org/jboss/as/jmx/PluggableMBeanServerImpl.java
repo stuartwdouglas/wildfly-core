@@ -1601,11 +1601,7 @@ class PluggableMBeanServerImpl implements PluggableMBeanServer {
         private ClassLoader pushClassLoader(final ObjectName name) throws InstanceNotFoundException {
             ClassLoader mbeanCl;
             try {
-                mbeanCl = doPrivileged(new PrivilegedExceptionAction<ClassLoader>() {
-                    public ClassLoader run() throws InstanceNotFoundException {
-                        return delegate.getClassLoaderFor(name);
-                    }
-                });
+                mbeanCl = doPrivileged((PrivilegedExceptionAction<ClassLoader>) () -> delegate.getClassLoaderFor(name));
             } catch (PrivilegedActionException e) {
                 try {
                     throw e.getCause();
@@ -1625,11 +1621,7 @@ class PluggableMBeanServerImpl implements PluggableMBeanServer {
         private ClassLoader pushClassLoaderByName(final ObjectName loaderName) throws InstanceNotFoundException {
             ClassLoader mbeanCl;
             try {
-                mbeanCl = doPrivileged(new PrivilegedExceptionAction<ClassLoader>() {
-                    public ClassLoader run() throws Exception {
-                        return delegate.getClassLoader(loaderName);
-                    }
-                });
+                mbeanCl = doPrivileged((PrivilegedExceptionAction<ClassLoader>) () -> delegate.getClassLoader(loaderName));
             } catch (PrivilegedActionException e) {
                 try {
                     throw e.getCause();

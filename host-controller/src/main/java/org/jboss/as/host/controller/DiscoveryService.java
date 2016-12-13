@@ -93,26 +93,23 @@ class DiscoveryService implements Service<Void> {
     /** {@inheritDoc} */
     @Override
     public synchronized void start(final StartContext context) throws StartException {
-        final Runnable task = new Runnable() {
-            @Override
-            public void run() {
-                try {
-                    if (isMasterDomainController && (discoveryOptions != null)) {
-                        // Allow slave host controllers to discover this domain controller using any
-                        // of the provided discovery options.
+        final Runnable task = () -> {
+            try {
+                if (isMasterDomainController && (discoveryOptions != null)) {
+                    // Allow slave host controllers to discover this domain controller using any
+                    // of the provided discovery options.
 
-                        for(DomainControllerManagementInterface managementInterface : managementInterfaces) {
-                            String host = interfaceBindings.get(managementInterface.getAddress()).getValue().getAddress().getHostAddress();
-                            managementInterface.setHost(host);
-                        }
-                        for (DiscoveryOption discoveryOption : discoveryOptions) {
-                            discoveryOption.allowDiscovery(managementInterfaces);
-                        }
+                    for(DomainControllerManagementInterface managementInterface : managementInterfaces) {
+                        String host = interfaceBindings.get(managementInterface.getAddress()).getValue().getAddress().getHostAddress();
+                        managementInterface.setHost(host);
                     }
-                    context.complete();
-                } catch (Exception e) {
-                    context.failed(new StartException(e));
+                    for (DiscoveryOption discoveryOption : discoveryOptions) {
+                        discoveryOption.allowDiscovery(managementInterfaces);
+                    }
                 }
+                context.complete();
+            } catch (Exception e) {
+                context.failed(new StartException(e));
             }
         };
         try {
@@ -127,18 +124,15 @@ class DiscoveryService implements Service<Void> {
     /** {@inheritDoc} */
     @Override
     public synchronized void stop(final StopContext context) {
-        final Runnable task = new Runnable() {
-            @Override
-            public void run() {
-                try {
-                    if (isMasterDomainController && (discoveryOptions != null)) {
-                        for (DiscoveryOption discoveryOption : discoveryOptions) {
-                            discoveryOption.cleanUp();
-                        }
+        final Runnable task = () -> {
+            try {
+                if (isMasterDomainController && (discoveryOptions != null)) {
+                    for (DiscoveryOption discoveryOption : discoveryOptions) {
+                        discoveryOption.cleanUp();
                     }
-                } finally {
-                    context.complete();
                 }
+            } finally {
+                context.complete();
             }
         };
         try {

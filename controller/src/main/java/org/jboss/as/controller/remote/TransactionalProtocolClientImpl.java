@@ -158,12 +158,7 @@ class TransactionalProtocolClientImpl implements ManagementRequestHandlerFactory
             ControllerLogger.MGMT_OP_LOGGER.tracef("sending ExecuteRequest for %d", context.getOperationId());
             // WFLY-3090 Protect the communication channel from getting closed due to administrative
             // cancellation of the management op by using a separate thread to send
-            context.executeAsync(new ManagementRequestContext.AsyncTask<ExecuteRequestContext>() {
-                @Override
-                public void execute(ManagementRequestContext<ExecuteRequestContext> context) throws Exception {
-                    sendRequestInternal(resultHandler, context);
-                }
-            }, false);
+            context.executeAsync(context1 -> sendRequestInternal(resultHandler, context1), false);
 
         }
 
@@ -262,12 +257,7 @@ class TransactionalProtocolClientImpl implements ManagementRequestHandlerFactory
                                 final ManagementRequestContext<ExecuteRequestContext> context) throws IOException {
 
             ControllerLogger.MGMT_OP_LOGGER.tracef("sending CompleteTxRequest for %d", context.getOperationId());
-            context.executeAsync(new ManagementRequestContext.AsyncTask<ExecuteRequestContext>() {
-                @Override
-                public void execute(ManagementRequestContext<ExecuteRequestContext> context) throws Exception {
-                    sendRequestInternal(resultHandler, context);
-                }
-            }, false);
+            context.executeAsync(context1 -> sendRequestInternal(resultHandler, context1), false);
 
         }
 
@@ -332,40 +322,37 @@ class TransactionalProtocolClientImpl implements ManagementRequestHandlerFactory
             expectHeader(input, ModelControllerProtocol.PARAM_INPUTSTREAM_INDEX);
             final int index = input.readInt();
 
-            context.executeAsync(new ManagementRequestContext.AsyncTask<ExecuteRequestContext>() {
-                @Override
-                public void execute(final ManagementRequestContext<ExecuteRequestContext> context) throws Exception {
-                    final ExecuteRequestContext exec = context.getAttachment();
-                    final ManagementRequestHeader header = ManagementRequestHeader.class.cast(context.getRequestHeader());
-                    final ManagementResponseHeader response = new ManagementResponseHeader(header.getVersion(), header.getRequestId(), null);
-                    final InputStream is = exec.getAttachments().getInputStreams().get(index);
+            context.executeAsync(context1 -> {
+                final ExecuteRequestContext exec = context1.getAttachment();
+                final ManagementRequestHeader header = ManagementRequestHeader.class.cast(context1.getRequestHeader());
+                final ManagementResponseHeader response = new ManagementResponseHeader(header.getVersion(), header.getRequestId(), null);
+                final InputStream is = exec.getAttachments().getInputStreams().get(index);
+                try {
+                    final File temp = copyStream(is, exec.tempDir);
                     try {
-                        final File temp = copyStream(is, exec.tempDir);
+                        final FlushableDataOutput output = context1.writeMessage(response);
                         try {
-                            final FlushableDataOutput output = context.writeMessage(response);
+                            output.writeByte(ModelControllerProtocol.PARAM_INPUTSTREAM_LENGTH);
+                            output.writeInt((int) temp.length()); // the int is required by the protocol
+                            output.writeByte(ModelControllerProtocol.PARAM_INPUTSTREAM_CONTENTS);
+                            final FileInputStream fis = new FileInputStream(temp);
                             try {
-                                output.writeByte(ModelControllerProtocol.PARAM_INPUTSTREAM_LENGTH);
-                                output.writeInt((int) temp.length()); // the int is required by the protocol
-                                output.writeByte(ModelControllerProtocol.PARAM_INPUTSTREAM_CONTENTS);
-                                final FileInputStream fis = new FileInputStream(temp);
-                                try {
-                                    StreamUtils.copyStream(fis, output);
-                                    fis.close();
-                                } finally {
-                                    StreamUtils.safeClose(fis);
-                                }
-                                output.writeByte(ManagementProtocol.RESPONSE_END);
-                                output.close();
+                                StreamUtils.copyStream(fis, output);
+                                fis.close();
                             } finally {
-                                StreamUtils.safeClose(output);
+                                StreamUtils.safeClose(fis);
                             }
+                            output.writeByte(ManagementProtocol.RESPONSE_END);
+                            output.close();
                         } finally {
-                            temp.delete();
+                            StreamUtils.safeClose(output);
                         }
                     } finally {
-                        // the caller is responsible for closing the input streams
-                        // StreamUtils.safeClose(is);
+                        temp.delete();
                     }
+                } finally {
+                    // the caller is responsible for closing the input streams
+                    // StreamUtils.safeClose(is);
                 }
             });
         }

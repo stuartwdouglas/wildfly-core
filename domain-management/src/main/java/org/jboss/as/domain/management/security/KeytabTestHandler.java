@@ -59,30 +59,26 @@ public class KeytabTestHandler implements OperationStepHandler {
         // This makes valid the subsequent assumption that the relevant service will be installed.
         context.readResource(PathAddress.EMPTY_ADDRESS, false);
 
-        context.addStep(new OperationStepHandler() {
+        context.addStep((context1, operation1) -> {
+            ServiceController<KeytabService> serviceController = ManagementUtil.getKeytabService(context1, operation1);
 
-            @Override
-            public void execute(OperationContext context, ModelNode operation) throws OperationFailedException {
-                ServiceController<KeytabService> serviceController = ManagementUtil.getKeytabService(context, operation);
+            KeytabService keytabService = serviceController.getService().getValue();
 
-                KeytabService keytabService = serviceController.getService().getValue();
+            SubjectIdentity si = null;
+            try {
+                si = keytabService.createSubjectIdentity(false);
+                ModelNode result = context1.getResult();
+                result.get(SUBJECT).set(si.getSubject().toString());
 
-                SubjectIdentity si = null;
-                try {
-                    si = keytabService.createSubjectIdentity(false);
-                    ModelNode result = context.getResult();
-                    result.get(SUBJECT).set(si.getSubject().toString());
-
-                } catch (LoginException e) {
-                    throw SECURITY_LOGGER.unableToObtainTGT(e);
-                } finally {
-                    if (si != null) {
-                        si.logout();
-                    }
+            } catch (LoginException e) {
+                throw SECURITY_LOGGER.unableToObtainTGT(e);
+            } finally {
+                if (si != null) {
+                    si.logout();
                 }
-
-                context.completeStep(OperationContext.RollbackHandler.NOOP_ROLLBACK_HANDLER);
             }
+
+            context1.completeStep(OperationContext.RollbackHandler.NOOP_ROLLBACK_HANDLER);
         }, Stage.RUNTIME);
 
         context.completeStep(OperationContext.RollbackHandler.NOOP_ROLLBACK_HANDLER);

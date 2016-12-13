@@ -44,22 +44,16 @@ public interface ResourceTransformer {
      */
     void transformResource(ResourceTransformationContext context, PathAddress address, Resource resource) throws OperationFailedException;
 
-    ResourceTransformer DEFAULT = new ResourceTransformer() {
-        @Override
-        public void transformResource(ResourceTransformationContext context, PathAddress address, Resource resource) throws OperationFailedException  {
-            if (resource.isProxy() || resource.isRuntime()) {
-                return;
-            }
-            final ResourceTransformationContext childContext = context.addTransformedResource(PathAddress.EMPTY_ADDRESS, resource);
-            childContext.processChildren(resource);
+    ResourceTransformer DEFAULT = (context, address, resource) -> {
+        if (resource.isProxy() || resource.isRuntime()) {
+            return;
         }
+        final ResourceTransformationContext childContext = context.addTransformedResource(PathAddress.EMPTY_ADDRESS, resource);
+        childContext.processChildren(resource);
     };
 
-    ResourceTransformer DISCARD = new ResourceTransformer() {
-        @Override
-        public void transformResource(ResourceTransformationContext context, PathAddress address, Resource resource) {
-            // nothing
-        }
+    ResourceTransformer DISCARD = (context, address, resource) -> {
+        // nothing
     };
 
 }

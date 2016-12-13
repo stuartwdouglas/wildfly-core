@@ -87,12 +87,7 @@ public interface OperationTransformer {
 
     }
 
-    OperationTransformer DEFAULT = new OperationTransformer() {
-       @Override
-       public TransformedOperation transformOperation(TransformationContext context, PathAddress address, ModelNode original) throws OperationFailedException {
-           return new TransformedOperation(original, OperationResultTransformer.ORIGINAL_RESULT);
-       }
-    };
+    OperationTransformer DEFAULT = (context, address, original) -> new TransformedOperation(original, OperationResultTransformer.ORIGINAL_RESULT);
 
 
     OperationTransformer DISCARD = new OperationTransformer() {
@@ -103,14 +98,11 @@ public interface OperationTransformer {
         }
     };
 
-    OperationResultTransformer SUCCESSFUL_RESULT = new OperationResultTransformer() {
-        @Override
-        public ModelNode transformResult(ModelNode ignored) {
-            final ModelNode result = new ModelNode();
-            result.get(ModelDescriptionConstants.OUTCOME).set(ModelDescriptionConstants.SUCCESS);
-            result.get(ModelDescriptionConstants.RESULT);
-            return result;
-        }
+    OperationResultTransformer SUCCESSFUL_RESULT = ignored -> {
+        final ModelNode result = new ModelNode();
+        result.get(ModelDescriptionConstants.OUTCOME).set(ModelDescriptionConstants.SUCCESS);
+        result.get(ModelDescriptionConstants.RESULT);
+        return result;
     };
 
     OperationRejectionPolicy DEFAULT_REJECTION_POLICY = new OperationRejectionPolicy() {

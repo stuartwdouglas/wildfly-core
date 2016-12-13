@@ -65,12 +65,7 @@ public class HttpShutdownService implements Service<Void> {
         final ManagementHttpRequestProcessor processor = processorValue.getValue();
         trackerService = mgmtChannelRegistry.getValue().getTrackerService();
         trackerService.registerTracker(processor);
-        processor.addShutdownListener(new ManagementHttpRequestProcessor.ShutdownListener() {
-            @Override
-            public void handleCompleted() {
-                trackerService.unregisterTracker(processor);
-            }
-        });
+        processor.addShutdownListener(() -> trackerService.unregisterTracker(processor));
     }
 
     @Override
@@ -79,17 +74,14 @@ public class HttpShutdownService implements Service<Void> {
         trackerService.prepareShutdown();
         context.asynchronous();
         try {
-            executorValue.getValue().execute(new Runnable() {
-                @Override
-                public void run() {
-                    try {
-                        // Wait for all mgmt requests to complete
-                        trackerService.awaitShutdown(SHUTDOWN_TIMEOUT, TIME_UNIT);
-                    } catch (InterruptedException e) {
-                        //
-                    } finally {
-                        context.complete();
-                    }
+            executorValue.getValue().execute(() -> {
+                try {
+                    // Wait for all mgmt requests to complete
+                    trackerService.awaitShutdown(SHUTDOWN_TIMEOUT, TIME_UNIT);
+                } catch (InterruptedException e) {
+                    //
+                } finally {
+                    context.complete();
                 }
             });
         } catch (RejectedExecutionException e) {

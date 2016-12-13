@@ -27,7 +27,6 @@ import static org.jboss.as.controller.operations.global.GlobalInstallationReport
 import java.nio.file.Path;
 import org.jboss.as.controller.OperationContext;
 import org.jboss.as.controller.OperationFailedException;
-import org.jboss.as.controller.OperationStepHandler;
 import org.jboss.as.controller.PathAddress;
 import org.jboss.as.controller.PathElement;
 import org.jboss.as.controller.SimpleOperationDefinition;
@@ -74,13 +73,10 @@ public class InstallationReportHandler extends AbstractInstallationReporter {
                 opEntry.getOperationHandler(), OperationContext.Stage.RUNTIME);
         }
         final Path installationDir = environment.getHomeDir().toPath();
-        context.addStep(new OperationStepHandler() {
-             @Override
-             public void execute(OperationContext context, ModelNode operation) throws OperationFailedException {
-                ModelNode result = context.getResult();
-                result.get(SUMMARY_DEFINITION.getName()).set(createProductNode(context, new InstallationConfiguration(
-                        environment, environment.getProductConfig(), patchingInfo, installationDir)));
-             }
+        context.addStep((context1, operation1) -> {
+           ModelNode result = context1.getResult();
+           result.get(SUMMARY_DEFINITION.getName()).set(createProductNode(context1, new InstallationConfiguration(
+                   environment, environment.getProductConfig(), patchingInfo, installationDir)));
         }, OperationContext.Stage.RUNTIME);
     }
 }

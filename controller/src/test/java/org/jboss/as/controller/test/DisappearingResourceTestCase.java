@@ -46,9 +46,6 @@ import java.util.concurrent.TimeUnit;
 
 import org.jboss.as.controller.AttributeDefinition;
 import org.jboss.as.controller.ManagementModel;
-import org.jboss.as.controller.OperationContext;
-import org.jboss.as.controller.OperationFailedException;
-import org.jboss.as.controller.OperationStepHandler;
 import org.jboss.as.controller.PathAddress;
 import org.jboss.as.controller.PathElement;
 import org.jboss.as.controller.SimpleResourceDefinition;
@@ -173,20 +170,17 @@ public class DisappearingResourceTestCase extends AbstractControllerTestBase {
         op.get(RECURSIVE).set(true);
         op.get(INCLUDE_RUNTIME).set(true);
 
-        Runnable r = new Runnable() {
-            @Override
-            public void run() {
-                try {
-                    attributeInLatch.await(300, TimeUnit.SECONDS);
-                    discardParent = true;
-                } catch (InterruptedException e) {
-                    Thread.currentThread().interrupt();
-                    throw new RuntimeException(e);
-                } finally {
-                    attributeOutLatch.countDown();
-                }
-
+        Runnable r = () -> {
+            try {
+                attributeInLatch.await(300, TimeUnit.SECONDS);
+                discardParent = true;
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                throw new RuntimeException(e);
+            } finally {
+                attributeOutLatch.countDown();
             }
+
         };
         Thread t = new Thread(r);
         t.start();
@@ -248,20 +242,17 @@ public class DisappearingResourceTestCase extends AbstractControllerTestBase {
         op.get(RECURSIVE).set(true);
         op.get(INCLUDE_RUNTIME).set(true);
 
-        Runnable r = new Runnable() {
-            @Override
-            public void run() {
-                try {
-                    attributeInLatch.await(300, TimeUnit.SECONDS);
-                    discardParent = true;
-                } catch (InterruptedException e) {
-                    Thread.currentThread().interrupt();
-                    throw new RuntimeException(e);
-                } finally {
-                    attributeOutLatch.countDown();
-                }
-
+        Runnable r = () -> {
+            try {
+                attributeInLatch.await(300, TimeUnit.SECONDS);
+                discardParent = true;
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                throw new RuntimeException(e);
+            } finally {
+                attributeOutLatch.countDown();
             }
+
         };
         Thread t = new Thread(r);
         t.start();
@@ -325,29 +316,23 @@ public class DisappearingResourceTestCase extends AbstractControllerTestBase {
         ManagementResourceRegistration runtimeResource = parentReg.registerSubModel(
                 new SimpleResourceDefinition(new SimpleResourceDefinition.Parameters(CHILD_WILDCARD_ELEMENT, new NonResolvingResourceDescriptionResolver()).setRuntime()));
         AttributeDefinition runtimeAttr = TestUtils.createAttribute(ATTR, ModelType.LONG, GROUP);
-        runtimeResource.registerReadOnlyAttribute(runtimeAttr, new OperationStepHandler() {
-            @Override
-            public void execute(OperationContext context, ModelNode operation) throws OperationFailedException {
-                if (!discardC && "C".equals(context.getCurrentAddressValue())) {
-                    context.getResult().set(1);
-                } else {
-                    attributeInLatch.countDown();
-                    try {
-                        attributeOutLatch.await();
-                    } catch (InterruptedException e) {
-                        Thread.currentThread().interrupt();
-                        throw new RuntimeException(e);
-                    }
-                    throw new Resource.NoSuchResourceException(context.getCurrentAddress().getLastElement());
+        runtimeResource.registerReadOnlyAttribute(runtimeAttr, (context, operation) -> {
+            if (!discardC && "C".equals(context.getCurrentAddressValue())) {
+                context.getResult().set(1);
+            } else {
+                attributeInLatch.countDown();
+                try {
+                    attributeOutLatch.await();
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                    throw new RuntimeException(e);
                 }
+                throw new Resource.NoSuchResourceException(context.getCurrentAddress().getLastElement());
             }
         });
 
-        registration.registerOperationHandler(TestUtils.SETUP_OPERATION_DEF, new OperationStepHandler() {
-            @Override
-            public void execute(OperationContext context, ModelNode operation) throws OperationFailedException {
-                // no-op; just satisfy the test infrastructure's desire for an op
-            }
+        registration.registerOperationHandler(TestUtils.SETUP_OPERATION_DEF, (context, operation) -> {
+            // no-op; just satisfy the test infrastructure's desire for an op
         });
 
         managementModel.getRootResource().registerChild(SUBSYSTEM_ELEMENT, new SubsystemResource());

@@ -23,7 +23,6 @@
 package org.jboss.as.server.moduleservice;
 
 import java.io.File;
-import java.io.FileFilter;
 import java.io.IOException;
 import java.util.Collections;
 import java.util.HashMap;
@@ -80,11 +79,7 @@ public final class ExtensionIndexService implements Service<ExtensionIndex>, Ext
         context.getController().compareAndSetMode(ServiceController.Mode.ON_DEMAND, ServiceController.Mode.ACTIVE);
         extensions.clear();
         for (File root : extensionRoots) {
-            final File[] jars = root.listFiles(new FileFilter() {
-                public boolean accept(final File file) {
-                    return file.getName().endsWith(".jar") && !file.isDirectory();
-                }
-            });
+            final File[] jars = root.listFiles(file -> file.getName().endsWith(".jar") && !file.isDirectory());
             if (jars != null)
                 for (File jar : jars)
                     try {

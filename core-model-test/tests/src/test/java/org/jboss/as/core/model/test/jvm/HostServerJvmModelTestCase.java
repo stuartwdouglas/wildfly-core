@@ -107,19 +107,16 @@ public class HostServerJvmModelTestCase extends AbstractJvmModelTest {
         return PathAddress.pathAddress(HOST_ELEMENT, SERVER_ONE_ELEMENT, PathElement.pathElement(JVM, "test")).toModelNode();
     }
 
-    private ModelInitializer bootOpModelInitializer = new ModelInitializer() {
-        @Override
-        public void populateModel(Resource rootResource) {
-            Resource host = Resource.Factory.create();
-            rootResource.registerChild(HOST_ELEMENT, host);
-            ModelNode serverConfig = new ModelNode();
-            serverConfig.get(GROUP).set("test");
-            Resource server1 = Resource.Factory.create();
-            server1.writeModel(serverConfig);
-            Resource server2 = Resource.Factory.create();
-            server2.writeModel(serverConfig);
-            host.registerChild(SERVER_ONE_ELEMENT, server1);
-            host.registerChild(SERVER_TWO_ELEMENT, server2);
-        }
+    private ModelInitializer bootOpModelInitializer = rootResource -> {
+        Resource host = Resource.Factory.create();
+        rootResource.registerChild(HOST_ELEMENT, host);
+        ModelNode serverConfig = new ModelNode();
+        serverConfig.get(GROUP).set("test");
+        Resource server1 = Resource.Factory.create();
+        server1.writeModel(serverConfig);
+        Resource server2 = Resource.Factory.create();
+        server2.writeModel(serverConfig);
+        host.registerChild(SERVER_ONE_ELEMENT, server1);
+        host.registerChild(SERVER_TWO_ELEMENT, server2);
     };
 }

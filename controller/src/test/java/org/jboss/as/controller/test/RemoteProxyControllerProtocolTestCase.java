@@ -58,10 +58,8 @@ import org.jboss.as.controller.remote.TransactionalProtocolOperationHandler;
 import org.jboss.as.controller.support.RemoteChannelPairSetup;
 import org.jboss.as.protocol.mgmt.ManagementChannelHandler;
 import org.jboss.as.protocol.mgmt.ManagementClientChannelStrategy;
-import org.jboss.as.protocol.mgmt.support.ManagementChannelInitialization;
 import org.jboss.dmr.ModelNode;
 import org.jboss.remoting3.Channel;
-import org.jboss.remoting3.CloseHandler;
 import org.jboss.threads.AsyncFutureTask;
 import org.junit.After;
 import org.junit.Assert;
@@ -125,13 +123,9 @@ public class RemoteProxyControllerProtocolTestCase {
 
         CommitProxyOperationControl commitControl = new CommitProxyOperationControl();
         proxyController.execute(operation,
-                new OperationMessageHandler() {
-
-                    @Override
-                    public void handleReport(MessageSeverity severity, String message) {
-                        if (severity == MessageSeverity.INFO && message.startsWith("Test")) {
-                            messages.add(message);
-                        }
+                (severity, message) -> {
+                    if (severity == MessageSeverity.INFO && message.startsWith("Test")) {
+                        messages.add(message);
                     }
                 },
                 commitControl,
@@ -557,21 +551,13 @@ public class RemoteProxyControllerProtocolTestCase {
     private RemoteProxyController setupProxyHandlers(final ModelController proxiedController) {
         try {
             channels = new RemoteChannelPairSetup();
-            channels.setupRemoting(new ManagementChannelInitialization() {
-                @Override
-                public ManagementChannelHandler startReceiving(Channel channel) {
-                    final ManagementClientChannelStrategy strategy = ManagementClientChannelStrategy.create(channel);
-                    final ManagementChannelHandler support = new ManagementChannelHandler(strategy, channels.getExecutorService());
-                    support.addHandlerFactory(new TransactionalProtocolOperationHandler(proxiedController, support, responseAttachmentSupport));
-                    channel.addCloseHandler(new CloseHandler<Channel>() {
-                        @Override
-                        public void handleClose(Channel closed, IOException exception) {
-                            support.shutdownNow();
-                        }
-                    });
-                    channel.receiveMessage(support.getReceiver());
-                    return support;
-                }
+            channels.setupRemoting(channel -> {
+                final ManagementClientChannelStrategy strategy = ManagementClientChannelStrategy.create(channel);
+                final ManagementChannelHandler support = new ManagementChannelHandler(strategy, channels.getExecutorService());
+                support.addHandlerFactory(new TransactionalProtocolOperationHandler(proxiedController, support, responseAttachmentSupport));
+                channel.addCloseHandler((closed, exception) -> support.shutdownNow());
+                channel.receiveMessage(support.getReceiver());
+                return support;
             });
             channels.startClientConnetion();
         } catch (Exception e) {
@@ -581,12 +567,7 @@ public class RemoteProxyControllerProtocolTestCase {
         final ManagementClientChannelStrategy strategy = ManagementClientChannelStrategy.create(clientChannel);
         final ManagementChannelHandler support = new ManagementChannelHandler(strategy, channels.getExecutorService());
         final RemoteProxyController proxyController = RemoteProxyController.create(support, PathAddress.pathAddress(), ProxyOperationAddressTranslator.HOST);
-        clientChannel.addCloseHandler(new CloseHandler<Channel>() {
-            @Override
-            public void handleClose(Channel closed, IOException exception) {
-                support.shutdownNow();
-            }
-        });
+        clientChannel.addCloseHandler((closed, exception) -> support.shutdownNow());
         clientChannel.receiveMessage(support.getReceiver());
         return proxyController;
     }

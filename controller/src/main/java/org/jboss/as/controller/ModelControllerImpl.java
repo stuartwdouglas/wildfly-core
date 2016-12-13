@@ -295,12 +295,7 @@ class ModelControllerImpl implements ModelController {
         final ModelNode response = new ModelNode();
         @SuppressWarnings("deprecation")
         final int operationId = CurrentOperationIdHolder.getCurrentOperationID();
-        final OperationTransactionControl txControl = control == null ? null : new OperationTransactionControl() {
-            @Override
-            public void operationPrepared(OperationTransaction transaction, ModelNode result) {
-                control.operationPrepared(transaction, response);
-            }
-        };
+        final OperationTransactionControl txControl = control == null ? null : (transaction, result) -> control.operationPrepared(transaction, response);
 
         // Use a read-only context
         final ReadOnlyContext context = new ReadOnlyContext(processType, runningModeControl.getRunningMode(), txControl, processState, false, model, delegateContext, this, operationId, securityIdentitySupplier);
@@ -355,12 +350,7 @@ class ModelControllerImpl implements ModelController {
         }
         // Report the correct operation response, otherwise the preparedResult would only contain
         // the result of the last active step in a composite operation
-        final OperationTransactionControl originalResultTxControl = control == null ? null : new OperationTransactionControl() {
-            @Override
-            public void operationPrepared(OperationTransaction transaction, ModelNode result) {
-                control.operationPrepared(transaction, responseNode);
-            }
-        };
+        final OperationTransactionControl originalResultTxControl = control == null ? null : (transaction, result) -> control.operationPrepared(transaction, responseNode);
         Map<String, OperationResponse.StreamEntry> responseStreams;
         AccessMechanism accessMechanism = null;
         AccessAuditContext accessContext = SecurityActions.currentAccessAuditContext();
@@ -789,31 +779,25 @@ class ModelControllerImpl implements ModelController {
                 final SecurityIdentity securityIdentity = securityIdentitySupplier.get();
                 final boolean inVmCall = SecurityActions.isInVmCall();
 
-                executor.execute(new Runnable() {
-                    public void run() {
-                        try {
-                            if (opThread.compareAndSet(null, Thread.currentThread())) {
-                                // We need the AccessAuditContext as that will make any inflowed SecurityIdentity available.
-                                OperationResponse response = AccessAuditContext.doAs(securityIdentity, null, new PrivilegedAction<OperationResponse>() {
-
-                                    @Override
-                                    public OperationResponse run() {
-                                        Operation op = attachments == null ? Operation.Factory.create(operation) : Operation.Factory.create(operation, attachments.getInputStreams(),
-                                                        attachments.isAutoCloseStreams());
-                                        if (inVmCall) {
-                                            return SecurityActions.runInVm((PrivilegedAction<OperationResponse>) () -> ModelControllerImpl.this.execute(op, messageHandler, OperationTransactionControl.COMMIT));
-                                        } else {
-                                            return ModelControllerImpl.this.execute(op, messageHandler, OperationTransactionControl.COMMIT);
-                                        }
-                                    }
-                                });
-                                opTask.handleResult(response);
-                            }
-                        } finally {
-                            synchronized (opThread) {
-                                opThread.set(null);
-                                opThread.notifyAll();
-                            }
+                executor.execute(() -> {
+                    try {
+                        if (opThread.compareAndSet(null, Thread.currentThread())) {
+                            // We need the AccessAuditContext as that will make any inflowed SecurityIdentity available.
+                            OperationResponse response = AccessAuditContext.doAs(securityIdentity, null, (PrivilegedAction<OperationResponse>) () -> {
+                                Operation op = attachments == null ? Operation.Factory.create(operation) : Operation.Factory.create(operation, attachments.getInputStreams(),
+                                                attachments.isAutoCloseStreams());
+                                if (inVmCall) {
+                                    return SecurityActions.runInVm((PrivilegedAction<OperationResponse>) () -> ModelControllerImpl.this.execute(op, messageHandler, OperationTransactionControl.COMMIT));
+                                } else {
+                                    return ModelControllerImpl.this.execute(op, messageHandler, OperationTransactionControl.COMMIT);
+                                }
+                            });
+                            opTask.handleResult(response);
+                        }
+                    } finally {
+                        synchronized (opThread) {
+                            opThread.set(null);
+                            opThread.notifyAll();
                         }
                     }
                 });
@@ -1201,17 +1185,14 @@ class ModelControllerImpl implements ModelController {
 //                }
 //            });
             this.delegatingResourceRegistration = resourceRegistration;
-            this.delegatingResource = new DelegatingResource(new DelegatingResource.ResourceDelegateProvider() {
-                @Override
-                public Resource getDelegateResource() {
-                    Resource result;
-                    if (published) {
-                        result = ModelControllerImpl.this.managementModel.get().rootResource;
-                    } else {
-                        result = rootResource;
-                    }
-                    return result;
+            this.delegatingResource = new DelegatingResource(() -> {
+                Resource result;
+                if (published) {
+                    result = ModelControllerImpl.this.managementModel.get().rootResource;
+                } else {
+                    result = rootResource;
                 }
+                return result;
             });
         }
 
@@ -1381,25 +1362,17 @@ class ModelControllerImpl implements ModelController {
 
         T fromOperationResponse(OperationResponse or);
 
-        ResponseConverter<ModelNode> TO_MODEL_NODE = new ResponseConverter<ModelNode>() {
-            @Override
-            public ModelNode fromOperationResponse(OperationResponse or) {
-                ModelNode result = or.getResponseNode();
-                try {
-                    or.close();
-                } catch (IOException e) {
-                    ROOT_LOGGER.debugf(e, "Caught exception closing %s whose associated streams, "
-                            + "if any, were not wanted", or);
-                }
-                return result;
+        ResponseConverter<ModelNode> TO_MODEL_NODE = or -> {
+            ModelNode result = or.getResponseNode();
+            try {
+                or.close();
+            } catch (IOException e) {
+                ROOT_LOGGER.debugf(e, "Caught exception closing %s whose associated streams, "
+                        + "if any, were not wanted", or);
             }
+            return result;
         };
 
-        ResponseConverter<OperationResponse> TO_OPERATION_RESPONSE = new ResponseConverter<OperationResponse>() {
-            @Override
-            public OperationResponse fromOperationResponse(final OperationResponse or) {
-                return or;
-            }
-        };
+        ResponseConverter<OperationResponse> TO_OPERATION_RESPONSE = or -> or;
     }
 }

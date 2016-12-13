@@ -21,8 +21,6 @@ package org.jboss.as.cli.gui;
 
 import java.awt.BorderLayout;
 import java.awt.FlowLayout;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.io.IOException;
@@ -115,25 +113,14 @@ public class ServerLogsPanel extends JPanel {
     private class DownloadButton extends JButton {
         public DownloadButton() {
             super("Download");
-            addActionListener(new ActionListener() {
-                @Override
-                public void actionPerformed(ActionEvent e) {
-                    drawDownloadDialog();
-                }
-            });
+            addActionListener(e -> drawDownloadDialog());
         }
     }
 
     private class RefreshButton extends JButton {
         public RefreshButton() {
             super("Refresh List");
-            addActionListener(new ActionListener() {
-
-                @Override
-                public void actionPerformed(ActionEvent e) {
-                    tableModel.refresh();
-                }
-            });
+            addActionListener(e -> tableModel.refresh());
         }
     }
 }

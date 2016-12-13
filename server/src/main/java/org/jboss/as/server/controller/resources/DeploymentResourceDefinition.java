@@ -28,8 +28,6 @@ import static org.jboss.as.server.controller.resources.DeploymentAttributes.isUn
 
 import org.jboss.as.controller.AttributeDefinition;
 import org.jboss.as.controller.NotificationDefinition;
-import org.jboss.as.controller.OperationContext;
-import org.jboss.as.controller.OperationFailedException;
 import org.jboss.as.controller.OperationStepHandler;
 import org.jboss.as.controller.PathAddress;
 import org.jboss.as.controller.PathElement;
@@ -69,14 +67,11 @@ public abstract class DeploymentResourceDefinition extends SimpleResourceDefinit
             } else if (attr.getName().equals(DeploymentAttributes.NAME.getName())) {
                 resourceRegistration.registerReadOnlyAttribute(DeploymentAttributes.NAME, ReadResourceNameOperationStepHandler.INSTANCE);
             } else if (DeploymentAttributes.MANAGED.getName().equals(attr.getName())) {
-                resourceRegistration.registerReadOnlyAttribute(DeploymentAttributes.MANAGED, new OperationStepHandler() {
-                    @Override
-                    public void execute(OperationContext context, ModelNode operation) throws OperationFailedException {
-                        ModelNode deployment = context.readResource(PathAddress.EMPTY_ADDRESS, true).getModel();
-                        if(deployment.hasDefined(CONTENT_ALL.getName())) {
-                            ModelNode content = deployment.get(CONTENT_ALL.getName()).asList().get(0);
-                            context.getResult().set(!isUnmanagedContent(content));
-                        }
+                resourceRegistration.registerReadOnlyAttribute(DeploymentAttributes.MANAGED, (context, operation) -> {
+                    ModelNode deployment = context.readResource(PathAddress.EMPTY_ADDRESS, true).getModel();
+                    if(deployment.hasDefined(CONTENT_ALL.getName())) {
+                        ModelNode content = deployment.get(CONTENT_ALL.getName()).asList().get(0);
+                        context.getResult().set(!isUnmanagedContent(content));
                     }
                 });
             } else {

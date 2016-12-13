@@ -23,7 +23,6 @@
 package org.jboss.as.patching.metadata;
 
 import java.io.File;
-import java.io.FilenameFilter;
 import java.io.IOException;
 import java.io.Writer;
 import java.nio.charset.StandardCharsets;
@@ -71,12 +70,7 @@ public class PatchMerger {
         }
 
         // merge with the previous versions
-        for (File f : patch1Dir.listFiles(new FilenameFilter() {
-            @Override
-            public boolean accept(File dir, String name) {
-                return name.endsWith(PATCH_XML_SUFFIX);
-            }
-        })) {
+        for (File f : patch1Dir.listFiles((dir, name) -> name.endsWith(PATCH_XML_SUFFIX))) {
             Patch patch;
             try {
                 patch = PatchXml.parse(f).resolvePatch(null, null);

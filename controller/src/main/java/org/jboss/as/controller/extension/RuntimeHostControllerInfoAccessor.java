@@ -39,12 +39,7 @@ public interface RuntimeHostControllerInfoAccessor {
      */
     HostControllerInfo getHostControllerInfo(OperationContext context) throws OperationFailedException ;
 
-    RuntimeHostControllerInfoAccessor SERVER = new RuntimeHostControllerInfoAccessor() {
-        @Override
-        public HostControllerInfo getHostControllerInfo(OperationContext context) {
-            return null;
-        }
-    };
+    RuntimeHostControllerInfoAccessor SERVER = context -> null;
 
     interface HostControllerInfo {
         boolean isMasterHc();

@@ -41,13 +41,6 @@ public interface OperationResultTransformer {
      */
     ModelNode transformResult(ModelNode response);
 
-    OperationResultTransformer ORIGINAL_RESULT = new OperationResultTransformer() {
-
-        @Override
-        public ModelNode transformResult(ModelNode response) {
-            return response;
-        }
-
-    };
+    OperationResultTransformer ORIGINAL_RESULT = response -> response;
 
 }

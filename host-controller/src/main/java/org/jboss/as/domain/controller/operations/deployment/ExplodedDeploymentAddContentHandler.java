@@ -106,28 +106,25 @@ public class ExplodedDeploymentAddContentHandler implements OperationStepHandler
             ModelNode content = new ModelNode();
             content.add(contentItem);
             deploymentModel.get(CONTENT).set(content);
-            context.completeStep(new OperationContext.ResultHandler() {
-                @Override
-                public void handleResult(OperationContext.ResultAction resultAction, OperationContext context, ModelNode operation) {
-                    if (resultAction == OperationContext.ResultAction.KEEP) {
-                        if (contentRepository != null) { //Master DC or backup
-                            if (oldHash != null && (newHash == null || !Arrays.equals(oldHash, newHash))) {
-                                // The old content is no longer used; clean from repos
-                                contentRepository.removeContent(ModelContentReference.fromModelAddress(address, oldHash));
-                            }
-                            if (newHash != null) {
-                                contentRepository.addContentReference(ModelContentReference.fromModelAddress(address, newHash));
-                            }
+            context.completeStep((resultAction, context1, operation1) -> {
+                if (resultAction == OperationContext.ResultAction.KEEP) {
+                    if (contentRepository != null) { //Master DC or backup
+                        if (oldHash != null && (newHash == null || !Arrays.equals(oldHash, newHash))) {
+                            // The old content is no longer used; clean from repos
+                            contentRepository.removeContent(ModelContentReference.fromModelAddress(address, oldHash));
                         }
-                    } else {
-                        if (fileRepository != null) {
-                            fileRepository.deleteDeployment(ModelContentReference.fromModelAddress(address, newHash));
+                        if (newHash != null) {
+                            contentRepository.addContentReference(ModelContentReference.fromModelAddress(address, newHash));
                         }
-                        if (contentRepository != null) {
-                            if (newHash != null && (oldHash == null || !Arrays.equals(oldHash, newHash))) {
-                                // Due to rollback, the new content isn't used; clean from repos
-                                contentRepository.removeContent(ModelContentReference.fromModelAddress(address, newHash));
-                            }
+                    }
+                } else {
+                    if (fileRepository != null) {
+                        fileRepository.deleteDeployment(ModelContentReference.fromModelAddress(address, newHash));
+                    }
+                    if (contentRepository != null) {
+                        if (newHash != null && (oldHash == null || !Arrays.equals(oldHash, newHash))) {
+                            // Due to rollback, the new content isn't used; clean from repos
+                            contentRepository.removeContent(ModelContentReference.fromModelAddress(address, newHash));
                         }
                     }
                 }

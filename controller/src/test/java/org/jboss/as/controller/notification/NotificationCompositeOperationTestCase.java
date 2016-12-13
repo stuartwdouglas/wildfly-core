@@ -33,9 +33,7 @@ import static org.junit.Assert.assertTrue;
 import org.jboss.as.controller.CompositeOperationHandler;
 import org.jboss.as.controller.ManagementModel;
 import org.jboss.as.controller.NotificationDefinition;
-import org.jboss.as.controller.OperationContext;
 import org.jboss.as.controller.OperationFailedException;
-import org.jboss.as.controller.OperationStepHandler;
 import org.jboss.as.controller.SimpleAttributeDefinition;
 import org.jboss.as.controller.SimpleAttributeDefinitionBuilder;
 import org.jboss.as.controller.SimpleOperationDefinitionBuilder;
@@ -69,16 +67,13 @@ public class NotificationCompositeOperationTestCase extends AbstractControllerTe
                         .setParameters(FAIL_OPERATION)
                 .setPrivateEntry()
                 .build(),
-                new OperationStepHandler() {
-                    @Override
-                    public void execute(OperationContext context, ModelNode operation) throws OperationFailedException {
-                        Notification notification = new Notification(MY_NOTIFICATION_TYPE, pathAddress(operation.get(OP_ADDR)), operation.get("param").asString());
-                        context.emit(notification);
+                (context, operation) -> {
+                    Notification notification = new Notification(MY_NOTIFICATION_TYPE, pathAddress(operation.get(OP_ADDR)), operation.get("param").asString());
+                    context.emit(notification);
 
-                        boolean failOperation = FAIL_OPERATION.resolveModelAttribute(context, operation).asBoolean();
-                        if (failOperation) {
-                            throw new OperationFailedException("failed operation");
-                        }
+                    boolean failOperation = FAIL_OPERATION.resolveModelAttribute(context, operation).asBoolean();
+                    if (failOperation) {
+                        throw new OperationFailedException("failed operation");
                     }
                 }
         );

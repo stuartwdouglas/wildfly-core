@@ -72,40 +72,38 @@ public final class ProtocolServer {
 
         final ServerSocket serverSocket = socketFactory.createServerSocket();
         this.serverSocket = serverSocket;
-        thread = threadFactory.newThread(new Runnable() {
-            public void run() {
-                try {
-                    while (! serverSocket.isClosed() && ! stop) {
+        thread = threadFactory.newThread(() -> {
+            try {
+                while (! serverSocket.isClosed() && ! stop) {
+                    try {
+                        final Socket socket = serverSocket.accept();
+                        boolean ok = false;
                         try {
-                            final Socket socket = serverSocket.accept();
-                            boolean ok = false;
-                            try {
-                                socket.setSoTimeout(readTimeout);
-                                ok = true;
-                            } finally {
-                                if (! ok) {
-                                    try {
-                                        socket.close();
-                                    } catch (IOException e) {
-                                        ProcessLogger.PROTOCOL_CLIENT_LOGGER.failedToCloseSocket(e);
-                                    }
+                            socket.setSoTimeout(readTimeout);
+                            ok = true;
+                        } finally {
+                            if (! ok) {
+                                try {
+                                    socket.close();
+                                } catch (IOException e) {
+                                    ProcessLogger.PROTOCOL_CLIENT_LOGGER.failedToCloseSocket(e);
                                 }
                             }
-                            safeHandleConnection(socket);
-                        } catch (SocketException e) {
-                            if (!stop) {
-                                // we do not log if service is stopped, we assume the exception was caused by closing the
-                                // ServerSocket
-                                ProcessLogger.PROTOCOL_CLIENT_LOGGER.failedToAcceptConnection(e);
-                            }
-                        } catch (IOException e) {
+                        }
+                        safeHandleConnection(socket);
+                    } catch (SocketException e) {
+                        if (!stop) {
+                            // we do not log if service is stopped, we assume the exception was caused by closing the
+                            // ServerSocket
                             ProcessLogger.PROTOCOL_CLIENT_LOGGER.failedToAcceptConnection(e);
                         }
-
+                    } catch (IOException e) {
+                        ProcessLogger.PROTOCOL_CLIENT_LOGGER.failedToAcceptConnection(e);
                     }
-                } finally {
-                    StreamUtils.safeClose(serverSocket);
+
                 }
+            } finally {
+                StreamUtils.safeClose(serverSocket);
             }
         });
         if (thread == null) {

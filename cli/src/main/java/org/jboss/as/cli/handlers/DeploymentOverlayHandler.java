@@ -36,7 +36,6 @@ import java.util.regex.Pattern;
 
 import org.jboss.as.cli.CommandContext;
 import org.jboss.as.cli.CommandFormatException;
-import org.jboss.as.cli.CommandLineCompleter;
 import org.jboss.as.cli.CommandLineException;
 import org.jboss.as.cli.Util;
 import org.jboss.as.cli.accesscontrol.AccessRequirement;
@@ -46,7 +45,6 @@ import org.jboss.as.cli.impl.ArgumentWithValue;
 import org.jboss.as.cli.impl.ArgumentWithoutValue;
 import org.jboss.as.cli.impl.CommaSeparatedCompleter;
 import org.jboss.as.cli.impl.DefaultCompleter;
-import org.jboss.as.cli.impl.DefaultCompleter.CandidatesProvider;
 import org.jboss.as.cli.impl.PermittedCandidates;
 import org.jboss.as.cli.operation.ParsedCommandLine;
 import org.jboss.as.cli.parsing.ExpressionBaseState;
@@ -123,33 +121,31 @@ public class DeploymentOverlayHandler extends BatchModeCommandHandler {//Command
                 .add(UPLOAD, addPermission)),
                 0, "--action");
 
-        name = new ArgumentWithValue(this, new DefaultCompleter(new CandidatesProvider(){
-            @Override
-            public Collection<String> getAllCandidates(CommandContext ctx) {
-                final ModelControllerClient client = ctx.getModelControllerClient();
-                if(client == null) {
-                    return Collections.emptyList();
-                }
-                final ModelNode op = new ModelNode();
-                op.get(Util.OPERATION).set(Util.READ_CHILDREN_NAMES);
-                op.get(Util.ADDRESS).setEmptyList();
-                op.get(Util.CHILD_TYPE).set(Util.DEPLOYMENT_OVERLAY);
-                final ModelNode response;
-                try {
-                    response = client.execute(op);
-                } catch (IOException e) {
-                    return Collections.emptyList();
-                }
-                final ModelNode result = response.get(Util.RESULT);
-                if(!result.isDefined()) {
-                    return Collections.emptyList();
-                }
-                final List<String> names = new ArrayList<String>();
-                for(ModelNode node : result.asList()) {
-                    names.add(node.asString());
-                }
-                return names;
-            }}), "--name");
+        name = new ArgumentWithValue(this, new DefaultCompleter(ctx12 -> {
+            final ModelControllerClient client = ctx12.getModelControllerClient();
+            if(client == null) {
+                return Collections.emptyList();
+            }
+            final ModelNode op = new ModelNode();
+            op.get(Util.OPERATION).set(Util.READ_CHILDREN_NAMES);
+            op.get(Util.ADDRESS).setEmptyList();
+            op.get(Util.CHILD_TYPE).set(Util.DEPLOYMENT_OVERLAY);
+            final ModelNode response;
+            try {
+                response = client.execute(op);
+            } catch (IOException e) {
+                return Collections.emptyList();
+            }
+            final ModelNode result = response.get(Util.RESULT);
+            if(!result.isDefined()) {
+                return Collections.emptyList();
+            }
+            final List<String> names = new ArrayList<String>();
+            for(ModelNode node : result.asList()) {
+                names.add(node.asString());
+            }
+            return names;
+        }), "--name");
         name.addRequiredPreceding(action);
         name.setAccessRequirement(AccessRequirementBuilder.Factory.create(ctx).any()
                 .requirement(addPermission)
@@ -161,57 +157,55 @@ public class DeploymentOverlayHandler extends BatchModeCommandHandler {//Command
                 .build());
 
         pathCompleter = FilenameTabCompleter.newCompleter(ctx);
-        content = new ArgumentWithListValue(this, new CommandLineCompleter(){
-            @Override
-            public int complete(CommandContext ctx, String buffer, int cursor, List<String> candidates) {
-                final String actionStr = action.getValue(ctx.getParsedCommandLine());
-                if (ADD.equals(actionStr) || UPLOAD.equals(actionStr)) {
-                    // TODO add support for quoted paths
-                    int i = buffer.lastIndexOf(',');
-                    i = buffer.indexOf('=', i + 1);
-                    if (i < 0) {
-                        return -1;
-                    }
-                    final String path = buffer.substring(i + 1);
-                    int pathResult = pathCompleter.complete(ctx, path, path.length(), candidates);
-                    if (pathResult < 0) {
-                        return -1;
-                    }
-                    return i + 1 + pathResult;
-                } else if(REMOVE.equals(actionStr)) {
-                    final String nameStr = name.getValue(ctx.getParsedCommandLine());
-                    if(nameStr == null) {
-                        return -1;
-                    }
-                    final List<String> existing;
-                    try {
-                        existing = loadContentFor(ctx.getModelControllerClient(), nameStr);
-                    } catch (CommandLineException e) {
-                        return -1;
-                    }
-                    if(existing.isEmpty()) {
-                        return buffer.length();
-                    }
-                    candidates.addAll(existing);
-                    if(buffer.isEmpty()) {
-                        return 0;
-                    }
-                    final String[] specified = buffer.split(",+");
-                    candidates.removeAll(Arrays.asList(specified));
-                    if(buffer.charAt(buffer.length() - 1) == ',') {
-                        return buffer.length();
-                    }
-                    final String chunk = specified[specified.length - 1];
-                    for(int i = 0; i < candidates.size(); ++i) {
-                        if(!candidates.get(i).startsWith(chunk)) {
-                            candidates.remove(i);
-                        }
-                    }
-                    return buffer.length() - chunk.length();
-                } else {
+        content = new ArgumentWithListValue(this, (ctx1, buffer, cursor, candidates) -> {
+            final String actionStr = action.getValue(ctx1.getParsedCommandLine());
+            if (ADD.equals(actionStr) || UPLOAD.equals(actionStr)) {
+                // TODO add support for quoted paths
+                int i = buffer.lastIndexOf(',');
+                i = buffer.indexOf('=', i + 1);
+                if (i < 0) {
                     return -1;
                 }
-            }}, "--content") {
+                final String path = buffer.substring(i + 1);
+                int pathResult = pathCompleter.complete(ctx1, path, path.length(), candidates);
+                if (pathResult < 0) {
+                    return -1;
+                }
+                return i + 1 + pathResult;
+            } else if(REMOVE.equals(actionStr)) {
+                final String nameStr = name.getValue(ctx1.getParsedCommandLine());
+                if(nameStr == null) {
+                    return -1;
+                }
+                final List<String> existing;
+                try {
+                    existing = loadContentFor(ctx1.getModelControllerClient(), nameStr);
+                } catch (CommandLineException e) {
+                    return -1;
+                }
+                if(existing.isEmpty()) {
+                    return buffer.length();
+                }
+                candidates.addAll(existing);
+                if(buffer.isEmpty()) {
+                    return 0;
+                }
+                final String[] specified = buffer.split(",+");
+                candidates.removeAll(Arrays.asList(specified));
+                if(buffer.charAt(buffer.length() - 1) == ',') {
+                    return buffer.length();
+                }
+                final String chunk = specified[specified.length - 1];
+                for(int i = 0; i < candidates.size(); ++i) {
+                    if(!candidates.get(i).startsWith(chunk)) {
+                        candidates.remove(i);
+                    }
+                }
+                return buffer.length() - chunk.length();
+            } else {
+                return -1;
+            }
+        }, "--content") {
             @Override
             public boolean canAppearNext(CommandContext ctx) throws CommandFormatException {
                 final String actionStr = action.getValue(ctx.getParsedCommandLine());

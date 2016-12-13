@@ -84,31 +84,27 @@ public class DeployCommandDialog extends JDialog implements ActionListener {
     }
 
     private void setAllServerGroupsListener() {
-        allServerGroups.addActionListener(new ActionListener() {
-            public void actionPerformed(ActionEvent e) {
-                if (allServerGroups.isSelected()) {
-                    serverGroupChooser.setEnabled(false);
-                } else {
-                    serverGroupChooser.setEnabled(true);
-                }
+        allServerGroups.addActionListener(e -> {
+            if (allServerGroups.isSelected()) {
+                serverGroupChooser.setEnabled(false);
+            } else {
+                serverGroupChooser.setEnabled(true);
             }
         });
     }
 
     private void setForceListener() {
-        forceCheckBox.addActionListener(new ActionListener() {
-            public void actionPerformed(ActionEvent e) {
-                if (forceCheckBox.isSelected()) {
-                    serverGroupChooser.setEnabled(false);
-                    allServerGroups.setEnabled(false);
-                    allServerGroups.setSelected(false);
-                    disabledCheckBox.setEnabled(false);
-                    disabledCheckBox.setSelected(false);
-                } else {
-                    serverGroupChooser.setEnabled(true);
-                    allServerGroups.setEnabled(true);
-                    disabledCheckBox.setEnabled(true);
-                }
+        forceCheckBox.addActionListener(e -> {
+            if (forceCheckBox.isSelected()) {
+                serverGroupChooser.setEnabled(false);
+                allServerGroups.setEnabled(false);
+                allServerGroups.setSelected(false);
+                disabledCheckBox.setEnabled(false);
+                disabledCheckBox.setSelected(false);
+            } else {
+                serverGroupChooser.setEnabled(true);
+                allServerGroups.setEnabled(true);
+                disabledCheckBox.setEnabled(true);
             }
         });
     }
@@ -185,11 +181,7 @@ public class DeployCommandDialog extends JDialog implements ActionListener {
         ok.setMnemonic(KeyEvent.VK_ENTER);
 
         JButton cancel = new JButton("Cancel");
-        cancel.addActionListener(new ActionListener() {
-            public void actionPerformed(ActionEvent ae) {
-                DeployCommandDialog.this.dispose();
-            }
-        });
+        cancel.addActionListener(ae -> DeployCommandDialog.this.dispose());
 
         buttonPanel.add(ok);
         buttonPanel.add(cancel);

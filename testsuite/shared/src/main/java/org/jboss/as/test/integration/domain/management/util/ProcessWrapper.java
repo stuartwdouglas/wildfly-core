@@ -131,14 +131,10 @@ class ProcessWrapper {
         private final boolean writeOutput;
 
         {
-            writeOutput = AccessController.doPrivileged(new PrivilegedAction<Boolean>() {
-
-                @Override
-                public Boolean run() {
-                    // this needs a better name
-                    String val = System.getProperty("org.jboss.as.writeconsole");
-                    return val == null || !"false".equals(val);
-                }
+            writeOutput = AccessController.doPrivileged((PrivilegedAction<Boolean>) () -> {
+                // this needs a better name
+                String val = System.getProperty("org.jboss.as.writeconsole");
+                return val == null || !"false".equals(val);
             });
         }
 

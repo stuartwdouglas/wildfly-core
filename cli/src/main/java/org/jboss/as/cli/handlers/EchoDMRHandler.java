@@ -21,10 +21,7 @@
  */
 package org.jboss.as.cli.handlers;
 
-import java.util.List;
-
 import org.jboss.as.cli.CommandFormatException;
-import org.jboss.as.cli.CommandLineCompleter;
 import org.jboss.as.cli.CommandContext;
 import org.jboss.as.cli.impl.ArgumentWithValue;
 
@@ -38,63 +35,61 @@ public class EchoDMRHandler extends CommandHandlerWithHelp {
     public EchoDMRHandler() {
         super("echo-dmr");
 
-        new ArgumentWithValue(this, new CommandLineCompleter() {
-                @Override
-                public int complete(CommandContext ctx, String buffer, int cursor, List<String> candidates) {
+        new ArgumentWithValue(this, (ctx, buffer, cursor, candidates) -> {
 
-                    final String originalLine = ctx.getParsedCommandLine().getOriginalLine();
-                    boolean skipWS;
-                    int wordCount;
-                    if(Character.isWhitespace(originalLine.charAt(0))) {
-                        skipWS = true;
-                        wordCount = 0;
-                    } else {
+            final String originalLine = ctx.getParsedCommandLine().getOriginalLine();
+            boolean skipWS;
+            int wordCount;
+            if(Character.isWhitespace(originalLine.charAt(0))) {
+                skipWS = true;
+                wordCount = 0;
+            } else {
+                skipWS = false;
+                wordCount = 1;
+            }
+            int cmdStart = 1;
+            while(cmdStart < originalLine.length()) {
+                if(skipWS) {
+                    if(!Character.isWhitespace(originalLine.charAt(cmdStart))) {
                         skipWS = false;
-                        wordCount = 1;
-                    }
-                    int cmdStart = 1;
-                    while(cmdStart < originalLine.length()) {
-                        if(skipWS) {
-                            if(!Character.isWhitespace(originalLine.charAt(cmdStart))) {
-                                skipWS = false;
-                                ++wordCount;
-                                if(wordCount == 2) {
-                                    break;
-                                }
-                            }
-                        } else if(Character.isWhitespace(originalLine.charAt(cmdStart))) {
-                            skipWS = true;
-                        }
-                        ++cmdStart;
-                    }
-
-                    final String cmd;
-                    if(wordCount == 1) {
-                        cmd = "";
-                    } else if(wordCount != 2) {
-                        return -1;
-                    } else {
-                        cmd = originalLine.substring(cmdStart);
-                    }
-
-                    int cmdResult = ctx.getDefaultCommandCompleter().complete(ctx, cmd, cmd.length(), candidates);
-                    if(cmdResult < 0) {
-                        return cmdResult;
-                    }
-
-                    // escaping index correction
-                    int escapeCorrection = 0;
-                    int start = originalLine.length() - 1 - buffer.length();
-                    while(start - escapeCorrection >= 0) {
-                        final char ch = originalLine.charAt(start - escapeCorrection);
-                        if(Character.isWhitespace(ch) || ch == '=') {
+                        ++wordCount;
+                        if(wordCount == 2) {
                             break;
                         }
-                        ++escapeCorrection;
                     }
+                } else if(Character.isWhitespace(originalLine.charAt(cmdStart))) {
+                    skipWS = true;
+                }
+                ++cmdStart;
+            }
 
-                    return buffer.length() + escapeCorrection - (cmd.length() - cmdResult);
-                }}, Integer.MAX_VALUE, "--line") {
+            final String cmd;
+            if(wordCount == 1) {
+                cmd = "";
+            } else if(wordCount != 2) {
+                return -1;
+            } else {
+                cmd = originalLine.substring(cmdStart);
+            }
+
+            int cmdResult = ctx.getDefaultCommandCompleter().complete(ctx, cmd, cmd.length(), candidates);
+            if(cmdResult < 0) {
+                return cmdResult;
+            }
+
+            // escaping index correction
+            int escapeCorrection = 0;
+            int start = originalLine.length() - 1 - buffer.length();
+            while(start - escapeCorrection >= 0) {
+                final char ch = originalLine.charAt(start - escapeCorrection);
+                if(Character.isWhitespace(ch) || ch == '=') {
+                    break;
+                }
+                ++escapeCorrection;
+            }
+
+            return buffer.length() + escapeCorrection - (cmd.length() - cmdResult);
+        }, Integer.MAX_VALUE, "--line") {
             };
     }
 

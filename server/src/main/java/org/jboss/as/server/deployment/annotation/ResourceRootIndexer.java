@@ -37,7 +37,6 @@ import org.jboss.jandex.IndexReader;
 import org.jboss.jandex.Indexer;
 import org.jboss.vfs.VFSUtils;
 import org.jboss.vfs.VirtualFile;
-import org.jboss.vfs.VirtualFileFilter;
 import org.jboss.vfs.VisitorAttributes;
 import org.jboss.vfs.util.SuffixMatchFilter;
 
@@ -85,11 +84,7 @@ public class ResourceRootIndexer {
         try {
             final VisitorAttributes visitorAttributes = new VisitorAttributes();
             visitorAttributes.setLeavesOnly(true);
-            visitorAttributes.setRecurseFilter(new VirtualFileFilter() {
-                public boolean accepts(VirtualFile file) {
-                    return indexIgnorePaths == null || !indexIgnorePaths.contains(file.getPathNameRelativeTo(virtualFile));
-                }
-            });
+            visitorAttributes.setRecurseFilter(file -> indexIgnorePaths == null || !indexIgnorePaths.contains(file.getPathNameRelativeTo(virtualFile)));
 
             final List<VirtualFile> classChildren = virtualFile.getChildren(new SuffixMatchFilter(".class", visitorAttributes));
             for (VirtualFile classFile : classChildren) {

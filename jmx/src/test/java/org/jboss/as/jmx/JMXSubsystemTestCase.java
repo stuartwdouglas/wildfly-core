@@ -40,9 +40,6 @@ import javax.management.remote.JMXConnectorFactory;
 import javax.management.remote.JMXServiceURL;
 import javax.xml.stream.XMLStreamException;
 
-import org.jboss.as.controller.OperationContext;
-import org.jboss.as.controller.OperationFailedException;
-import org.jboss.as.controller.OperationStepHandler;
 import org.jboss.as.controller.PathAddress;
 import org.jboss.as.controller.PathElement;
 import org.jboss.as.controller.capability.registry.RuntimeCapabilityRegistry;
@@ -639,13 +636,7 @@ public class JMXSubsystemTestCase extends AbstractSubsystemTest {
         protected void initializeExtraSubystemsAndModel(ExtensionRegistry extensionRegistry, Resource rootResource,
                                         ManagementResourceRegistration rootRegistration,
                                         RuntimeCapabilityRegistry capabilityRegistry) {
-            rootRegistration.registerReadOnlyAttribute(ServerEnvironmentResourceDescription.LAUNCH_TYPE, new OperationStepHandler() {
-
-                @Override
-                public void execute(OperationContext context, ModelNode operation) throws OperationFailedException {
-                    context.getResult().set(TYPE_STANDALONE);
-                }
-            });
+            rootRegistration.registerReadOnlyAttribute(ServerEnvironmentResourceDescription.LAUNCH_TYPE, (context, operation) -> context.getResult().set(TYPE_STANDALONE));
 
             AdditionalInitialization.registerCapabilities(capabilityRegistry, RemotingConnectorResource.REMOTING_CAPABILITY);
         }

@@ -80,59 +80,53 @@ class SyncServerStateOperationHandler implements OperationStepHandler {
 
         final ServerOperationResolver resolver = new ServerOperationResolver(localHostName, parameters.getServerProxies());
 
-        context.addStep(operation, new OperationStepHandler() {
-            @Override
-            public void execute(OperationContext context, ModelNode operation) throws OperationFailedException {
-                final Resource domainRootResource = context.readResourceForUpdate(PathAddress.EMPTY_ADDRESS);
-                final ModelNode endRoot = Resource.Tools.readModel(domainRootResource);
-                final ModelNode endHostModel = endRoot.require(HOST).asPropertyList().iterator().next().getValue();
+        context.addStep(operation, (context12, operation12) -> {
+            final Resource domainRootResource = context12.readResourceForUpdate(PathAddress.EMPTY_ADDRESS);
+            final ModelNode endRoot = Resource.Tools.readModel(domainRootResource);
+            final ModelNode endHostModel = endRoot.require(HOST).asPropertyList().iterator().next().getValue();
 
-                //Get the affected servers for each op.
-                ContentDownloader contentDownloader = new ContentDownloader(startRoot, endRoot, endHostModel);
-                final Map<String, SyncServerResultAction> servers =
-                        determineServerStateChanges(context, domainRootResource, resolver, contentDownloader);
+            //Get the affected servers for each op.
+            ContentDownloader contentDownloader = new ContentDownloader(startRoot, endRoot, endHostModel);
+            final Map<String, SyncServerResultAction> servers =
+                    determineServerStateChanges(context12, domainRootResource, resolver, contentDownloader);
 
-                for (String serverName : endHostModel.get(SERVER_CONFIG).keys()) {
-                    // Compare boot cmd (requires restart)
-                    SyncServerResultAction restart = servers.get(serverName);
-                    if (restart == null || restart == SyncServerResultAction.RELOAD_REQUIRED) {
-                        //In some unit tests the start config may be null
-                        ManagedServerBootConfiguration startConfig =
-                                new ManagedServerBootCmdFactory(serverName, startRoot, startHostModel,
-                                        parameters.getHostControllerEnvironment(),
-                                        parameters.getDomainController().getExpressionResolver(), false).createConfiguration();
+            for (String serverName : endHostModel.get(SERVER_CONFIG).keys()) {
+                // Compare boot cmd (requires restart)
+                SyncServerResultAction restart = servers.get(serverName);
+                if (restart == null || restart == SyncServerResultAction.RELOAD_REQUIRED) {
+                    //In some unit tests the start config may be null
+                    ManagedServerBootConfiguration startConfig =
+                            new ManagedServerBootCmdFactory(serverName, startRoot, startHostModel,
+                                    parameters.getHostControllerEnvironment(),
+                                    parameters.getDomainController().getExpressionResolver(), false).createConfiguration();
 
-                        ManagedServerBootConfiguration endConfig =
-                                new ManagedServerBootCmdFactory(serverName, endRoot, endHostModel,
-                                        parameters.getHostControllerEnvironment(),
-                                        parameters.getDomainController().getExpressionResolver(), false).createConfiguration();
-                        if (startConfig == null || !startConfig.getServerLaunchCommand().equals(endConfig.getServerLaunchCommand())) {
-                            servers.put(serverName, SyncServerResultAction.RESTART_REQUIRED);
-                        }
+                    ManagedServerBootConfiguration endConfig =
+                            new ManagedServerBootCmdFactory(serverName, endRoot, endHostModel,
+                                    parameters.getHostControllerEnvironment(),
+                                    parameters.getDomainController().getExpressionResolver(), false).createConfiguration();
+                    if (startConfig == null || !startConfig.getServerLaunchCommand().equals(endConfig.getServerLaunchCommand())) {
+                        servers.put(serverName, SyncServerResultAction.RESTART_REQUIRED);
                     }
                 }
-
-                for (Map.Entry<String, SyncServerResultAction> entry : servers.entrySet()) {
-                    final PathAddress serverAddress =
-                            PathAddress.pathAddress(HOST, localHostName).append(SERVER, entry.getKey());
-                    final String opName = entry.getValue() == SyncServerResultAction.RESTART_REQUIRED ?
-                            ServerProcessStateHandler.REQUIRE_RESTART_OPERATION : ServerProcessStateHandler.REQUIRE_RELOAD_OPERATION;
-                    final OperationStepHandler handler = context.getResourceRegistration().getOperationHandler(serverAddress, opName);
-                    final ModelNode op = Util.createEmptyOperation(opName, serverAddress);
-                    context.addStep(op, handler, OperationContext.Stage.MODEL);
-                }
-
-                context.completeStep(new OperationContext.ResultHandler() {
-                    @Override
-                    public void handleResult(OperationContext.ResultAction resultAction, OperationContext context, ModelNode operation) {
-                        if (resultAction == OperationContext.ResultAction.KEEP) {
-                            for (ContentReference ref : contentDownloader.removedContent) {
-                                parameters.getContentRepository().removeContent(ref);
-                            }
-                        }
-                    }
-                });
             }
+
+            for (Map.Entry<String, SyncServerResultAction> entry : servers.entrySet()) {
+                final PathAddress serverAddress =
+                        PathAddress.pathAddress(HOST, localHostName).append(SERVER, entry.getKey());
+                final String opName = entry.getValue() == SyncServerResultAction.RESTART_REQUIRED ?
+                        ServerProcessStateHandler.REQUIRE_RESTART_OPERATION : ServerProcessStateHandler.REQUIRE_RELOAD_OPERATION;
+                final OperationStepHandler handler = context12.getResourceRegistration().getOperationHandler(serverAddress, opName);
+                final ModelNode op = Util.createEmptyOperation(opName, serverAddress);
+                context12.addStep(op, handler, OperationContext.Stage.MODEL);
+            }
+
+            context12.completeStep((resultAction, context1, operation1) -> {
+                if (resultAction == OperationContext.ResultAction.KEEP) {
+                    for (ContentReference ref : contentDownloader.removedContent) {
+                        parameters.getContentRepository().removeContent(ref);
+                    }
+                }
+            });
         }, OperationContext.Stage.MODEL);
     }
 

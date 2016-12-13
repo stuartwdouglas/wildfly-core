@@ -27,9 +27,6 @@ import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.REC
 import java.util.Locale;
 
 import org.jboss.as.controller.ManagementModel;
-import org.jboss.as.controller.OperationContext;
-import org.jboss.as.controller.OperationFailedException;
-import org.jboss.as.controller.OperationStepHandler;
 import org.jboss.as.controller.PathElement;
 import org.jboss.as.controller.SimpleOperationDefinitionBuilder;
 import org.jboss.as.controller.SimpleResourceDefinition;
@@ -75,12 +72,7 @@ public class ReadResourceChildOrderingTestCase extends AbstractControllerTestBas
         registration.registerOperationHandler(new SimpleOperationDefinitionBuilder("setup", new NonResolvingResourceDescriptionResolver())
                 .setPrivateEntry()
                 .build()
-                , new OperationStepHandler() {
-            @Override
-            public void execute(OperationContext context, ModelNode operation) throws OperationFailedException {
-                createModel(context, model);
-            }
-        });
+                , (context, operation) -> createModel(context, model));
 
         GlobalNotifications.registerGlobalNotifications(registration, processType);
 

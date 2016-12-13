@@ -166,12 +166,7 @@ public class DomainRolloutStepHandler implements OperationStepHandler {
             boolean completeStepCalled = false;
             try {
                 pushToServers(context, submittedTasks, preparedResults, blockingTimeout);
-                context.completeStep(new OperationContext.ResultHandler() {
-                    @Override
-                    public void handleResult(OperationContext.ResultAction resultAction, OperationContext context, ModelNode operation) {
-                        finalizeOp(context, submittedTasks, preparedResults, blockingTimeout);
-                    }
-                });
+                context.completeStep((resultAction, context1, operation1) -> finalizeOp(context1, submittedTasks, preparedResults, blockingTimeout));
 
                 completeStepCalled = true;
             } finally {

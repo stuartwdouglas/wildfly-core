@@ -33,19 +33,9 @@ import org.jboss.as.cli.Util;
  */
 public class DefaultFilenameTabCompleter extends FilenameTabCompleter {
 
-    private static final EscapeSelector ESCAPE_SELECTOR = new EscapeSelector() {
-       @Override
-       public boolean isEscape(char ch) {
-           return ch == '\\' || ch == ' ' || ch == '"';
-       }
-    };
+    private static final EscapeSelector ESCAPE_SELECTOR = ch -> ch == '\\' || ch == ' ' || ch == '"';
 
-    private static final EscapeSelector QUOTES_ONLY_ESCAPE_SELECTOR = new EscapeSelector() {
-        @Override
-        public boolean isEscape(char ch) {
-            return ch == '"';
-        }
-    };
+    private static final EscapeSelector QUOTES_ONLY_ESCAPE_SELECTOR = ch -> ch == '"';
 
    public DefaultFilenameTabCompleter(CommandContext ctx) {
        super(ctx);

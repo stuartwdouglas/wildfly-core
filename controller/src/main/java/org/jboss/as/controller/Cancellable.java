@@ -38,9 +38,5 @@ public interface Cancellable {
     /**
      * An empty implementation which does nothing when a cancel is requested.
      */
-    Cancellable NULL = new Cancellable() {
-        public boolean cancel() {
-            return false;
-        }
-    };
+    Cancellable NULL = () -> false;
 }

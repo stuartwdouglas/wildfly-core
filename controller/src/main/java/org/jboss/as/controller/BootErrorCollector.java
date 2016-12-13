@@ -151,18 +151,15 @@ public class BootErrorCollector {
 
         @Override
         public void execute(OperationContext context, ModelNode operation) throws OperationFailedException {
-            context.addStep(new OperationStepHandler() {
-                @Override
-                public void execute(OperationContext context, ModelNode operation) throws OperationFailedException {
+            context.addStep((context1, operation1) -> {
 
-                    ModelNode bootErrors = new ModelNode().setEmptyList();
-                    ModelNode errorsNode = errors.getErrors();
-                    for (ModelNode bootError : errorsNode.asList()) {
-                        secureOperationAddress(context, bootError);
-                        bootErrors.add(bootError);
-                    }
-                    context.getResult().set(bootErrors);
+                ModelNode bootErrors = new ModelNode().setEmptyList();
+                ModelNode errorsNode = errors.getErrors();
+                for (ModelNode bootError : errorsNode.asList()) {
+                    secureOperationAddress(context1, bootError);
+                    bootErrors.add(bootError);
                 }
+                context1.getResult().set(bootErrors);
             }, OperationContext.Stage.RUNTIME);
         }
 

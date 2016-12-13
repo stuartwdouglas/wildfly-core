@@ -88,38 +88,35 @@ public class ParallelExtensionAddHandler implements OperationStepHandler {
 
     private OperationStepHandler getParallelExtensionInitializeStep() {
 
-        return new OperationStepHandler() {
-            @Override
-            public void execute(OperationContext context, ModelNode operation) throws OperationFailedException {
+        return (context, operation) -> {
 
-                long start = System.currentTimeMillis();
-                final Map<String, Future<OperationFailedRuntimeException>> futures = new LinkedHashMap<String, Future<OperationFailedRuntimeException>>();
-                final ManagementResourceRegistration rootResourceRegistration = rootResourceRegistrationProvider.getRootResourceRegistrationForUpdate(context);
-                for (ParsedBootOp op : extensionAdds) {
-                    String module = op.address.getLastElement().getValue();
-                    ExtensionAddHandler addHandler = ExtensionAddHandler.class.cast(op.handler);
-                    Future<OperationFailedRuntimeException> future = executor.submit(new ExtensionInitializeTask(module, addHandler, rootResourceRegistration));
-                    futures.put(module, future);
-                }
+            long start = System.currentTimeMillis();
+            final Map<String, Future<OperationFailedRuntimeException>> futures = new LinkedHashMap<String, Future<OperationFailedRuntimeException>>();
+            final ManagementResourceRegistration rootResourceRegistration = rootResourceRegistrationProvider.getRootResourceRegistrationForUpdate(context);
+            for (ParsedBootOp op : extensionAdds) {
+                String module = op.address.getLastElement().getValue();
+                ExtensionAddHandler addHandler = ExtensionAddHandler.class.cast(op.handler);
+                Future<OperationFailedRuntimeException> future = executor.submit(new ExtensionInitializeTask(module, addHandler, rootResourceRegistration));
+                futures.put(module, future);
+            }
 
-                for (Map.Entry<String, Future<OperationFailedRuntimeException>> entry : futures.entrySet()) {
-                    try {
-                        OperationFailedRuntimeException ofe = entry.getValue().get();
-                        if (ofe != null) {
-                            throw ofe;
-                        }
-                    } catch (InterruptedException e) {
-                        Thread.currentThread().interrupt();
-                        throw ControllerLogger.ROOT_LOGGER.moduleInitializationInterrupted(entry.getKey());
-                    } catch (ExecutionException e) {
-                        throw ControllerLogger.ROOT_LOGGER.failedInitializingModule(e, entry.getKey());
+            for (Map.Entry<String, Future<OperationFailedRuntimeException>> entry : futures.entrySet()) {
+                try {
+                    OperationFailedRuntimeException ofe = entry.getValue().get();
+                    if (ofe != null) {
+                        throw ofe;
                     }
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                    throw ControllerLogger.ROOT_LOGGER.moduleInitializationInterrupted(entry.getKey());
+                } catch (ExecutionException e) {
+                    throw ControllerLogger.ROOT_LOGGER.failedInitializingModule(e, entry.getKey());
                 }
+            }
 
-                if (MGMT_OP_LOGGER.isDebugEnabled()) {
-                    long elapsed = System.currentTimeMillis() - start;
-                    MGMT_OP_LOGGER.debugf("Initialized extensions in [%d] ms", elapsed);
-                }
+            if (MGMT_OP_LOGGER.isDebugEnabled()) {
+                long elapsed = System.currentTimeMillis() - start;
+                MGMT_OP_LOGGER.debugf("Initialized extensions in [%d] ms", elapsed);
             }
         };
     }

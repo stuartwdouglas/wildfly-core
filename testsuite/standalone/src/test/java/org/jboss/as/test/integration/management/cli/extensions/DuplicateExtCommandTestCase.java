@@ -29,7 +29,6 @@ import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
-import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 
 import javax.inject.Inject;
@@ -126,17 +125,14 @@ public class DuplicateExtCommandTestCase {
     }
 
     private static Asset getResource(Class clazz) {
-        return new Asset() {
-            @Override
-            public InputStream openStream() {
-                ByteArrayOutputStream baos = new ByteArrayOutputStream();
-                try {
-                    baos.write(clazz.getName().getBytes(StandardCharsets.UTF_8));
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
-                return new ByteArrayInputStream(baos.toByteArray());
+        return () -> {
+            ByteArrayOutputStream baos = new ByteArrayOutputStream();
+            try {
+                baos.write(clazz.getName().getBytes(StandardCharsets.UTF_8));
+            } catch (IOException e) {
+                e.printStackTrace();
             }
+            return new ByteArrayInputStream(baos.toByteArray());
         };
     }
 

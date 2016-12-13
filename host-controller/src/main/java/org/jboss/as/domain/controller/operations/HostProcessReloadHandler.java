@@ -21,8 +21,6 @@
 */
 package org.jboss.as.domain.controller.operations;
 
-import java.util.Locale;
-
 import org.jboss.as.controller.AttributeDefinition;
 import org.jboss.as.controller.ControlledProcessState;
 import org.jboss.as.controller.OperationContext;
@@ -173,12 +171,9 @@ public class HostProcessReloadHandler extends ProcessReloadHandler<HostRunningMo
             return new SimpleOperationDefinition(name, resolver, attributeResolver, entryType, flags, replyType, replyValueType, false, deprecationData, replyParameters, parameters) {
                 @Override
                 public DescriptionProvider getDescriptionProvider() {
-                    return new DescriptionProvider() {
-                        @Override
-                        public ModelNode getModelDescription(Locale locale) {
-                            AttributeDefinition[] params = hostControllerInfo.isMasterDomainController() ? MASTER_ATTRIBUTES : SLAVE_ATTRIBUTES;
-                            return new DefaultOperationDescriptionProvider(getName(), resolver, attributeResolver, replyType, replyValueType, replyAllowNull, deprecationData, replyParameters, params, accessConstraints).getModelDescription(locale);
-                        }
+                    return locale -> {
+                        AttributeDefinition[] params = hostControllerInfo.isMasterDomainController() ? MASTER_ATTRIBUTES : SLAVE_ATTRIBUTES;
+                        return new DefaultOperationDescriptionProvider(getName(), resolver, attributeResolver, replyType, replyValueType, replyAllowNull, deprecationData, replyParameters, params, accessConstraints).getModelDescription(locale);
                     };
                 }
             };

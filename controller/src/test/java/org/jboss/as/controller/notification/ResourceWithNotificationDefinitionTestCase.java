@@ -72,12 +72,7 @@ public class ResourceWithNotificationDefinitionTestCase extends AbstractControll
                         return NOTIFICATION_DESCRIPTION;
                     }
                 })
-                .setDataValueDescriptor(new NotificationDefinition.DataValueDescriptor() {
-                    @Override
-                    public ModelNode describe(ResourceBundle bundle) {
-                        return DATA_TYPE_DESCRIPTION;
-                    }
-                })
+                .setDataValueDescriptor(bundle -> DATA_TYPE_DESCRIPTION)
                 .build();
 
         registration.registerNotification(notificationDefinition);

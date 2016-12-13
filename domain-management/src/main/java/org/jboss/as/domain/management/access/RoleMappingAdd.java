@@ -27,7 +27,6 @@ import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.OP_
 import java.util.Locale;
 
 import org.jboss.as.controller.OperationContext;
-import org.jboss.as.controller.OperationContext.RollbackHandler;
 import org.jboss.as.controller.OperationContext.Stage;
 import org.jboss.as.controller.OperationFailedException;
 import org.jboss.as.controller.OperationStepHandler;
@@ -80,38 +79,30 @@ public class RoleMappingAdd implements OperationStepHandler {
     }
 
     private void registerRuntimeAdd(final OperationContext context, final String roleName) {
-        context.addStep(new OperationStepHandler() {
-
-            @Override
-            public void execute(OperationContext context, ModelNode operation) throws OperationFailedException {
-                if (context.isBooting()) {
-                    authorizerConfiguration.addRoleMappingImmediate(roleName);
-                } else {
-                    authorizerConfiguration.addRoleMapping(roleName);
-                }
-
-                ModelNode model = context.readResource(PathAddress.EMPTY_ADDRESS).getModel();
-                boolean includeAll = RoleMappingResourceDefinition.INCLUDE_ALL.resolveModelAttribute(context, model).asBoolean();
-                if (includeAll) {
-                    authorizerConfiguration.setRoleMappingIncludeAll(roleName, includeAll);
-                }
-
-                registerRollbackHandler(context, roleName);
+        context.addStep((context1, operation) -> {
+            if (context1.isBooting()) {
+                authorizerConfiguration.addRoleMappingImmediate(roleName);
+            } else {
+                authorizerConfiguration.addRoleMapping(roleName);
             }
+
+            ModelNode model = context1.readResource(PathAddress.EMPTY_ADDRESS).getModel();
+            boolean includeAll = RoleMappingResourceDefinition.INCLUDE_ALL.resolveModelAttribute(context1, model).asBoolean();
+            if (includeAll) {
+                authorizerConfiguration.setRoleMappingIncludeAll(roleName, includeAll);
+            }
+
+            registerRollbackHandler(context1, roleName);
         }, Stage.RUNTIME);
     }
 
     private void registerRollbackHandler(final OperationContext context, final String roleName) {
-        context.completeStep(new RollbackHandler() {
+        context.completeStep((context1, operation) -> {
+            Object undoKey = authorizerConfiguration.removeRoleMapping(roleName);
 
-            @Override
-            public void handleRollback(OperationContext context, ModelNode operation) {
-                Object undoKey = authorizerConfiguration.removeRoleMapping(roleName);
-
-                if (undoKey == null) {
-                    // Despite being added the role could not be removed.
-                    context.restartRequired();
-                }
+            if (undoKey == null) {
+                // Despite being added the role could not be removed.
+                context1.restartRequired();
             }
         });
     }

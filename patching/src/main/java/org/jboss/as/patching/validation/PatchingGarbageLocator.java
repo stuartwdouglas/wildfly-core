@@ -23,7 +23,6 @@
 package org.jboss.as.patching.validation;
 
 import java.io.File;
-import java.io.FileFilter;
 import java.io.FilenameFilter;
 import java.io.IOException;
 import java.util.ArrayList;
@@ -49,12 +48,7 @@ import org.jboss.as.patching.installation.PatchableTarget;
 public class PatchingGarbageLocator {
 
     private static final PatchLogger log = PatchLogger.ROOT_LOGGER;
-    static final FilenameFilter ALL = new FilenameFilter() {
-        @Override
-        public boolean accept(File dir, String name) {
-            return true;
-        }
-    };
+    static final FilenameFilter ALL = (dir, name) -> true;
 
     /**
      * Get the garbage locator.
@@ -88,18 +82,8 @@ public class PatchingGarbageLocator {
             throw new RuntimeException(e);
         }
         final PatchHistoryIterator.Builder builder = PatchHistoryIterator.Builder.create(installedIdentity);
-        builder.addStateHandler(PatchingArtifacts.MODULE_OVERLAY, new PatchingArtifactStateHandler<PatchingFileArtifact.DirectoryArtifactState>() {
-            @Override
-            public void handleValidatedState(PatchingFileArtifact.DirectoryArtifactState state) {
-                referencedOverlayDirectories.add(state.getFile());
-            }
-        });
-        builder.addStateHandler(PatchingArtifacts.BUNDLE_OVERLAY, new PatchingArtifactStateHandler<PatchingFileArtifact.DirectoryArtifactState>() {
-            @Override
-            public void handleValidatedState(PatchingFileArtifact.DirectoryArtifactState state) {
-                referencedOverlayDirectories.add(state.getFile());
-            }
-        });
+        builder.addStateHandler(PatchingArtifacts.MODULE_OVERLAY, state -> referencedOverlayDirectories.add(state.getFile()));
+        builder.addStateHandler(PatchingArtifacts.BUNDLE_OVERLAY, state -> referencedOverlayDirectories.add(state.getFile()));
         final PatchHistoryValidations.HistoryProcessor processor = new PatchHistoryValidations.HistoryProcessor() {
             boolean failed = false;
 
@@ -150,12 +134,7 @@ public class PatchingGarbageLocator {
         if (validHistory == null) {
             walk();
         }
-        final File[] inactiveDirs = installedIdentity.getInstalledImage().getPatchesDir().listFiles(new FileFilter() {
-            @Override
-            public boolean accept(File pathname) {
-                return pathname.isDirectory() && !validHistory.contains(pathname.getName());
-            }
-        });
+        final File[] inactiveDirs = installedIdentity.getInstalledImage().getPatchesDir().listFiles(pathname -> pathname.isDirectory() && !validHistory.contains(pathname.getName()));
         return inactiveDirs == null ? Collections.<File>emptyList() : Arrays.asList(inactiveDirs);
     }
 
@@ -171,12 +150,7 @@ public class PatchingGarbageLocator {
         List<File> inactiveDirs = null;
         for (Layer layer : installedIdentity.getLayers()) {
             final File overlaysDir = new File(layer.getDirectoryStructure().getModuleRoot(), Constants.OVERLAYS);
-            final File[] inactiveLayerDirs = overlaysDir.listFiles(new FileFilter() {
-                @Override
-                public boolean accept(File pathname) {
-                    return pathname.isDirectory() && !referencedOverlayDirectories.contains(pathname);
-                }
-            });
+            final File[] inactiveLayerDirs = overlaysDir.listFiles(pathname -> pathname.isDirectory() && !referencedOverlayDirectories.contains(pathname));
             if (inactiveLayerDirs != null && inactiveLayerDirs.length > 0) {
                 if (inactiveDirs == null) {
                     inactiveDirs = new ArrayList<File>();

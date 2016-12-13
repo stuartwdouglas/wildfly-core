@@ -74,12 +74,9 @@ public abstract class LocalDomainControllerAddHandler implements OperationStepHa
             context.reloadRequired();
         }
 
-        context.completeStep(new OperationContext.RollbackHandler() {
-            @Override
-            public void handleRollback(OperationContext context, ModelNode operation) {
-                if (!context.isBooting()) {
-                    context.revertReloadRequired();
-                }
+        context.completeStep((context1, operation1) -> {
+            if (!context1.isBooting()) {
+                context1.revertReloadRequired();
             }
         });
     }

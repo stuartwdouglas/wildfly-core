@@ -42,20 +42,17 @@ public class UnsetVariableHandler extends CommandHandlerWithHelp {
 
     public UnsetVariableHandler() {
         super("unset");
-        new ArgumentWithValue(this, new DefaultCompleter(new DefaultCompleter.CandidatesProvider() {
-            @Override
-            public Collection<String> getAllCandidates(CommandContext ctx) {
-                final List<String> specified = ctx.getParsedCommandLine().getOtherProperties();
-                if(specified.isEmpty()) {
-                    return ctx.getVariables();
-                }
-                if(ctx.getVariables().isEmpty()) {
-                    return Collections.emptyList();
-                }
-                final ArrayList<String> all = new ArrayList<String>(ctx.getVariables());
-                all.removeAll(specified);
-                return all;
+        new ArgumentWithValue(this, new DefaultCompleter(ctx -> {
+            final List<String> specified = ctx.getParsedCommandLine().getOtherProperties();
+            if(specified.isEmpty()) {
+                return ctx.getVariables();
             }
+            if(ctx.getVariables().isEmpty()) {
+                return Collections.emptyList();
+            }
+            final ArrayList<String> all = new ArrayList<String>(ctx.getVariables());
+            all.removeAll(specified);
+            return all;
         }), 0, "--variable") {
             @Override
             public boolean canAppearNext(CommandContext ctx) {

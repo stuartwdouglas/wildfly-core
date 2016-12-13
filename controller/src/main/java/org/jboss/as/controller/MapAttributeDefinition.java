@@ -208,31 +208,29 @@ public abstract class MapAttributeDefinition extends AttributeDefinition {
         return isAllowExpression() ? convertStringExpression(parameterElementValue) : parameterElementValue;
     }
 
-    public static final ParameterCorrector LIST_TO_MAP_CORRECTOR = new ParameterCorrector() {
-        public ModelNode correct(ModelNode newValue, ModelNode currentValue) {
-            if (newValue.isDefined()) {
-                if (newValue.getType() == ModelType.LIST) {
-                    int listSize = newValue.asList().size();
-                    List<Property> propertyList = newValue.asPropertyList();
-                    if (propertyList.size() == 0) {
-                        //The list cannot be converted to a map
-                        if (listSize == 0) {
-                            return new ModelNode();
-                        }
-                        if (listSize > 0) {
-                            //It is a list of simple values, so just return the original
-                            return newValue;
-                        }
+    public static final ParameterCorrector LIST_TO_MAP_CORRECTOR = (newValue, currentValue) -> {
+        if (newValue.isDefined()) {
+            if (newValue.getType() == ModelType.LIST) {
+                int listSize = newValue.asList().size();
+                List<Property> propertyList = newValue.asPropertyList();
+                if (propertyList.size() == 0) {
+                    //The list cannot be converted to a map
+                    if (listSize == 0) {
+                        return new ModelNode();
                     }
-                    ModelNode corrected = new ModelNode();
-                    for (Property p : newValue.asPropertyList()) {
-                        corrected.get(p.getName()).set(p.getValue());
+                    if (listSize > 0) {
+                        //It is a list of simple values, so just return the original
+                        return newValue;
                     }
-                    return corrected;
                 }
+                ModelNode corrected = new ModelNode();
+                for (Property p : newValue.asPropertyList()) {
+                    corrected.get(p.getName()).set(p.getValue());
+                }
+                return corrected;
             }
-            return newValue;
         }
+        return newValue;
     };
 
 

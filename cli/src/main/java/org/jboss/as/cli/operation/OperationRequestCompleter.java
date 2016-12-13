@@ -57,12 +57,7 @@ public class OperationRequestCompleter implements CommandLineCompleter {
             return INSTANCE.complete(ctx, parsedOp, buffer, cursor, candidates);
         }};
 
-    public static final EscapeSelector ESCAPE_SELECTOR = new EscapeSelector() {
-        @Override
-        public boolean isEscape(char ch) {
-            return ch == ':' || ch == '/' || ch == '=' || ch == ' ' || ch == '"' || ch == '\\';
-        }
-    };
+    public static final EscapeSelector ESCAPE_SELECTOR = ch -> ch == ':' || ch == '/' || ch == '=' || ch == ' ' || ch == '"' || ch == '\\';
 
     @Override
     public int complete(CommandContext ctx, final String buffer, int cursor, List<String> candidates) {

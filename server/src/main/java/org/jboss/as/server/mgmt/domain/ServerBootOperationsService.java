@@ -61,16 +61,13 @@ public class ServerBootOperationsService implements Service<Void> {
         final HostControllerClient client = clientInjector.getValue();
         final ModelController controller = serverController.getValue();
         final Executor executor = executorInjector.getValue();
-        final Runnable task = new Runnable() {
-            @Override
-            public void run() {
-                try {
-                    client.resolveBootUpdates(controller, future);
-                    context.complete();
-                } catch (Exception e) {
-                    future.failed(e);
-                    context.failed(new StartException(e));
-                }
+        final Runnable task = () -> {
+            try {
+                client.resolveBootUpdates(controller, future);
+                context.complete();
+            } catch (Exception e) {
+                future.failed(e);
+                context.failed(new StartException(e));
             }
         };
         try {

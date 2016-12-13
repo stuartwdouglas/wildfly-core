@@ -170,20 +170,17 @@ public class ReadAttributeGroupTestCase extends AbstractControllerTestBase {
         basicResourceRegistration.registerReadOnlyAttribute(TestUtils.createAttribute("seventh", ModelType.STRING, "group2", false, true), ShowModelAliasReadHandler.INSTANCE);
         basicResourceRegistration.registerReadOnlyAttribute(TestUtils.createAttribute("eigth", ModelType.STRING, "group1", false, false, true), null);
 
-        registration.registerOperationHandler(TestUtils.SETUP_OPERATION_DEF, new OperationStepHandler() {
-            @Override
-            public void execute(OperationContext context, ModelNode operation) throws OperationFailedException {
-                final ModelNode model = new ModelNode();
-                //Atttributes
-                model.get("subsystem", "basicSubsystem", "first").set("configuration1");
-                model.get("subsystem", "basicSubsystem", "second").set(new ValueExpression("${my.value}"));
-                model.get("subsystem", "basicSubsystem", "third").set("configuration3");
-                model.get("subsystem", "basicSubsystem", "fourth").set("runtime4");
-                model.get("subsystem", "basicSubsystem", "fifth").set("runtime5");
-                model.get("subsystem", "basicSubsystem", "sixth").set("configuration6");
-                model.get("subsystem", "basicSubsystem", "seventh").set("alias7");
-                createModel(context, model);
-            }
+        registration.registerOperationHandler(TestUtils.SETUP_OPERATION_DEF, (context, operation) -> {
+            final ModelNode model = new ModelNode();
+            //Atttributes
+            model.get("subsystem", "basicSubsystem", "first").set("configuration1");
+            model.get("subsystem", "basicSubsystem", "second").set(new ValueExpression("${my.value}"));
+            model.get("subsystem", "basicSubsystem", "third").set("configuration3");
+            model.get("subsystem", "basicSubsystem", "fourth").set("runtime4");
+            model.get("subsystem", "basicSubsystem", "fifth").set("runtime5");
+            model.get("subsystem", "basicSubsystem", "sixth").set("configuration6");
+            model.get("subsystem", "basicSubsystem", "seventh").set("alias7");
+            createModel(context, model);
         }
         );
     }

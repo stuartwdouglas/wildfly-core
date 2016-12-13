@@ -42,7 +42,6 @@ import org.jboss.as.core.model.test.TransformersTestParameterized.TransformersPa
 import org.jboss.as.core.model.test.util.StandardServerGroupInitializers;
 import org.jboss.as.core.model.test.util.TransformersTestParameter;
 import org.jboss.as.model.test.FailedOperationTransformationConfig;
-import org.jboss.as.model.test.ModelFixer;
 import org.jboss.as.model.test.ModelTestControllerVersion;
 import org.jboss.as.model.test.ModelTestUtils;
 import org.jboss.dmr.ModelNode;
@@ -158,23 +157,20 @@ public abstract class AbstractSystemPropertyTransformersTest extends AbstractCor
         }
         ModelTestUtils.checkFailedTransformedBootOperations(mainServices, modelVersion, ops, config);
 
-        checkCoreModelTransformation(mainServices, modelVersion, null, new ModelFixer() {
-            @Override
-            public ModelNode fixModel(ModelNode modelNode) {
-                modelNode.remove(SOCKET_BINDING_GROUP);
-                if (!allowExpressions()) {
-                    modelNode =  modelNode.resolve();
-                    ModelNode sysPropRoot = serverGroup ? modelNode.get(SERVER_GROUP, "test") : modelNode;
-                    for (Property sysprop : sysPropRoot.get(SYSTEM_PROPERTY).asPropertyList()) {
-                        ModelNode bootTime;
+        checkCoreModelTransformation(mainServices, modelVersion, null, modelNode -> {
+            modelNode.remove(SOCKET_BINDING_GROUP);
+            if (!allowExpressions()) {
+                modelNode =  modelNode.resolve();
+                ModelNode sysPropRoot = serverGroup ? modelNode.get(SERVER_GROUP, "test") : modelNode;
+                for (Property sysprop : sysPropRoot.get(SYSTEM_PROPERTY).asPropertyList()) {
+                    ModelNode bootTime;
 //                        if (sysprop.getValue().hasDefined(BOOT_TIME) && (bootTime = sysprop.getValue().get(BOOT_TIME)).getType() == ModelType.STRING) {
 //                            // Convert to boolean
 //                            sysPropRoot.get(SYSTEM_PROPERTY, sysprop.getName(), BOOT_TIME).set(bootTime.asBoolean());
 //                        }
-                    }
                 }
-                return modelNode;
             }
+            return modelNode;
         });
     }
 

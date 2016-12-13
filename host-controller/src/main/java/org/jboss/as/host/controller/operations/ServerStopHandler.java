@@ -77,27 +77,24 @@ public class ServerStopHandler implements OperationStepHandler {
         final String serverName = element.getValue();
         final boolean blocking = operation.get(BLOCKING).asBoolean(false);
         final int timeout = TIMEOUT.resolveModelAttribute(context, operation).asInt();
-        context.addStep(new OperationStepHandler() {
-            @Override
-            public void execute(OperationContext context, ModelNode operation) throws OperationFailedException {
-                // WFLY-2741 -- DO NOT call context.getServiceRegistry(true) as that will trigger blocking for
-                // service container stability and one use case for this op is to recover from a
-                // messed up service container from a previous op. Instead just ask for authorization.
-                // Note that we already have the exclusive lock, so we are just skipping waiting for stability.
-                // If another op that is a step in a composite step with this op needs to modify the container
-                // it will have to wait for container stability, so skipping this only matters for the case
-                // where this step is the only runtime change.
-                context.authorize(operation, EnumSet.of(Action.ActionEffect.WRITE_RUNTIME));
+        context.addStep((context1, operation1) -> {
+            // WFLY-2741 -- DO NOT call context.getServiceRegistry(true) as that will trigger blocking for
+            // service container stability and one use case for this op is to recover from a
+            // messed up service container from a previous op. Instead just ask for authorization.
+            // Note that we already have the exclusive lock, so we are just skipping waiting for stability.
+            // If another op that is a step in a composite step with this op needs to modify the container
+            // it will have to wait for container stability, so skipping this only matters for the case
+            // where this step is the only runtime change.
+            context1.authorize(operation1, EnumSet.of(Action.ActionEffect.WRITE_RUNTIME));
 
-                final ServerStatus status = serverInventory.stopServer(serverName, timeout, blocking);
-                try {
-                    context.readResource(PathAddress.EMPTY_ADDRESS, false); //reading the resource to persist the autostart state.
-                } catch (Resource.NoSuchResourceException ex) {
-                    //in case the resource no longer exists.
-                }
-                context.getResult().set(status.toString());
-                context.completeStep(OperationContext.RollbackHandler.NOOP_ROLLBACK_HANDLER);
+            final ServerStatus status = serverInventory.stopServer(serverName, timeout, blocking);
+            try {
+                context1.readResource(PathAddress.EMPTY_ADDRESS, false); //reading the resource to persist the autostart state.
+            } catch (Resource.NoSuchResourceException ex) {
+                //in case the resource no longer exists.
             }
+            context1.getResult().set(status.toString());
+            context1.completeStep(OperationContext.RollbackHandler.NOOP_ROLLBACK_HANDLER);
         }, OperationContext.Stage.RUNTIME);
     }
 }

@@ -63,24 +63,18 @@ public class ServerResumeHandler implements OperationStepHandler {
     public void execute(OperationContext context, ModelNode operation) throws OperationFailedException {
         // Acquire the controller lock to prevent new write ops and wait until current ones are done
         context.acquireControllerLock();
-        context.addStep(new OperationStepHandler() {
-            @Override
-            public void execute(OperationContext context, ModelNode operation) throws OperationFailedException {
-                // Even though we don't read from the service registry, we have a reference to a
-                // service-fronted 'processState' so tell the controller we are modifying a service
-                final ServiceRegistry registry = context.getServiceRegistry(true);
-                context.completeStep(new OperationContext.ResultHandler() {
-                    @Override
-                    public void handleResult(OperationContext.ResultAction resultAction, OperationContext context, ModelNode operation) {
-                        if(resultAction == OperationContext.ResultAction.KEEP) {
-                            //even if the timeout is zero we still pause the server
-                            //to stop new requests being accepted as it is shutting down
-                            ServiceController<SuspendController> shutdownController = (ServiceController<SuspendController>) registry.getRequiredService(SuspendController.SERVICE_NAME);
-                            shutdownController.getValue().resume();
-                        }
-                    }
-                });
-            }
+        context.addStep((context12, operation12) -> {
+            // Even though we don't read from the service registry, we have a reference to a
+            // service-fronted 'processState' so tell the controller we are modifying a service
+            final ServiceRegistry registry = context12.getServiceRegistry(true);
+            context12.completeStep((resultAction, context1, operation1) -> {
+                if(resultAction == OperationContext.ResultAction.KEEP) {
+                    //even if the timeout is zero we still pause the server
+                    //to stop new requests being accepted as it is shutting down
+                    ServiceController<SuspendController> shutdownController = (ServiceController<SuspendController>) registry.getRequiredService(SuspendController.SERVICE_NAME);
+                    shutdownController.getValue().resume();
+                }
+            });
         }, OperationContext.Stage.RUNTIME);
     }
 }

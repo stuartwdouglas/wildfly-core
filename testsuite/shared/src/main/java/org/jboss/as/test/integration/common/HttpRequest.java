@@ -71,13 +71,10 @@ public class HttpRequest {
 
     public static String get(final String spec, final long timeout, final TimeUnit unit) throws IOException, ExecutionException, TimeoutException {
         final URL url = new URL(spec);
-        Callable<String> task = new Callable<String>() {
-            @Override
-            public String call() throws Exception {
-                final HttpURLConnection conn = (HttpURLConnection) url.openConnection();
-                conn.setDoInput(true);
-                return processResponse(conn);
-            }
+        Callable<String> task = () -> {
+            final HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+            conn.setDoInput(true);
+            return processResponse(conn);
         };
         return execute(task, timeout, unit);
     }
@@ -96,45 +93,39 @@ public class HttpRequest {
      */
     public static String get(final String spec, final long waitUntilAvailableMs, final long responseTimeout, final TimeUnit responseTimeoutUnit) throws IOException, ExecutionException, TimeoutException {
         final URL url = new URL(spec);
-        Callable<String> task = new Callable<String>() {
-            @Override
-            public String call() throws Exception {
-                final long startTime = System.currentTimeMillis();
-                HttpURLConnection conn = (HttpURLConnection) url.openConnection();
-                conn.setDoInput(true);
-                while(conn.getResponseCode() == HttpURLConnection.HTTP_NOT_FOUND) {
-                    if(System.currentTimeMillis() - startTime >= waitUntilAvailableMs) {
-                        break;
-                    }
-                    try {
-                        Thread.sleep(500);
-                    } catch(InterruptedException e) {
-                        break;
-                    } finally {
-                        conn = (HttpURLConnection) url.openConnection();
-                        conn.setDoInput(true);
-                    }
+        Callable<String> task = () -> {
+            final long startTime = System.currentTimeMillis();
+            HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+            conn.setDoInput(true);
+            while(conn.getResponseCode() == HttpURLConnection.HTTP_NOT_FOUND) {
+                if(System.currentTimeMillis() - startTime >= waitUntilAvailableMs) {
+                    break;
                 }
-                return processResponse(conn);
+                try {
+                    Thread.sleep(500);
+                } catch(InterruptedException e) {
+                    break;
+                } finally {
+                    conn = (HttpURLConnection) url.openConnection();
+                    conn.setDoInput(true);
+                }
             }
+            return processResponse(conn);
         };
         return execute(task, responseTimeout, responseTimeoutUnit);
     }
 
     public static String get(final String spec, final String username, final String password, final long timeout, final TimeUnit unit) throws IOException, TimeoutException {
         final URL url = new URL(spec);
-        Callable<String> task = new Callable<String>() {
-            @Override
-            public String call() throws IOException {
-                final HttpURLConnection conn = (HttpURLConnection) url.openConnection();
-                if (username != null) {
-                    final String userpassword = username + ":" + password;
-                    final String basicAuthorization = Base64.getEncoder().encodeToString(userpassword.getBytes(StandardCharsets.UTF_8));
-                    conn.setRequestProperty("Authorization", "Basic " + basicAuthorization);
-                }
-                conn.setDoInput(true);
-                return processResponse(conn);
+        Callable<String> task = () -> {
+            final HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+            if (username != null) {
+                final String userpassword = username + ":" + password;
+                final String basicAuthorization = Base64.getEncoder().encodeToString(userpassword.getBytes(StandardCharsets.UTF_8));
+                conn.setRequestProperty("Authorization", "Basic " + basicAuthorization);
             }
+            conn.setDoInput(true);
+            return processResponse(conn);
         };
         return execute(task, timeout, unit);
     }
@@ -195,21 +186,18 @@ public class HttpRequest {
         }
 
         final URL url = new URL(spec);
-        Callable<String> task = new Callable<String>() {
-            @Override
-            public String call() throws Exception {
-                final HttpURLConnection conn = (HttpURLConnection) url.openConnection();
-                conn.setDoInput(true);
-                conn.setDoOutput(true);
-                conn.setRequestMethod(requestMethod);
-                final OutputStream out = conn.getOutputStream();
-                try {
-                    write(out, message);
-                    return processResponse(conn);
-                }
-                finally {
-                    out.close();
-                }
+        Callable<String> task = () -> {
+            final HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+            conn.setDoInput(true);
+            conn.setDoOutput(true);
+            conn.setRequestMethod(requestMethod);
+            final OutputStream out = conn.getOutputStream();
+            try {
+                write(out, message);
+                return processResponse(conn);
+            }
+            finally {
+                out.close();
             }
         };
         try {

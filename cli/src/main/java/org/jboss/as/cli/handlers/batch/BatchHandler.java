@@ -32,7 +32,6 @@ import java.util.List;
 import java.util.Set;
 
 import org.jboss.as.cli.CommandFormatException;
-import org.jboss.as.cli.CommandLineCompleter;
 import org.jboss.as.cli.CommandContext;
 import org.jboss.as.cli.CommandLineException;
 import org.jboss.as.cli.batch.Batch;
@@ -60,34 +59,32 @@ public class BatchHandler extends CommandHandlerWithHelp {
         l = new ArgumentWithoutValue(this, "-l");
         l.setExclusive(true);
 
-        name = new ArgumentWithValue(this, new CommandLineCompleter() {
-            @Override
-            public int complete(CommandContext ctx, String buffer, int cursor, List<String> candidates) {
+        name = new ArgumentWithValue(this, (ctx1, buffer, cursor, candidates) -> {
 
-                BatchManager batchManager = ctx.getBatchManager();
-                Set<String> names = batchManager.getHeldbackNames();
-                if(names.isEmpty()) {
-                    return -1;
+            BatchManager batchManager = ctx1.getBatchManager();
+            Set<String> names = batchManager.getHeldbackNames();
+            if(names.isEmpty()) {
+                return -1;
+            }
+
+            int nextCharIndex = 0;
+            while (nextCharIndex < buffer.length()) {
+                if (!Character.isWhitespace(buffer.charAt(nextCharIndex))) {
+                    break;
                 }
+                ++nextCharIndex;
+            }
 
-                int nextCharIndex = 0;
-                while (nextCharIndex < buffer.length()) {
-                    if (!Character.isWhitespace(buffer.charAt(nextCharIndex))) {
-                        break;
-                    }
-                    ++nextCharIndex;
+            String chunk = buffer.substring(nextCharIndex).trim();
+            for(String name : names) {
+                if(name != null && name.startsWith(chunk)) {
+                    candidates.add(name);
                 }
+            }
+            Collections.sort(candidates);
+            return nextCharIndex;
 
-                String chunk = buffer.substring(nextCharIndex).trim();
-                for(String name : names) {
-                    if(name != null && name.startsWith(chunk)) {
-                        candidates.add(name);
-                    }
-                }
-                Collections.sort(candidates);
-                return nextCharIndex;
-
-            }}, 0, "--name");
+        }, 0, "--name");
         name.setExclusive(true);
 
         final FilenameTabCompleter pathCompleter = FilenameTabCompleter.newCompleter(ctx);

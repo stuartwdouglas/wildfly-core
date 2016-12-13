@@ -55,11 +55,7 @@ public class DomainControllerClientConfig implements Closeable {
     private static final AtomicInteger executorCount = new AtomicInteger();
     static ExecutorService createDefaultExecutor() {
         final ThreadGroup group = new ThreadGroup("domain-mgmt-client-thread");
-        final ThreadFactory threadFactory = doPrivileged(new PrivilegedAction<ThreadFactory>() {
-            public ThreadFactory run() {
-                return new JBossThreadFactory(group, Boolean.FALSE, null, "%G " + executorCount.incrementAndGet() + "-%t", null, null);
-            }
-        });
+        final ThreadFactory threadFactory = doPrivileged((PrivilegedAction<ThreadFactory>) () -> new JBossThreadFactory(group, Boolean.FALSE, null, "%G " + executorCount.incrementAndGet() + "-%t", null, null));
         return new ThreadPoolExecutor(4, 4, 30L, TimeUnit.SECONDS, new LinkedBlockingQueue<Runnable>(256), threadFactory);
     }
 

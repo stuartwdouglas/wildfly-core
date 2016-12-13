@@ -32,15 +32,11 @@ import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.jboss.as.controller.ManagementModel;
 import org.jboss.as.controller.NotificationDefinition;
-import org.jboss.as.controller.OperationContext;
-import org.jboss.as.controller.OperationFailedException;
-import org.jboss.as.controller.OperationStepHandler;
 import org.jboss.as.controller.PathAddress;
 import org.jboss.as.controller.SimpleOperationDefinitionBuilder;
 import org.jboss.as.controller.descriptions.NonResolvingResourceDescriptionResolver;
 import org.jboss.as.controller.registry.ManagementResourceRegistration;
 import org.jboss.as.controller.test.AbstractControllerTestBase;
-import org.jboss.dmr.ModelNode;
 import org.junit.Test;
 
 /**
@@ -60,12 +56,9 @@ public class OperationWithNotificationTestCase extends AbstractControllerTestBas
         registration.registerOperationHandler(new SimpleOperationDefinitionBuilder(MY_OPERATION, new NonResolvingResourceDescriptionResolver())
                         .setPrivateEntry()
                         .build(),
-                new OperationStepHandler() {
-                    @Override
-                    public void execute(OperationContext context, ModelNode operation) throws OperationFailedException {
-                        Notification notification = new Notification(MY_NOTIFICATION_TYPE, PathAddress.pathAddress(operation.get(OP_ADDR)), "notification message");
-                        context.emit(notification);
-                    }
+                (context, operation) -> {
+                    Notification notification = new Notification(MY_NOTIFICATION_TYPE, PathAddress.pathAddress(operation.get(OP_ADDR)), "notification message");
+                    context.emit(notification);
                 }
         );
         registration.registerNotification(NotificationDefinition.Builder.create(MY_NOTIFICATION_TYPE, new NonResolvingResourceDescriptionResolver()).build());
@@ -74,13 +67,7 @@ public class OperationWithNotificationTestCase extends AbstractControllerTestBas
     @Test
     public void testSendNotification() throws Exception {
         ListBackedNotificationHandler handler = new ListBackedNotificationHandler();
-        getController().getNotificationRegistry().registerNotificationHandler(ANY_ADDRESS, handler, new NotificationFilter() {
-
-                    @Override
-                    public boolean isNotificationEnabled(Notification notification) {
-                        return MY_NOTIFICATION_TYPE.equals(notification.getType());
-                    }
-                }
+        getController().getNotificationRegistry().registerNotificationHandler(ANY_ADDRESS, handler, notification -> MY_NOTIFICATION_TYPE.equals(notification.getType())
         );
 
         executeForResult(createOperation(MY_OPERATION));
@@ -92,13 +79,7 @@ public class OperationWithNotificationTestCase extends AbstractControllerTestBas
     @Test
     public void testSendNotificationWithFilter() throws Exception {
         ListBackedNotificationHandler handler = new ListBackedNotificationHandler();
-        getController().getNotificationRegistry().registerNotificationHandler(ANY_ADDRESS, handler, new NotificationFilter() {
-
-            @Override
-            public boolean isNotificationEnabled(Notification notification) {
-                return false;
-            }
-        });
+        getController().getNotificationRegistry().registerNotificationHandler(ANY_ADDRESS, handler, notification -> false);
 
         executeForResult(createOperation(MY_OPERATION));
         assertTrue("the notification handler must not receive the filtered out notification", handler.getNotifications().isEmpty());
@@ -109,14 +90,11 @@ public class OperationWithNotificationTestCase extends AbstractControllerTestBas
     @Test
     public void testSendNotificationToFailingHandler() throws Exception {
         final AtomicBoolean gotNotification = new AtomicBoolean(false);
-        NotificationHandler handler = new NotificationHandler() {
-            @Override
-            public void handleNotification(Notification notification) {
-                // the handler receives the notification
-                gotNotification.set(true);
-                // but fails to process it
-                throw new IllegalStateException("somehow, the handler throws an exception");
-            }
+        NotificationHandler handler = notification -> {
+            // the handler receives the notification
+            gotNotification.set(true);
+            // but fails to process it
+            throw new IllegalStateException("somehow, the handler throws an exception");
         };
 
         getController().getNotificationRegistry().registerNotificationHandler(ANY_ADDRESS, handler, ALL);
@@ -131,11 +109,8 @@ public class OperationWithNotificationTestCase extends AbstractControllerTestBas
     @Test
     public void testSendNotificationWithFailingFilter() throws Exception {
         ListBackedNotificationHandler handler = new ListBackedNotificationHandler();
-        getController().getNotificationRegistry().registerNotificationHandler(ANY_ADDRESS, handler, new NotificationFilter() {
-            @Override
-            public boolean isNotificationEnabled(Notification notification) {
-                throw new IllegalStateException("somehow, the filter throws an exception");
-            }
+        getController().getNotificationRegistry().registerNotificationHandler(ANY_ADDRESS, handler, notification -> {
+            throw new IllegalStateException("somehow, the filter throws an exception");
         });
         // having a failing notification filter has no incidence on the operation that triggered the notification emission
         executeForResult(createOperation(MY_OPERATION));

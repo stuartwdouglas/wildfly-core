@@ -21,13 +21,10 @@
  */
 package org.jboss.as.cli.parsing.operation;
 
-import org.jboss.as.cli.CommandFormatException;
 import org.jboss.as.cli.parsing.BackQuotesState;
-import org.jboss.as.cli.parsing.CharacterHandler;
 import org.jboss.as.cli.parsing.DefaultStateWithEndCharacter;
 import org.jboss.as.cli.parsing.ExpressionBaseState;
 import org.jboss.as.cli.parsing.GlobalCharacterHandlers;
-import org.jboss.as.cli.parsing.ParsingContext;
 import org.jboss.as.cli.parsing.QuotesState;
 import org.jboss.as.cli.parsing.WordCharacterHandler;
 
@@ -46,11 +43,7 @@ public class PropertyValueState extends ExpressionBaseState {
 
     PropertyValueState(char propSeparator, char... listEnd) {
         super(ID, false);
-        this.setEnterHandler(new CharacterHandler() {
-            @Override
-            public void handle(ParsingContext ctx) throws CommandFormatException {
-                getHandler(ctx.getCharacter()).handle(ctx);
-            }});
+        this.setEnterHandler(ctx -> getHandler(ctx.getCharacter()).handle(ctx));
         putHandler(propSeparator, GlobalCharacterHandlers.LEAVE_STATE_HANDLER);
         for(int i = 0; i < listEnd.length; ++i) {
             putHandler(listEnd[i], GlobalCharacterHandlers.LEAVE_STATE_HANDLER);

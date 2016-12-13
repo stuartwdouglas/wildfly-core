@@ -61,22 +61,14 @@ class ServerGroupScopedRoleRemove implements OperationStepHandler {
         final String roleName = PathAddress.pathAddress(operation.require(ModelDescriptionConstants.OP_ADDR)).getLastElement().getValue();
         RoleMappingNotRequiredHandler.addOperation(context, roleName);
 
-        context.addStep(new OperationStepHandler() {
-            @Override
-            public void execute(OperationContext context, ModelNode operation) throws OperationFailedException {
+        context.addStep((context12, operation12) -> {
 
-                final String baseRole = ServerGroupScopedRoleResourceDefinition.BASE_ROLE.resolveModelAttribute(context, model).asString();
-                final List<ModelNode> serverGroupNodes = ServerGroupScopedRoleResourceDefinition.SERVER_GROUPS.resolveModelAttribute(context, model).asList();
+            final String baseRole = ServerGroupScopedRoleResourceDefinition.BASE_ROLE.resolveModelAttribute(context12, model).asString();
+            final List<ModelNode> serverGroupNodes = ServerGroupScopedRoleResourceDefinition.SERVER_GROUPS.resolveModelAttribute(context12, model).asList();
 
-                authorizerConfiguration.removeScopedRole(roleName);
-                constraintMap.remove(roleName);
-                context.completeStep(new OperationContext.RollbackHandler() {
-                    @Override
-                    public void handleRollback(OperationContext context, ModelNode operation) {
-                        ServerGroupScopedRoleAdd.addScopedRole(roleName, baseRole, serverGroupNodes, authorizerConfiguration, constraintMap);
-                    }
-                });
-            }
+            authorizerConfiguration.removeScopedRole(roleName);
+            constraintMap.remove(roleName);
+            context12.completeStep((context1, operation1) -> ServerGroupScopedRoleAdd.addScopedRole(roleName, baseRole, serverGroupNodes, authorizerConfiguration, constraintMap));
         }, OperationContext.Stage.RUNTIME);
     }
 }

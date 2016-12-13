@@ -590,14 +590,11 @@ public class CoreModelTestDelegate {
                 }
             }
             if (!dcInBootOps) {
-                testParser.addModelWriteSanitizer(new ModelWriteSanitizer() {
-                    @Override
-                    public ModelNode sanitize(ModelNode model) {
-                        if (model.isDefined() && model.has(DOMAIN_CONTROLLER)) {
-                            model.remove(DOMAIN_CONTROLLER);
-                        }
-                        return model;
+                testParser.addModelWriteSanitizer(model -> {
+                    if (model.isDefined() && model.has(DOMAIN_CONTROLLER)) {
+                        model.remove(DOMAIN_CONTROLLER);
                     }
+                    return model;
                 });
             }
         }

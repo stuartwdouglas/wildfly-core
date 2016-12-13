@@ -37,7 +37,6 @@ import org.jboss.as.controller.ObjectListAttributeDefinition;
 import org.jboss.as.controller.ObjectTypeAttributeDefinition;
 import org.jboss.as.controller.OperationContext;
 import org.jboss.as.controller.OperationFailedException;
-import org.jboss.as.controller.OperationStepHandler;
 import org.jboss.as.controller.PathAddress;
 import org.jboss.as.controller.PropertiesAttributeDefinition;
 import org.jboss.as.controller.ReloadRequiredRemoveStepHandler;
@@ -132,13 +131,8 @@ public class EnhancedSyntaxTestCase extends AbstractControllerTestBase {
                 })
                 .setRemoveOperation(ReloadRequiredRemoveStepHandler.INSTANCE)
                 .addReadWriteAttribute(LIST_ATTRIBUTE, null, new ModelOnlyWriteAttributeHandler(LIST_ATTRIBUTE))
-                .addReadWriteAttribute(RUNTIME_LIST_ATTRIBUTE, new OperationStepHandler() {
-                    @Override
-                    public void execute(OperationContext context, ModelNode operation) throws OperationFailedException {
-                        context.addStep((context1, operation1) -> context.getResult().set(runtimeListAttributeValue),
-                                OperationContext.Stage.RUNTIME);
-                    }
-                }, new AbstractWriteAttributeHandler(RUNTIME_LIST_ATTRIBUTE) {
+                .addReadWriteAttribute(RUNTIME_LIST_ATTRIBUTE, (context, operation) -> context.addStep((context1, operation1) -> context.getResult().set(runtimeListAttributeValue),
+                        OperationContext.Stage.RUNTIME), new AbstractWriteAttributeHandler(RUNTIME_LIST_ATTRIBUTE) {
                     @Override
                     protected boolean applyUpdateToRuntime(OperationContext context, ModelNode operation, String attributeName, ModelNode resolvedValue, ModelNode currentValue, HandbackHolder handbackHolder) throws OperationFailedException {
                         runtimeListAttributeValue = operation.get(VALUE);
@@ -150,13 +144,8 @@ public class EnhancedSyntaxTestCase extends AbstractControllerTestBase {
                     }
                 })
                 .addReadWriteAttribute(MAP_ATTRIBUTE, null, new ModelOnlyWriteAttributeHandler(MAP_ATTRIBUTE))
-                .addReadWriteAttribute(RUNTIME_MAP_ATTRIBUTE, new OperationStepHandler() {
-                    @Override
-                    public void execute(OperationContext context, ModelNode operation) throws OperationFailedException {
-                        context.addStep((context1, operation1) -> context.getResult().set(runtimeMapAttributeValue),
-                                OperationContext.Stage.RUNTIME);
-                    }
-                }, new AbstractWriteAttributeHandler(RUNTIME_MAP_ATTRIBUTE) {
+                .addReadWriteAttribute(RUNTIME_MAP_ATTRIBUTE, (context, operation) -> context.addStep((context1, operation1) -> context.getResult().set(runtimeMapAttributeValue),
+                        OperationContext.Stage.RUNTIME), new AbstractWriteAttributeHandler(RUNTIME_MAP_ATTRIBUTE) {
                     @Override
                     protected boolean applyUpdateToRuntime(OperationContext context, ModelNode operation, String attributeName, ModelNode resolvedValue, ModelNode currentValue, HandbackHolder handbackHolder) throws OperationFailedException {
                         runtimeMapAttributeValue = operation.get(VALUE);

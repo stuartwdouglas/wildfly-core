@@ -49,7 +49,6 @@ import org.jboss.as.cli.Util;
 import org.jboss.as.cli.impl.ArgumentWithValue;
 import org.jboss.as.cli.impl.ArgumentWithoutValue;
 import org.jboss.as.cli.impl.DefaultCompleter;
-import org.jboss.as.cli.impl.DefaultCompleter.CandidatesProvider;
 import org.jboss.as.cli.operation.OperationFormatException;
 import org.jboss.as.cli.operation.OperationRequestAddress;
 import org.jboss.as.cli.operation.ParsedCommandLine;
@@ -134,11 +133,7 @@ public class GenericTypeOperationHandler extends BatchModeCommandHandler {
             excludedOps = Collections.emptySet();
         }
 
-        profile = new ArgumentWithValue(this, new DefaultCompleter(new CandidatesProvider(){
-            @Override
-            public List<String> getAllCandidates(CommandContext ctx) {
-                return Util.getNodeNames(ctx.getModelControllerClient(), null, Util.PROFILE);
-            }}), "--profile") {
+        profile = new ArgumentWithValue(this, new DefaultCompleter(ctx13 -> Util.getNodeNames(ctx13.getModelControllerClient(), null, Util.PROFILE)), "--profile") {
             @Override
             public boolean canAppearNext(CommandContext ctx) throws CommandFormatException {
                 if(!isDependsOnProfile()) {
@@ -152,39 +147,37 @@ public class GenericTypeOperationHandler extends BatchModeCommandHandler {
         };
         //profile.addCantAppearAfter(helpArg);
 
-        operation = new ArgumentWithValue(this, new DefaultCompleter(new CandidatesProvider(){
-                @Override
-                public Collection<String> getAllCandidates(CommandContext ctx) {
-                    DefaultOperationRequestAddress address = new DefaultOperationRequestAddress();
-                    if(isDependsOnProfile() && ctx.isDomainMode()) {
-                        final String profileName = profile.getValue(ctx.getParsedCommandLine());
-                        if(profileName == null) {
-                            return Collections.emptyList();
-                        }
-                        address.toNode(Util.PROFILE, profileName);
-                    }
-                    for(OperationRequestAddress.Node node : getRequiredAddress()) {
-                        address.toNode(node.getType(), node.getName());
-                    }
-                    address.toNode(getRequiredType(), "?");
-                    Collection<String> ops = Util.getOperationNames(ctx, address);
-                    ops.removeAll(excludedOps);
-                    if(customHandlers != null) {
-                        if(ops.isEmpty()) {
-                            ops = customHandlers.keySet();
+        operation = new ArgumentWithValue(this, new DefaultCompleter(ctx12 -> {
+            DefaultOperationRequestAddress address = new DefaultOperationRequestAddress();
+            if(isDependsOnProfile() && ctx12.isDomainMode()) {
+                final String profileName = profile.getValue(ctx12.getParsedCommandLine());
+                if(profileName == null) {
+                    return Collections.emptyList();
+                }
+                address.toNode(Util.PROFILE, profileName);
+            }
+            for(OperationRequestAddress.Node node : getRequiredAddress()) {
+                address.toNode(node.getType(), node.getName());
+            }
+            address.toNode(getRequiredType(), "?");
+            Collection<String> ops = Util.getOperationNames(ctx12, address);
+            ops.removeAll(excludedOps);
+            if(customHandlers != null) {
+                if(ops.isEmpty()) {
+                    ops = customHandlers.keySet();
+                } else {
+                    ops = new HashSet<String>(ops);
+                    for(Map.Entry<String,OperationCommandWithDescription> entry : customHandlers.entrySet()) {
+                        if(entry.getValue().isAvailable(ctx12)) {
+                            ops.add(entry.getKey());
                         } else {
-                            ops = new HashSet<String>(ops);
-                            for(Map.Entry<String,OperationCommandWithDescription> entry : customHandlers.entrySet()) {
-                                if(entry.getValue().isAvailable(ctx)) {
-                                    ops.add(entry.getKey());
-                                } else {
-                                    ops.remove(entry.getKey()); // in case custom handler overrides the default op
-                                }
-                            }
+                            ops.remove(entry.getKey()); // in case custom handler overrides the default op
                         }
                     }
-                    return ops;
-                }}), 0, "--operation") {
+                }
+            }
+            return ops;
+        }), 0, "--operation") {
             @Override
             public boolean canAppearNext(CommandContext ctx) throws CommandFormatException {
                 if(isDependsOnProfile() && ctx.isDomainMode() && !profile.isValueComplete(ctx.getParsedCommandLine())) {
@@ -195,26 +188,23 @@ public class GenericTypeOperationHandler extends BatchModeCommandHandler {
         };
         operation.addCantAppearAfter(helpArg);
 
-        name = new ArgumentWithValue(this, new DefaultCompleter(new DefaultCompleter.CandidatesProvider() {
-            @Override
-            public List<String> getAllCandidates(CommandContext ctx) {
-                ModelControllerClient client = ctx.getModelControllerClient();
-                if (client == null) {
+        name = new ArgumentWithValue(this, new DefaultCompleter(ctx1 -> {
+            ModelControllerClient client = ctx1.getModelControllerClient();
+            if (client == null) {
+                return Collections.emptyList();
+            }
+            DefaultOperationRequestAddress address = new DefaultOperationRequestAddress();
+            if(isDependsOnProfile() && ctx1.isDomainMode()) {
+                final String profileName = profile.getValue(ctx1.getParsedCommandLine());
+                if(profile == null) {
                     return Collections.emptyList();
                 }
-                DefaultOperationRequestAddress address = new DefaultOperationRequestAddress();
-                if(isDependsOnProfile() && ctx.isDomainMode()) {
-                    final String profileName = profile.getValue(ctx.getParsedCommandLine());
-                    if(profile == null) {
-                        return Collections.emptyList();
-                    }
-                    address.toNode(Util.PROFILE, profileName);
-                }
-                for(OperationRequestAddress.Node node : getRequiredAddress()) {
-                    address.toNode(node.getType(), node.getName());
-                }
-                return Util.getNodeNames(ctx.getModelControllerClient(), address, getRequiredType());
-                }
+                address.toNode(Util.PROFILE, profileName);
+            }
+            for(OperationRequestAddress.Node node : getRequiredAddress()) {
+                address.toNode(node.getType(), node.getName());
+            }
+            return Util.getNodeNames(ctx1.getModelControllerClient(), address, getRequiredType());
             }), (idProperty == null ? "--name" : "--" + idProperty)) {
             @Override
             public boolean canAppearNext(CommandContext ctx) throws CommandFormatException {

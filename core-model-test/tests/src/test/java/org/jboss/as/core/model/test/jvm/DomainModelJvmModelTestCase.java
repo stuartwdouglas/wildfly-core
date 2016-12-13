@@ -82,12 +82,9 @@ public class DomainModelJvmModelTestCase extends GlobalJvmModelTestCase {
 
     @Override
     protected ModelInitializer getModelInitializer() {
-        return new ModelInitializer() {
-            @Override
-            public void populateModel(Resource rootResource) {
-                //Register the server group resource that will be the parent of the domain
-                rootResource.registerChild(PARENT, Resource.Factory.create());
-            }
+        return rootResource -> {
+            //Register the server group resource that will be the parent of the domain
+            rootResource.registerChild(PARENT, Resource.Factory.create());
         };
     }
 

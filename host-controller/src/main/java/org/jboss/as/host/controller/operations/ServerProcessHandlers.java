@@ -68,17 +68,9 @@ public abstract class ServerProcessHandlers implements OperationStepHandler {
         final PathAddress address = PathAddress.pathAddress(operation.require(OP_ADDR));
         final PathElement element = address.getLastElement();
         final String serverName = element.getValue();
-        context.addStep(new OperationStepHandler() {
-            @Override
-            public void execute(OperationContext context, ModelNode operation) throws OperationFailedException {
-                context.authorize(operation, EnumSet.of(Action.ActionEffect.WRITE_RUNTIME));
-                context.completeStep(new OperationContext.ResultHandler() {
-                    @Override
-                    public void handleResult(OperationContext.ResultAction resultAction, OperationContext context, ModelNode operation) {
-                        doExecute(serverName);
-                    }
-                });
-            }
+        context.addStep((context12, operation12) -> {
+            context12.authorize(operation12, EnumSet.of(Action.ActionEffect.WRITE_RUNTIME));
+            context12.completeStep((resultAction, context1, operation1) -> doExecute(serverName));
         }, OperationContext.Stage.RUNTIME);
     }
 

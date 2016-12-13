@@ -23,7 +23,6 @@ package org.jboss.as.cli.handlers;
 
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.Iterator;
 import java.util.List;
 import java.util.regex.Pattern;
@@ -36,7 +35,6 @@ import org.jboss.as.cli.accesscontrol.AccessRequirementBuilder;
 import org.jboss.as.cli.accesscontrol.PerNodeOperationAccess;
 import org.jboss.as.cli.impl.ArgumentWithValue;
 import org.jboss.as.cli.impl.DefaultCompleter;
-import org.jboss.as.cli.impl.DefaultCompleter.CandidatesProvider;
 import org.jboss.as.cli.operation.ParsedCommandLine;
 import org.jboss.as.cli.util.SimpleTable;
 import org.jboss.as.cli.util.StrictSizeTable;
@@ -70,17 +68,9 @@ public class DeploymentInfoHandler extends BaseOperationCommand {
 
     public DeploymentInfoHandler(CommandContext ctx) {
         super(ctx, "deployment-info", true);
-        name = new ArgumentWithValue(this, new DefaultCompleter(new CandidatesProvider(){
-            @Override
-            public Collection<String> getAllCandidates(CommandContext ctx) {
-                return Util.getDeployments(ctx.getModelControllerClient());
-            }}), "--name");
+        name = new ArgumentWithValue(this, new DefaultCompleter(ctx12 -> Util.getDeployments(ctx12.getModelControllerClient())), "--name");
 
-        serverGroup = new ArgumentWithValue(this, new DefaultCompleter(new CandidatesProvider(){
-            @Override
-            public Collection<String> getAllCandidates(CommandContext ctx) {
-                return sgChildrenResourcesPermission.getAllowedOn(ctx);
-            }}), "--server-group") {
+        serverGroup = new ArgumentWithValue(this, new DefaultCompleter(ctx1 -> sgChildrenResourcesPermission.getAllowedOn(ctx1)), "--server-group") {
             @Override
             public boolean canAppearNext(CommandContext ctx) throws CommandFormatException {
                 if(!ctx.isDomainMode()) {

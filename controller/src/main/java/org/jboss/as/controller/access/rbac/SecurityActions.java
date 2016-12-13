@@ -47,24 +47,11 @@ class SecurityActions {
 
         boolean isInVmCall();
 
-        InVmActions NON_PRIVILEGED = new InVmActions() {
-
-            @Override
-            public boolean isInVmCall() {
-                return InVmAccess.isInVmCall();
-            }
-        };
+        InVmActions NON_PRIVILEGED = () -> InVmAccess.isInVmCall();
 
         InVmActions PRIVILEGED = new InVmActions() {
 
-            private final PrivilegedAction<Boolean> PRIVILEGED_ACTION = new PrivilegedAction<Boolean>() {
-
-                @Override
-                public Boolean run() {
-                    return NON_PRIVILEGED.isInVmCall();
-                }
-
-            };
+            private final PrivilegedAction<Boolean> PRIVILEGED_ACTION = () -> NON_PRIVILEGED.isInVmCall();
 
             @Override
             public boolean isInVmCall() {

@@ -97,29 +97,26 @@ public class CompositeOperationHandler implements OperationStepHandler {
         boolean adjustStepAddresses = context.getCurrentAddress().size() > 0;
         MultistepUtil.recordOperationSteps(context, operationMap, addedResponses, getOperationHandlerResolver(), adjustStepAddresses);
 
-        context.completeStep(new OperationContext.RollbackHandler() {
-            @Override
-            public void handleRollback(OperationContext context, ModelNode operation) {
+        context.completeStep((context1, operation1) -> {
 
-                // don't override useful failure information in the domain
-                // or any existing failure message
-                if (context.getAttachment(DOMAIN_EXECUTION_KEY) != null || context.hasFailureDescription()) {
-                    return;
-                }
-
-                final ModelNode failureMsg = new ModelNode();
-                for (int i = 0; i < size; i++) {
-                    String stepName = "step-" + (i+1);
-                    ModelNode stepResponse = responseMap.get(stepName);
-                    if (stepResponse.hasDefined(FAILURE_DESCRIPTION)) {
-                        failureMsg.get(ControllerLogger.ROOT_LOGGER.compositeOperationFailed(), ControllerLogger.ROOT_LOGGER.operation(stepName)).set(stepResponse.get(FAILURE_DESCRIPTION));
-                    }
-                }
-                if (!failureMsg.isDefined()) {
-                    failureMsg.set(getUnexplainedFailureMessage());
-                }
-                context.getFailureDescription().set(failureMsg);
+            // don't override useful failure information in the domain
+            // or any existing failure message
+            if (context1.getAttachment(DOMAIN_EXECUTION_KEY) != null || context1.hasFailureDescription()) {
+                return;
             }
+
+            final ModelNode failureMsg = new ModelNode();
+            for (int i = 0; i < size; i++) {
+                String stepName = "step-" + (i+1);
+                ModelNode stepResponse = responseMap.get(stepName);
+                if (stepResponse.hasDefined(FAILURE_DESCRIPTION)) {
+                    failureMsg.get(ControllerLogger.ROOT_LOGGER.compositeOperationFailed(), ControllerLogger.ROOT_LOGGER.operation(stepName)).set(stepResponse.get(FAILURE_DESCRIPTION));
+                }
+            }
+            if (!failureMsg.isDefined()) {
+                failureMsg.set(getUnexplainedFailureMessage());
+            }
+            context1.getFailureDescription().set(failureMsg);
         });
     }
 

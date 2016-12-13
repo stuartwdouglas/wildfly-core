@@ -12,12 +12,7 @@ import java.util.List;
  */
 public class PatchReenableJarTool {
 
-    static FilenameFilter JAR_FILTER = new FilenameFilter() {
-        @Override
-        public boolean accept(File dir, String name) {
-            return name.endsWith(".jar");
-        }
-    };
+    static FilenameFilter JAR_FILTER = (dir, name) -> name.endsWith(".jar");
 
     public static void main(String... args) throws IOException {
 

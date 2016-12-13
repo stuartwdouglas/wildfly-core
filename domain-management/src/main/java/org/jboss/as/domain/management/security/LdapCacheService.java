@@ -34,7 +34,6 @@ import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
-import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
 
 import javax.naming.NamingException;
@@ -121,35 +120,25 @@ class LdapCacheService<R, K> implements Service<LdapSearcherCache<R, K>> {
          * having many threads concurrently waiting on the same lock.
          */
         if (evictionTime > 0) {
-            executorService = Executors.newSingleThreadScheduledExecutor(new ThreadFactory() {
-
-                @Override
-                public Thread newThread(Runnable r) {
-                    return new Thread(r, String.format("LDAP Cache Eviction Thread (%d)", THREAD_COUNT++));
-                }
-            });
+            executorService = Executors.newSingleThreadScheduledExecutor(r -> new Thread(r, String.format("LDAP Cache Eviction Thread (%d)", THREAD_COUNT++)));
         }
     }
 
     @Override
     public void stop(final StopContext context) {
         try {
-            context.execute(new Runnable() {
-
-                @Override
-                public void run() {
-                    try {
-                        cacheImplementation.clearAll();
-                        cacheImplementation = null;
-                        if (executorService != null) {
-                            // FIXME context.execute() should not be used for blocking tasks. Inject a scheduled executor
-                            // and get rid of this
-                            executorService.shutdown();
-                            executorService = null;
-                        }
-                    } finally {
-                        context.complete();
+            context.execute(() -> {
+                try {
+                    cacheImplementation.clearAll();
+                    cacheImplementation = null;
+                    if (executorService != null) {
+                        // FIXME context.execute() should not be used for blocking tasks. Inject a scheduled executor
+                        // and get rid of this
+                        executorService.shutdown();
+                        executorService = null;
                     }
+                } finally {
+                    context.complete();
                 }
             });
         } finally {
@@ -445,20 +434,16 @@ class LdapCacheService<R, K> implements Service<LdapSearcherCache<R, K>> {
                         }
                     }
                     if (evictionTime > 0) {
-                        entry.setFuture(executorService.schedule(new Runnable() {
-
-                            @Override
-                            public void run() {
-                                synchronized (theCache) {
-                                    CacheEntry entry = theCache.remove(key);
-                                    if (entry == null) {
-                                        SECURITY_LOGGER.tracef("Entry with key '%s' not in cache at time of timeout.", key);
-                                    } else {
-                                        SECURITY_LOGGER.tracef("Evicted entry with key '%s' due to eviction timeout.", key);
-                                    }
+                        entry.setFuture(executorService.schedule(() -> {
+                            synchronized (theCache) {
+                                CacheEntry entry1 = theCache.remove(key);
+                                if (entry1 == null) {
+                                    SECURITY_LOGGER.tracef("Entry with key '%s' not in cache at time of timeout.", key);
+                                } else {
+                                    SECURITY_LOGGER.tracef("Evicted entry with key '%s' due to eviction timeout.", key);
                                 }
-
                             }
+
                         }, evictionTime, TimeUnit.SECONDS));
                     }
                 } else {
@@ -507,20 +492,16 @@ class LdapCacheService<R, K> implements Service<LdapSearcherCache<R, K>> {
                 theCache.put(key, entry);
                 if (evictionTime > 0) {
                     entry.cancelFuture();
-                    entry.setFuture(executorService.schedule(new Runnable() {
-
-                        @Override
-                        public void run() {
-                            synchronized (theCache) {
-                                CacheEntry entry = theCache.remove(key);
-                                if (entry == null) {
-                                    SECURITY_LOGGER.tracef("Entry with key '%s' not in cache at time of timeout.", key);
-                                } else {
-                                    SECURITY_LOGGER.tracef("Evicted entry with key '%s' due to eviction timeout.", key);
-                                }
+                    entry.setFuture(executorService.schedule(() -> {
+                        synchronized (theCache) {
+                            CacheEntry entry1 = theCache.remove(key);
+                            if (entry1 == null) {
+                                SECURITY_LOGGER.tracef("Entry with key '%s' not in cache at time of timeout.", key);
+                            } else {
+                                SECURITY_LOGGER.tracef("Evicted entry with key '%s' due to eviction timeout.", key);
                             }
-
                         }
+
                     }, evictionTime, TimeUnit.SECONDS));
                 }
             }

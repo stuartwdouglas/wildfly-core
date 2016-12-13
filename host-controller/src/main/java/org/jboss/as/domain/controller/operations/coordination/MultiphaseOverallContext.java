@@ -36,7 +36,6 @@ import java.util.concurrent.ConcurrentMap;
 
 import org.jboss.as.controller.OperationFailedException;
 import org.jboss.as.controller.TransformingProxyController;
-import org.jboss.as.controller.transform.OperationResultTransformer;
 import org.jboss.as.controller.transform.OperationTransformer;
 import org.jboss.as.controller.transform.Transformers;
 import org.jboss.as.domain.controller.LocalHostControllerInfo;
@@ -181,12 +180,9 @@ public final class MultiphaseOverallContext {
             // in case it's local hosts-controller
             return transformed;
         }
-        return new OperationTransformer.TransformedOperation(transformed.getTransformedOperation(), new OperationResultTransformer() {
-            @Override
-            public ModelNode transformResult(ModelNode result) {
-                final ModelNode step1 = transformed.transformResult(result);
-                return hostRequest.transformResult(step1);
-            }
+        return new OperationTransformer.TransformedOperation(transformed.getTransformedOperation(), result -> {
+            final ModelNode step1 = transformed.transformResult(result);
+            return hostRequest.transformResult(step1);
         });
     }
 

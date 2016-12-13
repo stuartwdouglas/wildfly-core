@@ -34,7 +34,6 @@ import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
 import java.util.concurrent.Executor;
-import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
 
 import org.jboss.as.controller.ModelController;
@@ -53,11 +52,9 @@ import org.jboss.as.version.ProductConfig;
 import org.jboss.dmr.ModelNode;
 import org.jboss.modules.Module;
 import org.jboss.msc.service.ServiceActivator;
-import org.jboss.msc.service.ServiceActivatorContext;
 import org.jboss.msc.service.ServiceContainer;
 import org.jboss.msc.service.ServiceController;
 import org.jboss.msc.service.ServiceName;
-import org.jboss.msc.service.ServiceRegistryException;
 import org.jboss.msc.service.ServiceTarget;
 import org.jboss.threads.AsyncFuture;
 import org.wildfly.security.manager.WildFlySecurityManager;
@@ -139,59 +136,53 @@ public final class ServerStartTask implements ServerTask, Serializable, ObjectIn
         final ServerBootOperationsService service = new ServerBootOperationsService();
         // ModelController.boot() will block on this future in order to get the boot updates.
         final Future<ModelNode> bootOperations = service.getFutureResult();
-        final ServiceActivator activator = new ServiceActivator() {
-            @Override
-            public void activate(ServiceActivatorContext serviceActivatorContext) throws ServiceRegistryException {
-                final ServiceTarget target = serviceActivatorContext.getServiceTarget();
-                target.addService(ServiceName.JBOSS.append("server-boot-operations"), service)
-                        .addDependency(Services.JBOSS_AS)
-                        .addDependency(Services.JBOSS_SERVER_CONTROLLER, ModelController.class, service.getServerController())
-                        .addDependency(HostControllerConnectionService.SERVICE_NAME, HostControllerClient.class, service.getClientInjector())
-                        .addDependency(Services.JBOSS_SERVER_EXECUTOR, Executor.class, service.getExecutorInjector())
-                        .setInitialMode(ServiceController.Mode.ACTIVE)
-                        .install();
+        final ServiceActivator activator = serviceActivatorContext -> {
+            final ServiceTarget target = serviceActivatorContext.getServiceTarget();
+            target.addService(ServiceName.JBOSS.append("server-boot-operations"), service)
+                    .addDependency(Services.JBOSS_AS)
+                    .addDependency(Services.JBOSS_SERVER_CONTROLLER, ModelController.class, service.getServerController())
+                    .addDependency(HostControllerConnectionService.SERVICE_NAME, HostControllerClient.class, service.getClientInjector())
+                    .addDependency(Services.JBOSS_SERVER_EXECUTOR, Executor.class, service.getExecutorInjector())
+                    .setInitialMode(ServiceController.Mode.ACTIVE)
+                    .install();
 
 
-            }
         };
         services.add(activator);
 
         final Bootstrap.Configuration configuration = new Bootstrap.Configuration(providedEnvironment);
         final ExtensionRegistry extensionRegistry = configuration.getExtensionRegistry();
-        final Bootstrap.ConfigurationPersisterFactory configurationPersisterFactory = new Bootstrap.ConfigurationPersisterFactory() {
-            @Override
-            public ExtensibleConfigurationPersister createConfigurationPersister(ServerEnvironment serverEnvironment, ExecutorService executorService) {
-                ExtensibleConfigurationPersister persister = new AbstractConfigurationPersister(new StandaloneXml(configuration.getModuleLoader(), executorService, extensionRegistry)) {
+        final Bootstrap.ConfigurationPersisterFactory configurationPersisterFactory = (serverEnvironment, executorService) -> {
+            ExtensibleConfigurationPersister persister = new AbstractConfigurationPersister(new StandaloneXml(configuration.getModuleLoader(), executorService, extensionRegistry)) {
 
-                    private final PersistenceResource pr = new PersistenceResource() {
-
-                        @Override
-                        public void commit() {
-                        }
-
-                        @Override
-                        public void rollback() {
-                        }
-                    };
+                private final PersistenceResource pr = new PersistenceResource() {
 
                     @Override
-                    public PersistenceResource store(final ModelNode model, Set<PathAddress> affectedAddresses) throws ConfigurationPersistenceException {
-                        return pr;
+                    public void commit() {
                     }
 
                     @Override
-                    public List<ModelNode> load() throws ConfigurationPersistenceException {
-                        try {
-                            final ModelNode operations = bootOperations.get();
-                            return operations.asList();
-                        } catch (Exception e) {
-                            throw new ConfigurationPersistenceException(e);
-                        }
+                    public void rollback() {
                     }
                 };
-                extensionRegistry.setWriterRegistry(persister);
-                return persister;
-            }
+
+                @Override
+                public PersistenceResource store(final ModelNode model, Set<PathAddress> affectedAddresses) throws ConfigurationPersistenceException {
+                    return pr;
+                }
+
+                @Override
+                public List<ModelNode> load() throws ConfigurationPersistenceException {
+                    try {
+                        final ModelNode operations = bootOperations.get();
+                        return operations.asList();
+                    } catch (Exception e) {
+                        throw new ConfigurationPersistenceException(e);
+                    }
+                }
+            };
+            extensionRegistry.setWriterRegistry(persister);
+            return persister;
         };
         configuration.setConfigurationPersisterFactory(configurationPersisterFactory);
         return bootstrap.bootstrap(configuration, services);

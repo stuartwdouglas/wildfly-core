@@ -37,10 +37,8 @@ import static org.junit.Assert.assertTrue;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
-import java.io.FileFilter;
 import java.io.FileOutputStream;
 import java.io.IOException;
-import java.io.InputStream;
 import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -204,12 +202,7 @@ public class PatchingTestUtil {
         File bundleXMLFile = new File(dir, "patches.xml");
         FileOutputStream fos = new FileOutputStream(bundleXMLFile);
         try {
-            PatchBundleXml.marshal(fos, new BundledPatch() {
-                @Override
-                public List<BundledPatchEntry> getPatches() {
-                    return patches;
-                }
-            });
+            PatchBundleXml.marshal(fos, () -> patches);
         } finally {
             safeClose(fos);
         }
@@ -243,12 +236,7 @@ public class PatchingTestUtil {
             assertNull("Overlay directory does not exist, but it should", expectedPatchElements);
             return;
         }
-        final List<File> patchDirs = Arrays.asList(modulesPatchesDir.listFiles(new FileFilter() {
-            @Override
-            public boolean accept(File pathname) {
-                return pathname.isDirectory();
-            }
-        }));
+        final List<File> patchDirs = Arrays.asList(modulesPatchesDir.listFiles(pathname -> pathname.isDirectory()));
         if (expectedPatchElements == null) {
             assertTrue("Overlays directory should contain no directories, but contains: " + patchDirs.toString(), patchDirs.isEmpty());
         } else {
@@ -306,12 +294,7 @@ public class PatchingTestUtil {
     }
 
     public static ResourceItem createVersionItem(final String targetVersion) {
-        final Asset newManifest = new Asset() {
-            @Override
-            public InputStream openStream() {
-                return new ByteArrayInputStream(ProductInfo.createVersionString(targetVersion).getBytes(StandardCharsets.UTF_8));
-            }
-        };
+        final Asset newManifest = () -> new ByteArrayInputStream(ProductInfo.createVersionString(targetVersion).getBytes(StandardCharsets.UTF_8));
 
         final JavaArchive versionModuleJar = ShrinkWrap.create(JavaArchive.class);
         if (!ProductInfo.isProduct) {

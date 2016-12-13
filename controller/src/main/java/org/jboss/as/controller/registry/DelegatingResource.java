@@ -59,12 +59,7 @@ public class DelegatingResource extends ResourceProvider.ResourceProviderRegistr
      * @param delegate the delegate. Cannot be {@code null}
      */
     public DelegatingResource(final Resource delegate) {
-        this(new ResourceDelegateProvider() {
-            @Override
-            public Resource getDelegateResource() {
-                return delegate;
-            }
-        });
+        this(() -> delegate);
     }
 
     /**

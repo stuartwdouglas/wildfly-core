@@ -26,13 +26,11 @@ import static javax.security.auth.login.AppConfigurationEntry.LoginModuleControl
 import static org.jboss.as.domain.management.logging.DomainManagementLogger.SECURITY_LOGGER;
 
 import java.io.File;
-import java.io.IOException;
 import java.net.MalformedURLException;
 import java.util.HashMap;
 import java.util.Map;
 
 import javax.security.auth.Subject;
-import javax.security.auth.callback.Callback;
 import javax.security.auth.callback.CallbackHandler;
 import javax.security.auth.callback.UnsupportedCallbackException;
 import javax.security.auth.login.AppConfigurationEntry;
@@ -66,12 +64,8 @@ public class KeytabService implements Service<KeytabService> {
     private static final String KRB5LoginModule = "com.sun.security.auth.module.Krb5LoginModule";
     private static final String IBMKRB5LoginModule = "com.ibm.security.auth.module.Krb5LoginModule";
 
-    private static final CallbackHandler NO_CALLBACK_HANDLER = new CallbackHandler() {
-
-        @Override
-        public void handle(Callback[] callbacks) throws IOException, UnsupportedCallbackException {
-            throw new UnsupportedCallbackException(callbacks[0]);
-        }
+    private static final CallbackHandler NO_CALLBACK_HANDLER = callbacks -> {
+        throw new UnsupportedCallbackException(callbacks[0]);
     };
 
     private final String principal;

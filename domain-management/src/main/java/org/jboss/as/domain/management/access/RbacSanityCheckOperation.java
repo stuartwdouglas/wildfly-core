@@ -82,17 +82,13 @@ public class RbacSanityCheckOperation implements OperationStepHandler {
          * may not have access to the remaining parts - this Operation uses a PrivilegedAction to run as an in-vm client.
          */
         try {
-            InVmAccess.runInVm(new PrivilegedExceptionAction<Void>() {
-
-                @Override
-                public Void run() throws OperationFailedException {
-                    final ModelChecker checker = new ModelChecker(context, context.readResource(PathAddress.EMPTY_ADDRESS));
-                    if (checker.isRbacEnabled() && (checker.usingIdentityRoles() == false) && (checker.doRoleMappingsExist() == false)) {
-                        throw DomainManagementLogger.ROOT_LOGGER.inconsistentRbacConfiguration();
-                    }
-
-                    return null;
+            InVmAccess.runInVm((PrivilegedExceptionAction<Void>) () -> {
+                final ModelChecker checker = new ModelChecker(context, context.readResource(PathAddress.EMPTY_ADDRESS));
+                if (checker.isRbacEnabled() && (checker.usingIdentityRoles() == false) && (checker.doRoleMappingsExist() == false)) {
+                    throw DomainManagementLogger.ROOT_LOGGER.inconsistentRbacConfiguration();
                 }
+
+                return null;
             });
         } catch (PrivilegedActionException e) {
             Exception cause = e.getException();

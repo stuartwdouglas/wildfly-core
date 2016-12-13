@@ -46,8 +46,6 @@ import org.jboss.as.controller.registry.Resource;
 import org.jboss.as.core.model.test.AbstractCoreModelTest;
 import org.jboss.as.core.model.test.KernelServices;
 import org.jboss.as.core.model.test.KernelServicesBuilder;
-import org.jboss.as.core.model.test.ModelInitializer;
-import org.jboss.as.core.model.test.ModelWriteSanitizer;
 import org.jboss.as.core.model.test.TestModelType;
 import org.jboss.as.domain.controller.operations.deployment.DeploymentAddHandler;
 import org.jboss.as.domain.controller.operations.deployment.DeploymentRemoveHandler;
@@ -276,23 +274,16 @@ public class ServerGroupDeploymentTestCase extends AbstractCoreModelTest {
 
         KernelServices kernelServices =  createKernelServicesBuilder()
                 .setBootOperations(deployments)
-                .setModelInitializer(new ModelInitializer() {
-                    @Override
-                    public void populateModel(Resource rootResource) {
-                        Resource serverGroupRes = Resource.Factory.create();
-                        ModelNode model = serverGroupRes.getModel();
-                        model.get(PROFILE).set("Test");
-                        model.get(SOCKET_BINDING_GROUP).set("Test");
-                        rootResource.registerChild(PathElement.pathElement(SERVER_GROUP, "Test"), serverGroupRes);
-                    }
-                }, new ModelWriteSanitizer() {
-
-                    @Override
-                    public ModelNode sanitize(ModelNode model) {
-                        ModelNode node = model.clone();
-                        node.remove(SERVER_GROUP);
-                        return node;
-                    }
+                .setModelInitializer(rootResource -> {
+                    Resource serverGroupRes = Resource.Factory.create();
+                    ModelNode model = serverGroupRes.getModel();
+                    model.get(PROFILE).set("Test");
+                    model.get(SOCKET_BINDING_GROUP).set("Test");
+                    rootResource.registerChild(PathElement.pathElement(SERVER_GROUP, "Test"), serverGroupRes);
+                }, model -> {
+                    ModelNode node = model.clone();
+                    node.remove(SERVER_GROUP);
+                    return node;
                 })
                 .build();
         Assert.assertTrue(kernelServices.isSuccessfulBoot());

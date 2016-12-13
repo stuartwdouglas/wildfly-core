@@ -176,13 +176,9 @@ public class DomainServerGroupTransformersTestCase extends AbstractCoreModelTest
 
     }
 
-    private static final ModelFixer MODEL_FIXER = new ModelFixer() {
-
-        @Override
-        public ModelNode fixModel(ModelNode modelNode) {
-            modelNode.remove(SOCKET_BINDING_GROUP);
-            modelNode.remove(PROFILE);
-            return modelNode;
-        }
+    private static final ModelFixer MODEL_FIXER = modelNode -> {
+        modelNode.remove(SOCKET_BINDING_GROUP);
+        modelNode.remove(PROFILE);
+        return modelNode;
     };
 }

@@ -130,13 +130,9 @@ public class TransactionalProtocolOperationHandler implements ManagementRequestH
 
             final ExecutableRequest executableRequest = ExecutableRequest.parse(input, channelAssociation);
 
-            final PrivilegedAction<Void> action = new PrivilegedAction<Void>() {
-
-                @Override
-                public Void run() {
-                    doExecute(executableRequest.operation, executableRequest.attachmentsLength, context);
-                    return null;
-                }
+            final PrivilegedAction<Void> action = () -> {
+                doExecute(executableRequest.operation, executableRequest.attachmentsLength, context);
+                return null;
             };
 
             // Set the response information and execute the operation
@@ -149,14 +145,10 @@ public class TransactionalProtocolOperationHandler implements ManagementRequestH
 
                 @Override
                 public void execute(final ManagementRequestContext<ExecuteRequestContext> context) throws Exception {
-                    AccessController.doPrivileged(new PrivilegedAction<Void>() {
-
-                        @Override
-                        public Void run() {
-                            // TODO Elytron - Inflow the remote address.
-                            AccessAuditContext.doAs(executableRequest.securityIdentity, null, action);
-                            return null;
-                        }
+                    AccessController.doPrivileged((PrivilegedAction<Void>) () -> {
+                        // TODO Elytron - Inflow the remote address.
+                        AccessAuditContext.doAs(executableRequest.securityIdentity, null, action);
+                        return null;
                     });
 
                 }
@@ -569,12 +561,7 @@ public class TransactionalProtocolOperationHandler implements ManagementRequestH
 
         /** Asynchronously invokes cancel on the result handler for the operation */
         private void cancel(final ManagementRequestContext<ExecuteRequestContext> context) {
-            context.executeAsync(new ManagementRequestContext.AsyncTask<ExecuteRequestContext>() {
-                @Override
-                public void execute(ManagementRequestContext<ExecuteRequestContext> executeRequestContextManagementRequestContext) throws Exception {
-                    operation.getResultHandler().cancel();
-                }
-            }, false);
+            context.executeAsync(executeRequestContextManagementRequestContext -> operation.getResultHandler().cancel(), false);
         }
 
     }
@@ -593,28 +580,24 @@ public class TransactionalProtocolOperationHandler implements ManagementRequestH
         // cancellation of the management op by using a separate thread to send
         final CountDownLatch latch = new CountDownLatch(1);
         final IOExceptionHolder exceptionHolder = new IOExceptionHolder();
-        boolean accepted = context.executeAsync(new AsyncTask<TransactionalProtocolOperationHandler.ExecuteRequestContext>() {
-
-            @Override
-            public void execute(final ManagementRequestContext<ExecuteRequestContext> context) throws Exception {
-                FlushableDataOutput output = null;
-                try {
-                    MGMT_OP_LOGGER.tracef("Transmitting response for %d", context.getOperationId());
-                    final ManagementResponseHeader header = ManagementResponseHeader.create(context.getRequestHeader());
-                    output = context.writeMessage(header);
-                    // response type
-                    output.writeByte(responseType);
-                    // operation result
-                    response.writeExternal(output);
-                    // response end
-                    output.writeByte(ManagementProtocol.RESPONSE_END);
-                    output.close();
-                } catch (IOException toCache) {
-                    exceptionHolder.exception = toCache;
-                } finally {
-                    StreamUtils.safeClose(output);
-                    latch.countDown();
-                }
+        boolean accepted = context.executeAsync(context1 -> {
+            FlushableDataOutput output = null;
+            try {
+                MGMT_OP_LOGGER.tracef("Transmitting response for %d", context1.getOperationId());
+                final ManagementResponseHeader header = ManagementResponseHeader.create(context1.getRequestHeader());
+                output = context1.writeMessage(header);
+                // response type
+                output.writeByte(responseType);
+                // operation result
+                response.writeExternal(output);
+                // response end
+                output.writeByte(ManagementProtocol.RESPONSE_END);
+                output.close();
+            } catch (IOException toCache) {
+                exceptionHolder.exception = toCache;
+            } finally {
+                StreamUtils.safeClose(output);
+                latch.countDown();
             }
         }, false);
         if (accepted) {
