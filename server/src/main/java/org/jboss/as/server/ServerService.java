@@ -242,6 +242,12 @@ public final class ServerService extends AbstractControllerService {
         serviceTarget.addService(MANAGEMENT_EXECUTOR, serverExecutorService)
                 .addAliases(Services.JBOSS_SERVER_EXECUTOR, ManagementRemotingServices.SHUTDOWN_EXECUTOR_NAME) // Use this executor for mgmt shutdown for now
                 .install();
+
+        HackClassLoaderService hack = new HackClassLoaderService();
+        serviceTarget.addService(ServiceName.JBOSS.append("hack-class-loader"), hack)
+        .addDependency(MANAGEMENT_EXECUTOR , ExecutorService.class, hack.executor)
+        .install();
+
         final ServerScheduledExecutorService serverScheduledExecutorService = new ServerScheduledExecutorService(threadFactory);
         serviceTarget.addService(JBOSS_SERVER_SCHEDULED_EXECUTOR, serverScheduledExecutorService)
                 .addAliases(JBOSS_SERVER_SCHEDULED_EXECUTOR)
