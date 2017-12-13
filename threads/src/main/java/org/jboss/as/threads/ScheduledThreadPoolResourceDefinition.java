@@ -23,10 +23,13 @@
 package org.jboss.as.threads;
 
 import org.jboss.as.controller.AttributeDefinition;
+import org.jboss.as.controller.OperationContext;
+import org.jboss.as.controller.OperationFailedException;
 import org.jboss.as.controller.PathElement;
 import org.jboss.as.controller.PersistentResourceDefinition;
 import org.jboss.as.controller.ReadResourceNameOperationStepHandler;
 import org.jboss.as.controller.registry.ManagementResourceRegistration;
+import org.jboss.dmr.ModelNode;
 import org.jboss.msc.service.ServiceName;
 
 import java.util.Arrays;
@@ -42,25 +45,30 @@ public class ScheduledThreadPoolResourceDefinition extends PersistentResourceDef
     private final ScheduledThreadPoolMetricsHandler metricsHandler;
     private final boolean registerRuntimeOnly;
 
+    private final ThreadFactoryResolver threadFactoryResolver;
+    private final ServiceName serviceNameBase;
+
     public static ScheduledThreadPoolResourceDefinition create(boolean registerRuntimeOnly) {
         return create(CommonAttributes.SCHEDULED_THREAD_POOL, ThreadsServices.STANDARD_THREAD_FACTORY_RESOLVER, ThreadsServices.EXECUTOR, registerRuntimeOnly);
     }
 
     public static ScheduledThreadPoolResourceDefinition create(String type, ThreadFactoryResolver threadFactoryResolver,
                                                                ServiceName serviceNameBase, boolean registerRuntimeOnly) {
-        ScheduledThreadPoolAdd addHandler = new ScheduledThreadPoolAdd(threadFactoryResolver, serviceNameBase);
-        return new ScheduledThreadPoolResourceDefinition(type, addHandler, serviceNameBase, registerRuntimeOnly);
+        return new ScheduledThreadPoolResourceDefinition(type, serviceNameBase, registerRuntimeOnly, threadFactoryResolver);
     }
 
-    private ScheduledThreadPoolResourceDefinition(String type, ScheduledThreadPoolAdd addHandler,
-                                                  ServiceName serviceNameBase, boolean registerRuntimeOnly) {
-        super(PathElement.pathElement(type),
+    private ScheduledThreadPoolResourceDefinition(String type,
+                                                  ServiceName serviceNameBase, boolean registerRuntimeOnly, ThreadFactoryResolver threadFactoryResolver) {
+        super(new Parameters(PathElement.pathElement(type),
                 new ThreadPoolResourceDescriptionResolver(CommonAttributes.SCHEDULED_THREAD_POOL, ThreadsExtension.RESOURCE_NAME,
-                        ThreadsExtension.class.getClassLoader()),
-                addHandler, new ScheduledThreadPoolRemove(addHandler));
+                        ThreadsExtension.class.getClassLoader()))
+                .useDefinitionAdd()
+                .useDefinitionRemove());
         this.registerRuntimeOnly = registerRuntimeOnly;
         this.writeAttributeHandler = new ScheduledThreadPoolWriteAttributeHandler(serviceNameBase);
         this.metricsHandler = new ScheduledThreadPoolMetricsHandler(serviceNameBase);
+        this.serviceNameBase = serviceNameBase;
+        this.threadFactoryResolver = threadFactoryResolver;
     }
 
     @Override
@@ -75,5 +83,31 @@ public class ScheduledThreadPoolResourceDefinition extends PersistentResourceDef
     @Override
     public Collection<AttributeDefinition> getAttributes() {
         return Arrays.asList(writeAttributeHandler.attributes);
+    }
+
+    @Override
+    protected void performRuntimeForAdd(final OperationContext context, final ModelNode operation, final ModelNode model) throws OperationFailedException {
+
+        final ThreadPoolManagementUtils.BaseThreadPoolParameters params = ThreadPoolManagementUtils.parseScheduledThreadPoolParameters(context, operation, model);
+
+        final ScheduledThreadPoolService service = new ScheduledThreadPoolService(params.getMaxThreads(), params.getKeepAliveTime());
+
+        ThreadPoolManagementUtils.installThreadPoolService(service, params.getName(), serviceNameBase,
+                params.getThreadFactory(), threadFactoryResolver, service.getThreadFactoryInjector(),
+                context.getServiceTarget());
+    }
+
+    @Override
+    protected void performRuntimeForRemove(OperationContext context, ModelNode operation, ModelNode model) throws OperationFailedException {
+
+        final ThreadPoolManagementUtils.BaseThreadPoolParameters params =
+                ThreadPoolManagementUtils.parseScheduledThreadPoolParameters(context, operation, model);
+        ThreadPoolManagementUtils.removeThreadPoolService(params.getName(), serviceNameBase,
+                params.getThreadFactory(), threadFactoryResolver,
+                context);
+    }
+
+    protected void recoverServicesForRemove(OperationContext context, ModelNode operation, ModelNode model) throws OperationFailedException {
+        performRuntimeForAdd(context, operation, model);
     }
 }
