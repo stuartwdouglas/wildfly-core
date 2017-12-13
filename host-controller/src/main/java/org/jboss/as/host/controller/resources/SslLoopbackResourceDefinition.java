@@ -22,8 +22,6 @@ import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.SER
 
 import java.util.List;
 
-import org.jboss.as.controller.AbstractAddStepHandler;
-import org.jboss.as.controller.AbstractRemoveStepHandler;
 import org.jboss.as.controller.AttributeDefinition;
 import org.jboss.as.controller.ModelOnlyWriteAttributeHandler;
 import org.jboss.as.controller.OperationContext;
@@ -83,10 +81,10 @@ public class SslLoopbackResourceDefinition extends SimpleResourceDefinition {
     private final List<AccessConstraintDefinition> sensitivity;
 
     public SslLoopbackResourceDefinition() {
-        super(PathElement.pathElement(ModelDescriptionConstants.SSL, ModelDescriptionConstants.LOOPBACK),
-                HostResolver.getResolver(DESCRIPTION_PREFIX, false),
-                new SslLoopbackAddHandler(),
-                new SslLoopbackRemoveHandler());
+        super(new Parameters(PathElement.pathElement(ModelDescriptionConstants.SSL, ModelDescriptionConstants.LOOPBACK),
+                HostResolver.getResolver(DESCRIPTION_PREFIX, false))
+                .useDefinitionAdd()
+                .useDefinitionRemove());
         sensitivity = SensitiveTargetAccessConstraintDefinition.SERVER_SSL.wrapAsList();
     }
 
@@ -103,25 +101,21 @@ public class SslLoopbackResourceDefinition extends SimpleResourceDefinition {
         return sensitivity;
     }
 
-    static class SslLoopbackAddHandler extends AbstractAddStepHandler {
-
-        protected void populateModel(ModelNode operation, ModelNode model) throws OperationFailedException {
-            for (AttributeDefinition attr : ATTRIBUTES) {
-                attr.validateAndSet(operation, model);
-            }
-        }
-
-        protected boolean requiresRuntime(OperationContext context) {
-            return false;
+    @Override
+    protected void populateModelForAdd(ModelNode operation, ModelNode model) throws OperationFailedException {
+        for (AttributeDefinition attr : ATTRIBUTES) {
+            attr.validateAndSet(operation, model);
         }
     }
 
-    static class SslLoopbackRemoveHandler extends AbstractRemoveStepHandler {
+    @Override
+    protected boolean requiresRuntimeForAdd(OperationContext context) {
+        return false;
+    }
 
-        @Override
-        protected boolean requiresRuntime(OperationContext context) {
-            return false;
-        }
+    @Override
+    protected boolean requiresRuntimeForRemove(OperationContext context) {
+        return false;
     }
 
 }

@@ -81,6 +81,8 @@ public abstract class PersistentResourceDefinition extends SimpleResourceDefinit
         }
     }
 
+
+
     protected List<? extends PersistentResourceDefinition> getChildren() {
         return Collections.emptyList();
     }
@@ -114,6 +116,18 @@ public abstract class PersistentResourceDefinition extends SimpleResourceDefinit
         public Parameters setRemoveHandler(OperationStepHandler removeHandler) {
             super.setRemoveHandler(removeHandler);
 
+            return this;
+        }
+
+        @Override
+        public Parameters useDefinitionAdd() {
+            super.useDefinitionAdd();
+            return this;
+        }
+
+        @Override
+        public Parameters useDefinitionRemove() {
+            super.useDefinitionRemove();
             return this;
         }
 

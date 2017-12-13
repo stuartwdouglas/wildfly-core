@@ -22,11 +22,18 @@
 
 package org.wildfly.extension.io;
 
+import static org.wildfly.extension.io.OutboundBindAddressUtils.getBindAddress;
+import static org.wildfly.extension.io.OutboundBindAddressUtils.getCidrAddress;
+import static org.wildfly.extension.io.OutboundBindAddressUtils.getWorkerService;
+
+import java.net.InetSocketAddress;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 
 import org.jboss.as.controller.AttributeDefinition;
+import org.jboss.as.controller.OperationContext;
+import org.jboss.as.controller.OperationFailedException;
 import org.jboss.as.controller.PathElement;
 import org.jboss.as.controller.PersistentResourceDefinition;
 import org.jboss.as.controller.SimpleAttributeDefinition;
@@ -34,8 +41,13 @@ import org.jboss.as.controller.SimpleAttributeDefinitionBuilder;
 import org.jboss.as.controller.operations.validation.InetAddressValidator;
 import org.jboss.as.controller.operations.validation.IntRangeValidator;
 import org.jboss.as.controller.operations.validation.MaskedAddressValidator;
+import org.jboss.as.controller.registry.Resource;
 import org.jboss.dmr.ModelNode;
 import org.jboss.dmr.ModelType;
+import org.wildfly.common.net.CidrAddress;
+import org.wildfly.common.net.CidrAddressTable;
+import org.wildfly.common.net.Inet;
+import org.wildfly.extension.io.logging.IOLogger;
 
 /**
  * @author <a href="mailto:david.lloyd@redhat.com">David M. Lloyd</a>
@@ -71,8 +83,8 @@ public class OutboundBindAddressResourceDefinition extends PersistentResourceDef
 
     private OutboundBindAddressResourceDefinition() {
         super(new Parameters(PathElement.pathElement(RESOURCE_NAME), IOExtension.getResolver(RESOURCE_NAME))
-            .setAddHandler(new OutboundBindAddressAddHandler())
-            .setRemoveHandler(new OutboundBindAddressRemoveHandler())
+            .useDefinitionAdd()
+            .useDefinitionRemove()
         );
     }
 
@@ -83,5 +95,37 @@ public class OutboundBindAddressResourceDefinition extends PersistentResourceDef
 
     public static OutboundBindAddressResourceDefinition getInstance() {
         return INSTANCE;
+    }
+
+
+    protected void performRuntimeForAdd(final OperationContext context, final ModelNode operation, final Resource resource) throws OperationFailedException {
+        final CidrAddressTable<InetSocketAddress> bindingsTable = getWorkerService(context).getBindingsTable();
+        if (bindingsTable != null) {
+            final CidrAddress cidrAddress = getCidrAddress(operation, context);
+            final InetSocketAddress bindAddress = getBindAddress(operation, context);
+            final InetSocketAddress existing = bindingsTable.putIfAbsent(cidrAddress, bindAddress);
+            if (existing != null) {
+                throw IOLogger.ROOT_LOGGER.unexpectedBindAddressConflict(context.getCurrentAddress(), cidrAddress, bindAddress, existing);
+            }
+        }
+    }
+
+    protected void rollbackRuntimeForAdd(final OperationContext context, final ModelNode operation, final Resource resource) {
+        getWorkerService(context).getBindingsTable().removeExact(
+                Inet.parseCidrAddress(operation.require("match").asString()),
+                new InetSocketAddress(
+                        Inet.parseInetAddress(operation.require("bind-address").asString()),
+                        operation.get("bind-port").asInt(0)
+                )
+        );
+    }
+
+    protected void performRuntimeForRemove(final OperationContext context, final ModelNode operation, final ModelNode model) throws OperationFailedException {
+        final CidrAddressTable<InetSocketAddress> bindingsTable = getWorkerService(context).getBindingsTable();
+        if (bindingsTable != null) {
+            final CidrAddress cidrAddress = getCidrAddress(model, context);
+            final InetSocketAddress bindAddress = getBindAddress(model, context);
+            bindingsTable.removeExact(cidrAddress, bindAddress);
+        }
     }
 }

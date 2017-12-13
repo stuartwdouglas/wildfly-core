@@ -32,7 +32,6 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.Map;
 
-import org.jboss.as.controller.AbstractAddStepHandler;
 import org.jboss.as.controller.AbstractRemoveStepHandler;
 import org.jboss.as.controller.AttributeDefinition;
 import org.jboss.as.controller.OperationContext;
@@ -94,7 +93,7 @@ public class ProcessStateListenerResourceDefinition extends PersistentResourceDe
         super(new Parameters(PROCESS_STATE_LISTENER_PATH, CoreManagementExtension.getResourceDescriptionResolver("process-state-listener"))
                 .setOrderedChild()
                 .setCapabilities(PROCESS_STATE_LISTENER_CAPABILITY)
-                .setAddHandler(new ProcessStateListenerResourceDefinition.ProcessStateListenerAddHandler())
+                .useDefinitionAdd()
                 .setRemoveHandler(new ProcessStateListenerResourceDefinition.ProcessStateListenerRemoveHandler()));
     }
 
@@ -103,47 +102,39 @@ public class ProcessStateListenerResourceDefinition extends PersistentResourceDe
         return Arrays.asList(ATTRIBUTES);
     }
 
-    private static class ProcessStateListenerAddHandler extends AbstractAddStepHandler  {
+    @Override
+    protected void performRuntimeForAdd(OperationContext context, ModelNode operation, ModelNode model) throws OperationFailedException {
+        String className = LISTENER_CLASS.resolveModelAttribute(context, model).asString();
+        String moduleIdentifier = LISTENER_MODULE.resolveModelAttribute(context, model).asString();
+        ProcessStateListener listener = newInstance(className, moduleIdentifier);
+        Map<String, String> properties = PROPERTIES.unwrap(context, model);
+        int timeout = TIMEOUT.resolveModelAttribute(context, model).asInt();
+        ProcessStateListenerService.install(context.getServiceTarget(),
+                context.getProcessType(),
+                context.getRunningMode(), context.getCurrentAddress().getLastElement().getValue(),
+                listener,
+                properties,
+                timeout);
+    }
 
-        ProcessStateListenerAddHandler() {
-            super(ATTRIBUTES);
-        }
+    @Override
+    protected boolean requiresRuntimeForAdd(OperationContext context) {
+        return super.requiresRuntimeForAdd(context) || context.getProcessType().isServer();
+    }
 
-        @Override
-        protected void performRuntime(OperationContext context, ModelNode operation, ModelNode model) throws OperationFailedException {
-            super.performRuntime(context, operation, model);
-            String className = LISTENER_CLASS.resolveModelAttribute(context, model).asString();
-            String moduleIdentifier = LISTENER_MODULE.resolveModelAttribute(context, model).asString();
-            ProcessStateListener listener = newInstance(className, moduleIdentifier);
-            Map<String, String> properties = PROPERTIES.unwrap(context, model);
-            int timeout = TIMEOUT.resolveModelAttribute(context, model).asInt();
-            ProcessStateListenerService.install(context.getServiceTarget(),
-                    context.getProcessType(),
-                    context.getRunningMode(), context.getCurrentAddress().getLastElement().getValue(),
-                    listener,
-                    properties,
-                    timeout);
-        }
-
-        @Override
-        protected boolean requiresRuntime(OperationContext context) {
-            return super.requiresRuntime(context) || context.getProcessType().isServer();
-        }
-
-        private static ProcessStateListener newInstance(String className, String moduleIdentifier) throws OperationFailedException {
-            final Module module;
-            try {
-                module = Module.getContextModuleLoader().loadModule(moduleIdentifier);
-                Class<?> clazz = module.getClassLoader().loadClass(className);
-                Object instance = clazz.getConstructor(null).newInstance(null);
-                return ProcessStateListener.class.cast(instance);
-            } catch (ModuleLoadException e) {
-                throw CoreManagementLogger.ROOT_LOGGER.errorToLoadModule(moduleIdentifier);
-            } catch (ClassNotFoundException e) {
-                throw CoreManagementLogger.ROOT_LOGGER.errorToLoadModuleClass(className, moduleIdentifier);
-            } catch (InstantiationException | IllegalAccessException | NoSuchMethodException | IllegalArgumentException | InvocationTargetException e) {
-                throw CoreManagementLogger.ROOT_LOGGER.errorToInstantiateClassInstanceFromModule(className, moduleIdentifier);
-            }
+    private static ProcessStateListener newInstance(String className, String moduleIdentifier) throws OperationFailedException {
+        final Module module;
+        try {
+            module = Module.getContextModuleLoader().loadModule(moduleIdentifier);
+            Class<?> clazz = module.getClassLoader().loadClass(className);
+            Object instance = clazz.getConstructor(null).newInstance(null);
+            return ProcessStateListener.class.cast(instance);
+        } catch (ModuleLoadException e) {
+            throw CoreManagementLogger.ROOT_LOGGER.errorToLoadModule(moduleIdentifier);
+        } catch (ClassNotFoundException e) {
+            throw CoreManagementLogger.ROOT_LOGGER.errorToLoadModuleClass(className, moduleIdentifier);
+        } catch (InstantiationException | IllegalAccessException | NoSuchMethodException | IllegalArgumentException | InvocationTargetException e) {
+            throw CoreManagementLogger.ROOT_LOGGER.errorToInstantiateClassInstanceFromModule(className, moduleIdentifier);
         }
     }
 

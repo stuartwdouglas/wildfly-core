@@ -23,20 +23,31 @@ package org.jboss.as.jmx;
 
 import static org.jboss.as.jmx.CommonAttributes.JMX;
 import static org.jboss.as.jmx.CommonAttributes.REMOTING_CONNECTOR;
+import static org.jboss.as.jmx.JMXSubsystemAdd.getDomainName;
+
+import java.util.Collection;
+import java.util.Collections;
 
 import org.jboss.as.controller.AttributeDefinition;
 import org.jboss.as.controller.OperationContext;
 import org.jboss.as.controller.OperationFailedException;
 import org.jboss.as.controller.OperationStepHandler;
+import org.jboss.as.controller.PathAddress;
 import org.jboss.as.controller.PathElement;
+import org.jboss.as.controller.ProcessType;
 import org.jboss.as.controller.ReloadRequiredWriteAttributeHandler;
 import org.jboss.as.controller.SimpleAttributeDefinition;
 import org.jboss.as.controller.SimpleAttributeDefinitionBuilder;
 import org.jboss.as.controller.SimpleResourceDefinition;
 import org.jboss.as.controller.capability.RuntimeCapability;
+import org.jboss.as.controller.descriptions.ModelDescriptionConstants;
 import org.jboss.as.controller.registry.ManagementResourceRegistration;
+import org.jboss.as.controller.registry.Resource;
+import org.jboss.as.remoting.management.ManagementRemotingServices;
 import org.jboss.dmr.ModelNode;
 import org.jboss.dmr.ModelType;
+import org.jboss.msc.service.ServiceName;
+import org.jboss.remoting3.Endpoint;
 
 /**
  *
@@ -59,12 +70,12 @@ public class RemotingConnectorResource extends SimpleResourceDefinition {
     static final RemotingConnectorResource INSTANCE = new RemotingConnectorResource();
 
     private RemotingConnectorResource() {
-        super(REMOTE_CONNECTOR_CONFIG_PATH,
-                JMXExtension.getResourceDescriptionResolver(CommonAttributes.REMOTING_CONNECTOR),
-                RemotingConnectorAdd.INSTANCE,
-                RemotingConnectorRemove.INSTANCE);
+        super(new Parameters(REMOTE_CONNECTOR_CONFIG_PATH,
+                JMXExtension.getResourceDescriptionResolver(CommonAttributes.REMOTING_CONNECTOR))
+                .useDefinitionAdd()
+                .useDefinitionRemove()
+                .addCapabilities(REMOTE_JMX_CAPABILITY));
     }
-
     @Override
     public void registerAttributes(ManagementResourceRegistration resourceRegistration) {
         final OperationStepHandler writeHandler = new ReloadRequiredWriteAttributeHandler(USE_MANAGEMENT_ENDPOINT) {
@@ -104,7 +115,56 @@ public class RemotingConnectorResource extends SimpleResourceDefinition {
     }
 
     @Override
+    protected Collection<AttributeDefinition> getAttributes() {
+        return Collections.singleton(USE_MANAGEMENT_ENDPOINT);
+    }
+
+    @Override
     public void registerCapabilities(ManagementResourceRegistration resourceRegistration) {
         resourceRegistration.registerCapability(REMOTE_JMX_CAPABILITY);
+    }
+
+    @Override
+    protected boolean requiresRuntimeForAdd(OperationContext context) {
+        return context.isDefaultRequiresRuntime() && (context.getProcessType() != ProcessType.EMBEDDED_HOST_CONTROLLER);
+    }
+
+    @Override
+    protected void performRuntimeForAdd(OperationContext context, ModelNode operation, ModelNode model)
+            throws OperationFailedException {
+
+        boolean useManagementEndpoint = RemotingConnectorResource.USE_MANAGEMENT_ENDPOINT.resolveModelAttribute(context, model).asBoolean();
+
+        ServiceName remotingCapability;
+        if (!useManagementEndpoint) {
+            // Use the remoting capability
+            // if (context.getProcessType() == ProcessType.DOMAIN_SERVER) then DomainServerCommunicationServices
+            // installed the "remoting subsystem" endpoint and we don't even necessarily *have to* have a remoting
+            // subsystem and possibly we could skip adding the requirement for its capability. But really, specifying
+            // not to use the management endpoint and then not configuring a remoting subsystem is a misconfiguration,
+            // and we should treat it as such. So, we add the requirement no matter what.
+            context.requireOptionalCapability(RemotingConnectorResource.REMOTING_CAPABILITY, RemotingConnectorResource.REMOTE_JMX_CAPABILITY.getName(),
+                    RemotingConnectorResource.USE_MANAGEMENT_ENDPOINT.getName());
+            remotingCapability = context.getCapabilityServiceName(RemotingConnectorResource.REMOTING_CAPABILITY, Endpoint.class);
+        } else {
+            remotingCapability = ManagementRemotingServices.MANAGEMENT_ENDPOINT;
+        }
+        // Read the model for the JMX subsystem to find the domain name for the resolved/expressions models (if they are exposed).
+        PathAddress address = PathAddress.pathAddress(operation.get(ModelDescriptionConstants.OP_ADDR));
+        PathAddress parentAddress = address.subAddress(0, address.size() - 1);
+        ModelNode jmxSubsystemModel = Resource.Tools.readModel(context.readResourceFromRoot(parentAddress, true));
+        String resolvedDomain = getDomainName(context, jmxSubsystemModel, CommonAttributes.RESOLVED);
+        String expressionsDomain = getDomainName(context, jmxSubsystemModel, CommonAttributes.EXPRESSION);
+
+        RemotingConnectorService.addService(context.getServiceTarget(), remotingCapability, resolvedDomain, expressionsDomain);
+    }
+
+
+    protected void performRuntimeForRemove(OperationContext context, ModelNode operation, ModelNode model) {
+        context.removeService(RemotingConnectorService.SERVICE_NAME);
+    }
+
+    protected void recoverServicesForRemove(OperationContext context, ModelNode operation, ModelNode model) throws OperationFailedException {
+        performRuntimeForAdd(context, operation, model);
     }
 }

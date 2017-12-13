@@ -36,7 +36,7 @@
     <artifactId>wildfly-domain-http</artifactId>
     <packaging>pom</packaging>
 
-    <name>WildFly: Domain HTTP Interface</name>
+    <name>WildFly: Domain HTTP Aggregator</name>
 
     <modules>
         <module>interface</module>

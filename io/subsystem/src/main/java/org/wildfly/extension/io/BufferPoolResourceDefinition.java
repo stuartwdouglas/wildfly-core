@@ -29,7 +29,6 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
 
-import org.jboss.as.controller.AbstractAddStepHandler;
 import org.jboss.as.controller.AttributeDefinition;
 import org.jboss.as.controller.OperationContext;
 import org.jboss.as.controller.OperationFailedException;
@@ -110,10 +109,10 @@ class BufferPoolResourceDefinition extends PersistentResourceDefinition {
 
 
     private BufferPoolResourceDefinition() {
-        super(IOExtension.BUFFER_POOL_PATH,
-                IOExtension.getResolver(Constants.BUFFER_POOL),
-                new BufferPoolAdd(),
-                new ReloadRequiredRemoveStepHandler()
+        super(new Parameters(IOExtension.BUFFER_POOL_PATH,
+                IOExtension.getResolver(Constants.BUFFER_POOL))
+                .useDefinitionAdd()
+                .setRemoveHandler(ReloadRequiredRemoveStepHandler.INSTANCE)
         );
     }
 
@@ -128,29 +127,22 @@ class BufferPoolResourceDefinition extends PersistentResourceDefinition {
         resourceRegistration.registerCapability(IO_POOL_RUNTIME_CAPABILITY);
     }
 
-    private static class BufferPoolAdd extends AbstractAddStepHandler {
+    @Override
+    protected void performRuntimeForAdd(OperationContext context, ModelNode operation, ModelNode model) throws OperationFailedException {
+        final PathAddress address = PathAddress.pathAddress(operation.get(OP_ADDR));
+        final String name = address.getLastElement().getValue();
+        final ModelNode bufferSizeModel = BUFFER_SIZE.resolveModelAttribute(context, model);
+        final ModelNode bufferPerSliceModel = BUFFER_PER_SLICE.resolveModelAttribute(context, model);
+        final ModelNode directModel = DIRECT_BUFFERS.resolveModelAttribute(context, model);
 
-        private BufferPoolAdd() {
-            super(BufferPoolResourceDefinition.ATTRIBUTES);
-        }
+        final int bufferSize = bufferSizeModel.isDefined() ? bufferSizeModel.asInt() : defaultBufferSize;
+        final int bufferPerSlice = bufferPerSliceModel.isDefined() ? bufferPerSliceModel.asInt() : defaultBuffersPerRegion;
+        final boolean direct = directModel.isDefined() ? directModel.asBoolean() : defaultDirectBuffers;
 
-        @Override
-        protected void performRuntime(OperationContext context, ModelNode operation, ModelNode model) throws OperationFailedException {
-            final PathAddress address = PathAddress.pathAddress(operation.get(OP_ADDR));
-            final String name = address.getLastElement().getValue();
-            final ModelNode bufferSizeModel = BUFFER_SIZE.resolveModelAttribute(context, model);
-            final ModelNode bufferPerSliceModel = BUFFER_PER_SLICE.resolveModelAttribute(context, model);
-            final ModelNode directModel = DIRECT_BUFFERS.resolveModelAttribute(context, model);
+        final BufferPoolService service = new BufferPoolService(bufferSize, bufferPerSlice, direct);
+        context.getCapabilityServiceTarget().addCapability(IO_POOL_RUNTIME_CAPABILITY, service)
+                .setInitialMode(ServiceController.Mode.ACTIVE)
+                .install();
 
-            final int bufferSize = bufferSizeModel.isDefined() ? bufferSizeModel.asInt() : defaultBufferSize;
-            final int bufferPerSlice = bufferPerSliceModel.isDefined() ? bufferPerSliceModel.asInt() : defaultBuffersPerRegion;
-            final boolean direct = directModel.isDefined() ? directModel.asBoolean() : defaultDirectBuffers;
-
-            final BufferPoolService service = new BufferPoolService(bufferSize, bufferPerSlice, direct);
-            context.getCapabilityServiceTarget().addCapability(IO_POOL_RUNTIME_CAPABILITY, service)
-                    .setInitialMode(ServiceController.Mode.ACTIVE)
-                    .install();
-
-        }
     }
 }

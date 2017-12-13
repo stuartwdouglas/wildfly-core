@@ -23,6 +23,7 @@
 package org.jboss.as.controller;
 
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.EnumSet;
 import java.util.HashSet;
@@ -40,6 +41,8 @@ import org.jboss.as.controller.logging.ControllerLogger;
 import org.jboss.as.controller.registry.ImmutableManagementResourceRegistration;
 import org.jboss.as.controller.registry.ManagementResourceRegistration;
 import org.jboss.as.controller.registry.OperationEntry;
+import org.jboss.as.controller.registry.Resource;
+import org.jboss.dmr.ModelNode;
 import org.wildfly.common.Assert;
 
 /**
@@ -283,8 +286,6 @@ public class SimpleResourceDefinition implements ResourceDefinition {
     public SimpleResourceDefinition(Parameters parameters) {
         this.pathElement = parameters.pathElement;
         this.descriptionResolver = parameters.descriptionResolver;
-        this.addHandler = parameters.addHandler;
-        this.removeHandler = parameters.removeHandler;
         this.addRestartLevel = parameters.addRestartLevel;
         this.removeRestartLevel = parameters.removeRestartLevel;
         this.deprecationData = parameters.deprecationData;
@@ -300,6 +301,69 @@ public class SimpleResourceDefinition implements ResourceDefinition {
         }
         this.minOccurs = parameters.minOccurs;
         this.maxOccurs = parameters.maxOccurs;
+
+        if(parameters.useDefinitionAdd) {
+            this.addHandler = new AbstractAddStepHandler(new HashSet<>(Arrays.asList(capabilities)), getAttributes()) {
+
+                @Override
+                protected void populateModel(OperationContext context, ModelNode operation, Resource resource) throws OperationFailedException {
+                    populateModelForAdd(context, operation, resource);
+                }
+
+                @Override
+                protected void recordCapabilitiesAndRequirements(OperationContext context, ModelNode operation, Resource resource) throws OperationFailedException {
+                    if(recordCapabilitiesAndRequirementsForAdd(context, operation, resource)) {
+                        super.recordCapabilitiesAndRequirements(context, operation, resource);
+                    }
+                }
+
+                @Override
+                protected void rollbackRuntime(OperationContext context, ModelNode operation, Resource resource) {
+                    rollbackRuntimeForAdd(context, operation, resource);
+                }
+
+                @Override
+                protected boolean requiresRuntime(OperationContext context) {
+                    return requiresRuntimeForAdd(context);
+                }
+
+                @Override
+                protected Resource createResource(OperationContext context) {
+                    return createResourceForAdd(context);
+                }
+
+                @Override
+                protected void performRuntime(OperationContext context, ModelNode operation, Resource resource) throws OperationFailedException {
+                    performRuntimeForAdd(context, operation, resource);
+                }
+            };
+        } else {
+            this.addHandler = parameters.addHandler;
+        }
+        if(parameters.useDefinitionRemove) {
+            this.removeHandler = new AbstractRemoveStepHandler() {
+                @Override
+                protected void performRuntime(OperationContext context, ModelNode operation, ModelNode model) throws OperationFailedException {
+                    performRuntimeForRemove(context, operation, model);
+                }
+
+                @Override
+                protected void recoverServices(OperationContext context, ModelNode operation, ModelNode model) throws OperationFailedException {
+                    recoverServicesForRemove(context, operation, model);
+                }
+
+                @Override
+                protected boolean requiresRuntime(OperationContext context) {
+                    return requiresRuntimeForRemove(context);
+                }
+            };
+        } else {
+            this.removeHandler = parameters.removeHandler;
+        }
+    }
+
+    protected Collection<AttributeDefinition> getAttributes() {
+        return Collections.emptyList();
     }
 
     private static OperationEntry.Flag restartLevelForAdd(OperationStepHandler addHandler) {
@@ -311,7 +375,6 @@ public class SimpleResourceDefinition implements ResourceDefinition {
         return removeHandler instanceof ReloadRequiredRemoveStepHandler
                 ? OperationEntry.Flag.RESTART_ALL_SERVICES : OperationEntry.Flag.RESTART_RESOURCE_SERVICES;
     }
-
 
     @Override
     public PathElement getPathElement() {
@@ -478,7 +541,60 @@ public class SimpleResourceDefinition implements ResourceDefinition {
         return this.deprecationData;
     }
 
-    @Override
+    protected void performRuntimeForAdd(OperationContext context, ModelNode operation, Resource resource) throws OperationFailedException {
+        performRuntimeForAdd(context, operation, resource.getModel());
+    }
+
+    protected void performRuntimeForAdd(OperationContext context, ModelNode operation, ModelNode model) throws OperationFailedException {
+
+    }
+
+    protected void populateModelForAdd(OperationContext context, ModelNode operation, Resource resource) throws OperationFailedException {
+        populateModelForAdd(context, operation, resource.getModel());
+    }
+
+    protected void populateModelForAdd(OperationContext context, ModelNode operation, ModelNode model) throws OperationFailedException {
+        populateModelForAdd(operation, model);
+    }
+
+    protected void populateModelForAdd(ModelNode operation, ModelNode model) throws OperationFailedException {
+        for (AttributeDefinition attr : getAttributes()) {
+            attr.validateAndSet(operation, model);
+        }
+    }
+    protected void rollbackRuntimeForAdd(OperationContext context, ModelNode operation, Resource resource) {
+
+    }
+    /**
+     *
+     * @param context
+     * @param operation
+     * @param resource
+     * @return <code>true</code> if this should be handled using the add handlers default logic
+     * @throws OperationFailedException
+     */
+    protected boolean recordCapabilitiesAndRequirementsForAdd(OperationContext context, ModelNode operation, Resource resource) throws OperationFailedException {
+        return true;
+    }
+
+    protected boolean requiresRuntimeForAdd(OperationContext context) {
+        return context.isDefaultRequiresRuntime();
+    }
+    protected boolean requiresRuntimeForRemove(OperationContext context) {
+        return context.isDefaultRequiresRuntime();
+    }
+    protected void performRuntimeForRemove(OperationContext context, ModelNode operation, ModelNode model) throws OperationFailedException {
+        //noop by default
+    }
+
+    protected void recoverServicesForRemove(OperationContext context, ModelNode operation, ModelNode model) throws OperationFailedException {
+        //noop by default
+    }
+
+    protected Resource createResourceForAdd(OperationContext context) {
+        return context.createResource(PathAddress.EMPTY_ADDRESS);
+    }
+
     public boolean isRuntime() {
         return runtime;
     }
@@ -535,6 +651,8 @@ public class SimpleResourceDefinition implements ResourceDefinition {
         private AccessConstraintDefinition[] accessConstraints;
         private int minOccurs = 0;
         private int maxOccurs = Integer.MAX_VALUE;
+        private boolean useDefinitionAdd;
+        private boolean useDefinitionRemove;
         /**
          * Creates a Parameters object
          * @param pathElement the path element of the created ResourceDefinition. Cannot be {@code null}
@@ -566,6 +684,9 @@ public class SimpleResourceDefinition implements ResourceDefinition {
          * @return this Parameters object
          */
         public Parameters setAddHandler(OperationStepHandler addHandler) {
+            if(useDefinitionAdd) {
+                throw new RuntimeException("Cannot set both add handler and useDefinitionAdd");
+            }
             this.addHandler = addHandler;
             if (this.addRestartLevel == null) {
                 this.addRestartLevel = restartLevelForAdd(addHandler);
@@ -581,10 +702,41 @@ public class SimpleResourceDefinition implements ResourceDefinition {
          * @return this Parameters object
          */
         public Parameters setRemoveHandler(OperationStepHandler removeHandler) {
+            if(useDefinitionRemove) {
+                //not internationalized, should never be thrown from a actual release
+                throw new RuntimeException("Cannot set both remove handler and useDefinitionRemove");
+            }
             this.removeHandler = removeHandler;
             if (this.removeRestartLevel == null) {
                 this.removeRestartLevel = restartLevelForRemove(removeHandler);
             }
+            return this;
+        }
+
+        /**
+         * If this is called then an add handler will be installed that calls {@link #performRuntimeForAdd(OperationContext, ModelNode, ModelNode)}
+         *
+         * @return this Parameters object
+         */
+        public Parameters useDefinitionAdd() {
+            if(addHandler != null) {
+                throw new RuntimeException("Cannot set both add handler and useDefinitionAdd");
+            }
+            this.useDefinitionAdd = true;
+            return this;
+        }
+
+        /**
+         * If this is called then an add handler will be installed that calls {@link #performRuntimeForRemove(OperationContext, ModelNode, ModelNode)}
+         * and {@link #recoverServicesForRemove(OperationContext, ModelNode, ModelNode)}
+         *
+         * @return this Parameters object
+         */
+        public Parameters useDefinitionRemove() {
+            if (removeHandler != null) {
+                throw new RuntimeException("Cannot set both remove handler and useDefinitionRemove");
+            }
+            this.useDefinitionRemove = true;
             return this;
         }
 

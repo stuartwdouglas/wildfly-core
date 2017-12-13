@@ -30,11 +30,18 @@ import java.util.Collections;
 import java.util.List;
 
 import org.jboss.as.controller.AttributeDefinition;
+import org.jboss.as.controller.OperationContext;
+import org.jboss.as.controller.OperationFailedException;
+import org.jboss.as.controller.OperationStepHandler;
 import org.jboss.as.controller.PersistentResourceDefinition;
 import org.jboss.as.controller.ReloadRequiredRemoveStepHandler;
 import org.jboss.as.controller.capability.RuntimeCapability;
 import org.jboss.as.controller.registry.ManagementResourceRegistration;
 import org.jboss.as.controller.registry.OperationEntry;
+import org.jboss.as.controller.registry.Resource;
+import org.jboss.dmr.ModelNode;
+import org.jboss.msc.service.ServiceController;
+import org.jboss.msc.service.ServiceName;
 
 /**
  * @author <a href="mailto:tomaz.cerar@redhat.com">Tomaz Cerar</a> (c) 2013 Red Hat Inc.
@@ -54,12 +61,11 @@ class IORootDefinition extends PersistentResourceDefinition {
         };
 
     private IORootDefinition() {
-        super(IOExtension.SUBSYSTEM_PATH,
-                IOExtension.getResolver(),
-                IOSubsystemAdd.INSTANCE,
-                ReloadRequiredRemoveStepHandler.INSTANCE,
-                OperationEntry.Flag.RESTART_NONE,
-                OperationEntry.Flag.RESTART_ALL_SERVICES);
+        super(new Parameters(IOExtension.SUBSYSTEM_PATH, IOExtension.getResolver())
+                .useDefinitionAdd()
+                .setRemoveHandler(ReloadRequiredRemoveStepHandler.INSTANCE)
+                .setAddRestartLevel(OperationEntry.Flag.RESTART_NONE)
+                .setRemoveRestartLevel(OperationEntry.Flag.RESTART_ALL_SERVICES));
     }
 
     @Override
@@ -75,5 +81,27 @@ class IORootDefinition extends PersistentResourceDefinition {
     @Override
     public void registerCapabilities(ManagementResourceRegistration resourceRegistration) {
         resourceRegistration.registerCapability(IO_MAX_THREADS_RUNTIME_CAPABILITY);
+    }
+
+
+    @Override
+    protected void performRuntimeForAdd(OperationContext context, ModelNode operation, Resource resource) throws OperationFailedException {
+        ModelNode workers = Resource.Tools.readModel(resource).get(IOExtension.WORKER_PATH.getKey());
+        WorkerResourceDefinition.checkWorkerConfiguration(context, workers);
+
+        MaxThreadTrackerService service = new MaxThreadTrackerService();
+        ServiceName serviceName = IO_MAX_THREADS_RUNTIME_CAPABILITY.getCapabilityServiceName();
+        ServiceController<Integer> controller = context.getServiceTarget().addService(serviceName, service)
+                .setInitialMode(ServiceController.Mode.NEVER)
+                .install();
+
+        context.addStep(new OperationStepHandler() {
+            @Override
+            public void execute(OperationContext context, ModelNode operation) throws OperationFailedException {
+                controller.setMode(ServiceController.Mode.ACTIVE);
+                // Rollback handled by the parent step
+                context.completeStep(OperationContext.RollbackHandler.NOOP_ROLLBACK_HANDLER);
+            }
+        }, OperationContext.Stage.RUNTIME);
     }
 }

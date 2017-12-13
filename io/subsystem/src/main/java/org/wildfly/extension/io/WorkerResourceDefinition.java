@@ -24,15 +24,20 @@
 
 package org.wildfly.extension.io;
 
+import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.OP_ADDR;
 import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.PROFILE;
 
 import java.io.IOException;
+import java.lang.management.ManagementFactory;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.LinkedHashSet;
 import java.util.Map;
 import java.util.Set;
+
+import javax.management.MBeanServerConnection;
+import javax.management.ObjectName;
 
 import org.jboss.as.controller.AbstractWriteAttributeHandler;
 import org.jboss.as.controller.AttributeDefinition;
@@ -56,12 +61,16 @@ import org.jboss.as.controller.registry.Resource;
 import org.jboss.as.controller.registry.ResourceProvider;
 import org.jboss.dmr.ModelNode;
 import org.jboss.dmr.ModelType;
+import org.jboss.dmr.Property;
 import org.jboss.msc.service.ServiceController;
 import org.jboss.msc.service.ServiceName;
 import org.jboss.msc.service.ServiceRegistry;
+import org.wildfly.common.cpu.ProcessorInfo;
 import org.wildfly.extension.io.logging.IOLogger;
 import org.xnio.Option;
+import org.xnio.OptionMap;
 import org.xnio.Options;
+import org.xnio.Xnio;
 import org.xnio.XnioWorker;
 import org.xnio.management.XnioServerMXBean;
 import org.xnio.management.XnioWorkerMXBean;
@@ -133,10 +142,10 @@ class WorkerResourceDefinition extends PersistentResourceDefinition {
 
 
     private WorkerResourceDefinition() {
-        super(IOExtension.WORKER_PATH,
-                IOExtension.getResolver(Constants.WORKER),
-                WorkerAdd.INSTANCE,
-                new ReloadRequiredRemoveStepHandler()
+        super(new Parameters(IOExtension.WORKER_PATH,
+                IOExtension.getResolver(Constants.WORKER))
+                .useDefinitionAdd()
+                .setRemoveHandler(ReloadRequiredRemoveStepHandler.INSTANCE)
         );
     }
 
@@ -409,5 +418,162 @@ class WorkerResourceDefinition extends PersistentResourceDefinition {
             return result;
         }
 
+    }
+
+    private static int getMaxDescriptorCount() {
+        try {
+            ObjectName oName = new ObjectName("java.lang:type=OperatingSystem");
+            MBeanServerConnection conn = ManagementFactory.getPlatformMBeanServer();
+            Object maxResult = conn.getAttribute(oName, "MaxFileDescriptorCount");
+            if (maxResult != null) {
+                IOLogger.ROOT_LOGGER.tracef("System has MaxFileDescriptorCount set to %d", maxResult);
+                return ((Long)maxResult).intValue();
+            }
+        } catch (Exception e) {
+            //noting we can do, some OSs don't support this attribute
+        }
+        IOLogger.ROOT_LOGGER.tracef("We cannot get MaxFileDescriptorCount from system, not applying any limits");
+        return -1;
+    }
+    private static int getCpuCount(){
+        return ProcessorInfo.availableProcessors();
+    }
+
+    private static int getMaxPossibleThreadCount(int maxFD) {
+        return (maxFD - 600) / 3; //each thread uses two FDs + some overhead;
+    }
+
+    private static int getSuggestedTaskCount() {
+        return getCpuCount() * 16;
+    }
+
+    private static int getSuggestedIoThreadCount() {
+        return getCpuCount() * 2;
+    }
+
+    private static int getWorkerThreads(String workerName, int totalWorkerCount) {
+        int suggestedCount = getSuggestedTaskCount();
+        int count = suggestedCount;
+        int maxFD = getMaxDescriptorCount();
+        if (maxFD > -1) {
+            int maxPossible = getMaxPossibleThreadCount(maxFD);
+            maxPossible /= totalWorkerCount; //we need to evenly split max threads across all workers
+            if (maxPossible < 5) {
+                count = 5;
+            } else if (maxPossible < suggestedCount) {
+                count = maxPossible;
+                IOLogger.ROOT_LOGGER.lowFD(workerName, suggestedCount, getCpuCount());
+            }
+        }
+        return count;
+    }
+
+    private static int getGlobalSuggestedCount(final OperationContext context, final ModelNode workers) throws OperationFailedException {
+        int count = 0;
+        if (!workers.isDefined()){
+            return count;
+        }
+        for (Property property : workers.asPropertyList()) {
+            ModelNode worker = property.getValue();
+            ModelNode ioThreadsModel = WORKER_IO_THREADS.resolveModelAttribute(context, worker);
+            ModelNode maxTaskThreadsModel = WORKER_TASK_MAX_THREADS.resolveModelAttribute(context, worker);
+            if (ioThreadsModel.isDefined()) {
+                count += ioThreadsModel.asInt();
+            } else {
+                count += getSuggestedIoThreadCount();
+            }
+            if (maxTaskThreadsModel.isDefined()) {
+                count += maxTaskThreadsModel.asInt();
+            } else {
+                count += getSuggestedTaskCount();
+            }
+        }
+        return count;
+    }
+
+    static void checkWorkerConfiguration(final OperationContext context, final ModelNode workers) throws OperationFailedException {
+        IOLogger.ROOT_LOGGER.trace("Checking worker configuration");
+        int requiredCount = getGlobalSuggestedCount(context, workers);
+        IOLogger.ROOT_LOGGER.tracef("Global required thread count is: %d", requiredCount);
+        int requiredFDCount = (requiredCount * 3) + 600;
+        IOLogger.ROOT_LOGGER.tracef("Global required FD count is: %d", requiredFDCount);
+        int maxFd = getMaxDescriptorCount();
+        if (maxFd > -1 && maxFd < requiredFDCount) {
+            IOLogger.ROOT_LOGGER.lowGlobalFD(maxFd, requiredFDCount);
+        }
+    }
+
+    @Override
+    protected Resource createResourceForAdd(OperationContext context) {
+        Resource r = new WorkerResourceDefinition.WorkerResource(context);
+        context.addResource(PathAddress.EMPTY_ADDRESS, r);
+        return r;
+    }
+
+    @Override
+    @SuppressWarnings("unchecked")
+    protected void performRuntimeForAdd(OperationContext context, ModelNode operation, ModelNode model) throws OperationFailedException {
+        final PathAddress address = PathAddress.pathAddress(operation.get(OP_ADDR));
+        Resource resource = context.readResourceFromRoot(address.subAddress(0, address.size() - 1));
+        ModelNode workers = Resource.Tools.readModel(resource).get(IOExtension.WORKER_PATH.getKey());
+        int allWorkerCount = workers.asList().size();
+        final String name = context.getCurrentAddressValue();
+        final XnioWorker.Builder builder = Xnio.getInstance().createWorkerBuilder();
+
+        final OptionMap.Builder optionMapBuilder = OptionMap.builder();
+
+        for (OptionAttributeDefinition attr : WorkerResourceDefinition.ATTRIBUTES) {
+            Option option = attr.getOption();
+            ModelNode value = attr.resolveModelAttribute(context, model);
+            if (!value.isDefined()) {
+                continue;
+            }
+            if (attr.getType() == ModelType.INT) {
+                optionMapBuilder.set((Option<Integer>) option, value.asInt());
+            } else if (attr.getType() == ModelType.LONG) {
+                optionMapBuilder.set(option, value.asLong());
+            } else if (attr.getType() == ModelType.BOOLEAN) {
+                optionMapBuilder.set(option, value.asBoolean());
+            }
+        }
+        builder.populateFromOptions(optionMapBuilder.getMap());
+        builder.setWorkerName(name);
+
+        ModelNode ioThreadsModel = WORKER_IO_THREADS.resolveModelAttribute(context, model);
+        ModelNode maxTaskThreadsModel = WORKER_TASK_MAX_THREADS.resolveModelAttribute(context, model);
+        int cpuCount = getCpuCount();
+        int ioThreadsCalculated = getSuggestedIoThreadCount();
+        int workerThreads = builder.getMaxWorkerPoolSize();
+        if (!ioThreadsModel.isDefined() && !maxTaskThreadsModel.isDefined()) {
+            workerThreads = getWorkerThreads(name, allWorkerCount);
+            builder.setWorkerIoThreads(ioThreadsCalculated);
+            builder.setCoreWorkerPoolSize(workerThreads);
+            builder.setMaxWorkerPoolSize(workerThreads);
+            IOLogger.ROOT_LOGGER.printDefaults(name, ioThreadsCalculated, workerThreads, cpuCount);
+        } else {
+            if (!ioThreadsModel.isDefined()) {
+                builder.setWorkerIoThreads(ioThreadsCalculated);
+                IOLogger.ROOT_LOGGER.printDefaultsIoThreads(name, ioThreadsCalculated, cpuCount);
+            }
+            if (!maxTaskThreadsModel.isDefined()) {
+                workerThreads = getWorkerThreads(name, allWorkerCount);
+                builder.setCoreWorkerPoolSize(workerThreads);
+                builder.setMaxWorkerPoolSize(workerThreads);
+                IOLogger.ROOT_LOGGER.printDefaultsWorkerThreads(name, workerThreads, cpuCount);
+            }
+        }
+
+        registerMax(context, name, workerThreads);
+
+        final WorkerService workerService = new WorkerService(builder);
+        context.getCapabilityServiceTarget().addCapability(IO_WORKER_RUNTIME_CAPABILITY, workerService)
+                .setInitialMode(ServiceController.Mode.ON_DEMAND)
+                .install();
+    }
+
+    private void registerMax(OperationContext context, String name, int workerThreads) {
+        ServiceName serviceName = IORootDefinition.IO_MAX_THREADS_RUNTIME_CAPABILITY.getCapabilityServiceName();
+        MaxThreadTrackerService service = (MaxThreadTrackerService) context.getServiceRegistry(false).getRequiredService(serviceName).getService();
+        service.registerWorkerMax(name, workerThreads);
     }
 }

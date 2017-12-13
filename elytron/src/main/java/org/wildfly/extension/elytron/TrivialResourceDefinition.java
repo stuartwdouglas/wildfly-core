@@ -17,6 +17,9 @@
  */
 package org.wildfly.extension.elytron;
 
+import java.util.Arrays;
+import java.util.Collection;
+
 import org.jboss.as.controller.AbstractAddStepHandler;
 import org.jboss.as.controller.AbstractWriteAttributeHandler;
 import org.jboss.as.controller.AttributeDefinition;
@@ -67,7 +70,7 @@ class TrivialResourceDefinition extends SimpleResourceDefinition {
          }
     }
 
-    public AttributeDefinition[] getAttributes() {
-        return attributes;
+    public Collection<AttributeDefinition> getAttributes() {
+        return Arrays.asList(attributes);
     }
 }
