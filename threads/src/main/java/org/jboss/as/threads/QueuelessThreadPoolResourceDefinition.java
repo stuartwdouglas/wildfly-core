@@ -23,11 +23,13 @@
 package org.jboss.as.threads;
 
 import org.jboss.as.controller.AttributeDefinition;
-import org.jboss.as.controller.OperationStepHandler;
+import org.jboss.as.controller.OperationContext;
+import org.jboss.as.controller.OperationFailedException;
 import org.jboss.as.controller.PathElement;
 import org.jboss.as.controller.PersistentResourceDefinition;
 import org.jboss.as.controller.ReadResourceNameOperationStepHandler;
 import org.jboss.as.controller.registry.ManagementResourceRegistration;
+import org.jboss.dmr.ModelNode;
 import org.jboss.msc.service.ServiceName;
 
 import java.util.Arrays;
@@ -41,11 +43,27 @@ import java.util.Collection;
  */
 public class QueuelessThreadPoolResourceDefinition extends PersistentResourceDefinition {
 
+
+    static final AttributeDefinition[] BLOCKING_ATTRIBUTES = new AttributeDefinition[] {PoolAttributeDefinitions.KEEPALIVE_TIME,
+            PoolAttributeDefinitions.MAX_THREADS, PoolAttributeDefinitions.THREAD_FACTORY};
+
+    static final AttributeDefinition[] NON_BLOCKING_ATTRIBUTES = new AttributeDefinition[BLOCKING_ATTRIBUTES.length + 1];
+
+    static final AttributeDefinition[] RW_ATTRIBUTES = new AttributeDefinition[] {PoolAttributeDefinitions.KEEPALIVE_TIME,
+            PoolAttributeDefinitions.MAX_THREADS};
+
+    static {
+        System.arraycopy(BLOCKING_ATTRIBUTES, 0, NON_BLOCKING_ATTRIBUTES, 0, BLOCKING_ATTRIBUTES.length);
+        NON_BLOCKING_ATTRIBUTES[NON_BLOCKING_ATTRIBUTES.length - 1] = PoolAttributeDefinitions.HANDOFF_EXECUTOR;
+    }
+
     private final QueuelessThreadPoolWriteAttributeHandler writeHandler;
     private final QueuelessThreadPoolMetricsHandler metricsHandler;
     private final boolean blocking;
     private final boolean registerRuntimeOnly;
-
+    private final ThreadFactoryResolver threadFactoryResolver;
+    private final HandoffExecutorResolver handoffExecutorResolver;
+    private final ServiceName serviceNameBase;
 
     public static QueuelessThreadPoolResourceDefinition create(boolean blocking, boolean registerRuntimeOnly) {
         if (blocking) {
@@ -73,22 +91,25 @@ public class QueuelessThreadPoolResourceDefinition extends PersistentResourceDef
                                                                ServiceName serviceNameBase, boolean registerRuntimeOnly) {
         final boolean blocking = handoffExecutorResolver == null;
         final String resolverPrefix = blocking ? CommonAttributes.BLOCKING_QUEUELESS_THREAD_POOL : CommonAttributes.QUEUELESS_THREAD_POOL;
-        final QueuelessThreadPoolAdd addHandler = new QueuelessThreadPoolAdd(blocking, threadFactoryResolver, handoffExecutorResolver, serviceNameBase);
-        final OperationStepHandler removeHandler = new QueuelessThreadPoolRemove(addHandler);
-        return new QueuelessThreadPoolResourceDefinition(blocking, registerRuntimeOnly, type, serviceNameBase, resolverPrefix, addHandler, removeHandler);
+        return new QueuelessThreadPoolResourceDefinition(blocking, registerRuntimeOnly, type, serviceNameBase, resolverPrefix, threadFactoryResolver, handoffExecutorResolver);
     }
 
 
     private QueuelessThreadPoolResourceDefinition(boolean blocking, boolean registerRuntimeOnly,
-                                                  String type, ServiceName serviceNameBase, String resolverPrefix, OperationStepHandler addHandler,
-                                                  OperationStepHandler removeHandler) {
-        super(PathElement.pathElement(type),
-                new ThreadPoolResourceDescriptionResolver(resolverPrefix, ThreadsExtension.RESOURCE_NAME, ThreadsExtension.class.getClassLoader()),
-                addHandler, removeHandler);
+                                                  String type, ServiceName serviceNameBase, String resolverPrefix,
+                                                  ThreadFactoryResolver threadFactoryResolver,
+                                                  HandoffExecutorResolver handoffExecutorResolver) {
+        super(new Parameters(PathElement.pathElement(type),
+                new ThreadPoolResourceDescriptionResolver(resolverPrefix, ThreadsExtension.RESOURCE_NAME, ThreadsExtension.class.getClassLoader()))
+                .useDefinitionAdd()
+                .useDefinitionRemove());
         this.registerRuntimeOnly = registerRuntimeOnly;
         this.blocking = blocking;
         writeHandler = new QueuelessThreadPoolWriteAttributeHandler(blocking, serviceNameBase);
         metricsHandler = new QueuelessThreadPoolMetricsHandler(serviceNameBase);
+        this.threadFactoryResolver = threadFactoryResolver;
+        this.handoffExecutorResolver = handoffExecutorResolver;
+        this.serviceNameBase = serviceNameBase;
     }
 
 
@@ -107,6 +128,34 @@ public class QueuelessThreadPoolResourceDefinition extends PersistentResourceDef
 
     @Override
     public Collection<AttributeDefinition> getAttributes() {
-        return Arrays.asList(writeHandler.attributes);
+        return Arrays.asList(blocking ? BLOCKING_ATTRIBUTES : NON_BLOCKING_ATTRIBUTES);
+    }
+
+    @Override
+    protected void performRuntimeForAdd(final OperationContext context, final ModelNode operation, final ModelNode model) throws OperationFailedException {
+
+        final ThreadPoolManagementUtils.QueuelessThreadPoolParameters params = ThreadPoolManagementUtils.parseQueuelessThreadPoolParameters(context, operation, model, blocking);
+
+        final QueuelessThreadPoolService service = new QueuelessThreadPoolService(params.getMaxThreads(), blocking, params.getKeepAliveTime());
+
+        ThreadPoolManagementUtils.installThreadPoolService(service, params.getName(), serviceNameBase,
+                params.getThreadFactory(), threadFactoryResolver, service.getThreadFactoryInjector(),
+                params.getHandoffExecutor(), handoffExecutorResolver, blocking ?  null : service.getHandoffExecutorInjector(),
+                context.getServiceTarget());
+    }
+
+    @Override
+    protected void performRuntimeForRemove(OperationContext context, ModelNode operation, ModelNode model) throws OperationFailedException {
+        final ThreadPoolManagementUtils.QueuelessThreadPoolParameters params =
+                ThreadPoolManagementUtils.parseQueuelessThreadPoolParameters(context, operation, model, blocking);
+        ThreadPoolManagementUtils.removeThreadPoolService(params.getName(), serviceNameBase,
+                params.getThreadFactory(), threadFactoryResolver,
+                params.getHandoffExecutor(), handoffExecutorResolver,
+                context);
+    }
+
+    @Override
+    protected void recoverServicesForRemove(OperationContext context, ModelNode operation, ModelNode model) throws OperationFailedException {
+        performRuntimeForAdd(context, operation, model);
     }
 }

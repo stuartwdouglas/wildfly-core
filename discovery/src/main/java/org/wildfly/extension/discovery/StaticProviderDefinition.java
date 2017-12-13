@@ -72,7 +72,7 @@ final class StaticProviderDefinition extends SimpleResourceDefinition {
     StaticProviderDefinition() {
         super(new Parameters(PathElement.pathElement(STATIC_PROVIDER), DiscoveryExtension.getResourceDescriptionResolver(STATIC_PROVIDER))
             .setAddHandler(StaticProviderAddHandler.getInstance())
-            .setRemoveHandler(new TrivialRemoveStepHandler(DISCOVERY_PROVIDER_RUNTIME_CAPABILITY))
+            .useDefinitionRemove()
             .setCapabilities(DISCOVERY_PROVIDER_RUNTIME_CAPABILITY));
     }
 

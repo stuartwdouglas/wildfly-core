@@ -34,8 +34,8 @@ final class DiscoverySubsystemDefinition extends SimpleResourceDefinition {
 
     private DiscoverySubsystemDefinition() {
         super(new Parameters(DiscoveryExtension.SUBSYSTEM_PATH, DiscoveryExtension.getResourceDescriptionResolver())
-            .setAddHandler(DiscoverySubsystemAddHandler.getInstance())
-            .setRemoveHandler(new TrivialRemoveStepHandler())
+            .useDefinitionAdd()
+            .useDefinitionRemove()
         );
     }
 

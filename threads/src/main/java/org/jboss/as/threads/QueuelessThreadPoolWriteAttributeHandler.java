@@ -45,7 +45,7 @@ public class QueuelessThreadPoolWriteAttributeHandler extends ThreadsWriteAttrib
     private final ServiceName serviceNameBase;
 
     public QueuelessThreadPoolWriteAttributeHandler(boolean blocking, ServiceName serviceNameBase) {
-        super(blocking ? QueuelessThreadPoolAdd.BLOCKING_ATTRIBUTES : QueuelessThreadPoolAdd.NON_BLOCKING_ATTRIBUTES, QueuelessThreadPoolAdd.RW_ATTRIBUTES);
+        super(blocking ? QueuelessThreadPoolResourceDefinition.BLOCKING_ATTRIBUTES : QueuelessThreadPoolResourceDefinition.NON_BLOCKING_ATTRIBUTES, QueuelessThreadPoolResourceDefinition.RW_ATTRIBUTES);
         this.serviceNameBase = serviceNameBase;
     }
 

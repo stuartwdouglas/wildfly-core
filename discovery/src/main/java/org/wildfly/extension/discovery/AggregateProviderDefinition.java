@@ -43,7 +43,7 @@ final class AggregateProviderDefinition extends SimpleResourceDefinition {
     AggregateProviderDefinition() {
         super(new Parameters(PathElement.pathElement(AGGREGATE_PROVIDER), DiscoveryExtension.getResourceDescriptionResolver(AGGREGATE_PROVIDER))
             .setAddHandler(AggregateProviderAddHandler.getInstance())
-            .setRemoveHandler(new TrivialRemoveStepHandler(DISCOVERY_PROVIDER_RUNTIME_CAPABILITY))
+            .useDefinitionRemove()
             .setCapabilities(DISCOVERY_PROVIDER_RUNTIME_CAPABILITY));
     }
 

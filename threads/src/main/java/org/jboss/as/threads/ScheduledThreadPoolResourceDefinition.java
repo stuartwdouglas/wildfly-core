@@ -41,6 +41,12 @@ import java.util.Collection;
  * @author Brian Stansberry (c) 2011 Red Hat Inc.
  */
 public class ScheduledThreadPoolResourceDefinition extends PersistentResourceDefinition {
+
+    static final AttributeDefinition[] ATTRIBUTES = new AttributeDefinition[] {PoolAttributeDefinitions.KEEPALIVE_TIME,
+            PoolAttributeDefinitions.MAX_THREADS, PoolAttributeDefinitions.THREAD_FACTORY};
+
+    static final AttributeDefinition[] RW_ATTRIBUTES = new AttributeDefinition[]{};
+
     private final ScheduledThreadPoolWriteAttributeHandler writeAttributeHandler;
     private final ScheduledThreadPoolMetricsHandler metricsHandler;
     private final boolean registerRuntimeOnly;
@@ -82,7 +88,7 @@ public class ScheduledThreadPoolResourceDefinition extends PersistentResourceDef
 
     @Override
     public Collection<AttributeDefinition> getAttributes() {
-        return Arrays.asList(writeAttributeHandler.attributes);
+        return Arrays.asList(ATTRIBUTES);
     }
 
     @Override

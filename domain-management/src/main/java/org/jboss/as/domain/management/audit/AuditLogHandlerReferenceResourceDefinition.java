@@ -24,8 +24,6 @@ package org.jboss.as.domain.management.audit;
 import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.HANDLER;
 import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.OP_ADDR;
 
-import org.jboss.as.controller.AbstractAddStepHandler;
-import org.jboss.as.controller.AbstractRemoveStepHandler;
 import org.jboss.as.controller.ModelVersion;
 import org.jboss.as.controller.OperationContext;
 import org.jboss.as.controller.OperationFailedException;
@@ -46,12 +44,15 @@ import org.jboss.dmr.ModelNode;
 public class AuditLogHandlerReferenceResourceDefinition extends SimpleResourceDefinition {
 
     static final PathElement PATH_ELEMENT = PathElement.pathElement(HANDLER);
+    private final ManagedAuditLogger auditLogger;
 
     public AuditLogHandlerReferenceResourceDefinition(ManagedAuditLogger auditLogger) {
-        super(PATH_ELEMENT,
-                DomainManagementResolver.getDeprecatedResolver(AccessAuditResourceDefinition.DEPRECATED_MESSAGE_CATEGORY, "core.management.audit-log.handler-reference"),
-                new AuditLogHandlerReferenceAddHandler(auditLogger), new AuditLogHandlerReferenceRemoveHandler(auditLogger));
+        super(new Parameters(PATH_ELEMENT,
+                DomainManagementResolver.getDeprecatedResolver(AccessAuditResourceDefinition.DEPRECATED_MESSAGE_CATEGORY, "core.management.audit-log.handler-reference"))
+                .useDefinitionAdd()
+                .useDefinitionRemove());
         setDeprecated(ModelVersion.create(1, 7));
+        this.auditLogger = auditLogger;
     }
 
     @Override
@@ -59,63 +60,46 @@ public class AuditLogHandlerReferenceResourceDefinition extends SimpleResourceDe
         super.registerAttributes(resourceRegistration);
     }
 
-    private static class AuditLogHandlerReferenceAddHandler extends AbstractAddStepHandler {
-        private final ManagedAuditLogger auditLogger;
-
-        AuditLogHandlerReferenceAddHandler(ManagedAuditLogger auditLogger) {
-            this.auditLogger = auditLogger;
+    @Override
+    protected void populateModelForAdd(final OperationContext context, final ModelNode operation, final Resource resource) throws  OperationFailedException {
+        // TODO use capability based reference validation
+        final PathAddress addr = PathAddress.pathAddress(operation.require(OP_ADDR));
+        String name = addr.getLastElement().getValue();
+        if (!HandlerUtil.lookForHandler(context, addr, name)) {
+            throw DomainManagementLogger.ROOT_LOGGER.noHandlerCalled(name);
         }
-
-        @Override
-        protected void populateModel(final OperationContext context, final ModelNode operation, final Resource resource) throws  OperationFailedException {
-            // TODO use capability based reference validation
-            final PathAddress addr = PathAddress.pathAddress(operation.require(OP_ADDR));
-            String name = addr.getLastElement().getValue();
-            if (!HandlerUtil.lookForHandler(context, addr, name)) {
-                throw DomainManagementLogger.ROOT_LOGGER.noHandlerCalled(name);
-            }
-            resource.getModel().setEmptyObject();
-        }
-
-        @Override
-        protected boolean requiresRuntime(OperationContext context){
-            return auditLogger != null;
-        }
-
-        @Override
-        protected void performRuntime(OperationContext context, ModelNode operation, ModelNode model)
-                throws OperationFailedException {
-            auditLogger.getUpdater().addHandlerReference(PathAddress.pathAddress(operation.require(OP_ADDR)));
-        }
-
-        @Override
-        protected void rollbackRuntime(OperationContext context, ModelNode operation, Resource resource) {
-            auditLogger.getUpdater().rollbackChanges();
-        }
-
+        resource.getModel().setEmptyObject();
     }
 
-    private static class AuditLogHandlerReferenceRemoveHandler extends AbstractRemoveStepHandler {
-        private final ManagedAuditLogger auditLogger;
-
-        AuditLogHandlerReferenceRemoveHandler(ManagedAuditLogger auditLogger){
-            this.auditLogger = auditLogger;
-
-        }
-
-        @Override
-        protected boolean requiresRuntime(OperationContext context){
-            return auditLogger != null;
-        }
-
-        @Override
-        protected void performRuntime(OperationContext context, ModelNode operation, ModelNode model) throws OperationFailedException {
-            auditLogger.getUpdater().removeHandlerReference(PathAddress.pathAddress(operation.require(OP_ADDR)));
-        }
-
-        @Override
-        protected void recoverServices(OperationContext context, ModelNode operation, ModelNode model) throws OperationFailedException {
-            auditLogger.getUpdater().rollbackChanges();
-        }
+    @Override
+    protected boolean requiresRuntimeForAdd(OperationContext context){
+        return auditLogger != null;
     }
+
+    @Override
+    protected void performRuntimeForAdd(OperationContext context, ModelNode operation, ModelNode model)
+            throws OperationFailedException {
+        auditLogger.getUpdater().addHandlerReference(PathAddress.pathAddress(operation.require(OP_ADDR)));
+    }
+
+    @Override
+    protected void rollbackRuntimeForAdd(OperationContext context, ModelNode operation, Resource resource) {
+        auditLogger.getUpdater().rollbackChanges();
+    }
+
+    @Override
+    protected boolean requiresRuntimeForRemove(OperationContext context){
+        return auditLogger != null;
+    }
+
+    @Override
+    protected void performRuntimeForRemove(OperationContext context, ModelNode operation, ModelNode model) throws OperationFailedException {
+        auditLogger.getUpdater().removeHandlerReference(PathAddress.pathAddress(operation.require(OP_ADDR)));
+    }
+
+    @Override
+    protected void recoverServicesForRemove(OperationContext context, ModelNode operation, ModelNode model) throws OperationFailedException {
+        auditLogger.getUpdater().rollbackChanges();
+    }
+
 }

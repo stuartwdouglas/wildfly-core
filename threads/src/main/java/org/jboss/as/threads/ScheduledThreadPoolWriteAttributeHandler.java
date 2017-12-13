@@ -42,7 +42,7 @@ public class ScheduledThreadPoolWriteAttributeHandler extends ThreadsWriteAttrib
     private final ServiceName serviceNameBase;
 
     public ScheduledThreadPoolWriteAttributeHandler(ServiceName serviceNameBase) {
-        super(ScheduledThreadPoolAdd.ATTRIBUTES, ScheduledThreadPoolAdd.RW_ATTRIBUTES);
+        super(ScheduledThreadPoolResourceDefinition.ATTRIBUTES, ScheduledThreadPoolResourceDefinition.RW_ATTRIBUTES);
         this.serviceNameBase = serviceNameBase;
     }
 

@@ -30,6 +30,8 @@ import java.util.Collections;
 import java.util.List;
 
 import org.jboss.as.controller.AttributeDefinition;
+import org.jboss.as.controller.OperationContext;
+import org.jboss.as.controller.OperationFailedException;
 import org.jboss.as.controller.PersistentResourceDefinition;
 import org.jboss.as.controller.ReloadRequiredRemoveStepHandler;
 import org.jboss.as.controller.ReloadRequiredWriteAttributeHandler;
@@ -37,6 +39,11 @@ import org.jboss.as.controller.SimpleAttributeDefinition;
 import org.jboss.as.controller.SimpleAttributeDefinitionBuilder;
 import org.jboss.as.controller.capability.RuntimeCapability;
 import org.jboss.as.controller.registry.ManagementResourceRegistration;
+import org.jboss.as.controller.registry.Resource;
+import org.jboss.as.server.AbstractDeploymentChainStep;
+import org.jboss.as.server.DeploymentProcessorTarget;
+import org.jboss.as.server.deployment.Phase;
+import org.jboss.as.server.suspend.SuspendController;
 import org.jboss.dmr.ModelNode;
 import org.jboss.dmr.ModelType;
 
@@ -71,10 +78,10 @@ class RequestControllerRootDefinition extends PersistentResourceDefinition {
     private final boolean registerRuntimeOnly;
 
     RequestControllerRootDefinition(boolean registerRuntimeOnly) {
-        super(RequestControllerExtension.SUBSYSTEM_PATH,
-                RequestControllerExtension.getResolver(),
-                new RequestControllerSubsystemAdd(getAttributeDefinitions(registerRuntimeOnly)),
-                ReloadRequiredRemoveStepHandler.INSTANCE);
+        super(new Parameters(RequestControllerExtension.SUBSYSTEM_PATH,
+                RequestControllerExtension.getResolver())
+                .useDefinitionAdd()
+                .setRemoveHandler(ReloadRequiredRemoveStepHandler.INSTANCE));
         this.registerRuntimeOnly = registerRuntimeOnly;
     }
 
@@ -109,5 +116,34 @@ class RequestControllerRootDefinition extends PersistentResourceDefinition {
     @Override
     public void registerCapabilities(ManagementResourceRegistration resourceRegistration) {
         resourceRegistration.registerCapability(REQUEST_CONTROLLER_CAPABILITY);
+    }
+
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void performRuntimeForAdd(OperationContext context, ModelNode operation, final Resource resource)
+            throws OperationFailedException {
+
+        context.addStep(new AbstractDeploymentChainStep() {
+            @Override
+            protected void execute(DeploymentProcessorTarget processorTarget) {
+
+                processorTarget.addDeploymentProcessor(RequestControllerExtension.SUBSYSTEM_NAME, Phase.STRUCTURE, Phase.STRUCTURE_GLOBAL_REQUEST_CONTROLLER, new RequestControllerDeploymentUnitProcessor());
+            }
+        }, OperationContext.Stage.RUNTIME);
+
+        int maxRequests = RequestControllerRootDefinition.MAX_REQUESTS.resolveModelAttribute(context, resource.getModel()).asInt();
+        boolean trackIndividual = RequestControllerRootDefinition.TRACK_INDIVIDUAL_ENDPOINTS.resolveModelAttribute(context, resource.getModel()).asBoolean();
+
+        RequestController requestController = new RequestController(trackIndividual);
+
+        requestController.setMaxRequestCount(maxRequests);
+
+        context.getServiceTarget().addService(RequestController.SERVICE_NAME, requestController)
+                .addDependency(SuspendController.SERVICE_NAME, SuspendController.class, requestController.getShutdownControllerInjectedValue())
+                .install();
+
     }
 }
