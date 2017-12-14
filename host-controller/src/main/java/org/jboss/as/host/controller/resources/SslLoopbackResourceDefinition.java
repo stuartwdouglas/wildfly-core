@@ -22,12 +22,14 @@ import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.SER
 
 import java.util.List;
 
+import org.jboss.as.controller.AddHandlerResourceDefinition;
 import org.jboss.as.controller.AttributeDefinition;
 import org.jboss.as.controller.ModelOnlyWriteAttributeHandler;
 import org.jboss.as.controller.OperationContext;
 import org.jboss.as.controller.OperationFailedException;
 import org.jboss.as.controller.OperationStepHandler;
 import org.jboss.as.controller.PathElement;
+import org.jboss.as.controller.RemoveHandlerResourceDefinition;
 import org.jboss.as.controller.ResourceDefinition;
 import org.jboss.as.controller.SimpleAttributeDefinition;
 import org.jboss.as.controller.SimpleAttributeDefinitionBuilder;
@@ -46,7 +48,7 @@ import org.jboss.dmr.ModelType;
  *
  * @author <a href="mailto:darran.lofthouse@jboss.com">Darran Lofthouse</a>
  */
-public class SslLoopbackResourceDefinition extends SimpleResourceDefinition {
+public class SslLoopbackResourceDefinition extends SimpleResourceDefinition implements AddHandlerResourceDefinition, RemoveHandlerResourceDefinition {
 
     private static final String DESCRIPTION_PREFIX = SERVER_CONFIG + "." + ModelDescriptionConstants.SSL + "." + ModelDescriptionConstants.LOOPBACK;
 
@@ -82,9 +84,7 @@ public class SslLoopbackResourceDefinition extends SimpleResourceDefinition {
 
     public SslLoopbackResourceDefinition() {
         super(new Parameters(PathElement.pathElement(ModelDescriptionConstants.SSL, ModelDescriptionConstants.LOOPBACK),
-                HostResolver.getResolver(DESCRIPTION_PREFIX, false))
-                .useDefinitionAdd()
-                .useDefinitionRemove());
+                HostResolver.getResolver(DESCRIPTION_PREFIX, false)));
         sensitivity = SensitiveTargetAccessConstraintDefinition.SERVER_SSL.wrapAsList();
     }
 
@@ -102,19 +102,19 @@ public class SslLoopbackResourceDefinition extends SimpleResourceDefinition {
     }
 
     @Override
-    protected void populateModelForAdd(ModelNode operation, ModelNode model) throws OperationFailedException {
+    public void populateModelForAdd(ModelNode operation, ModelNode model) throws OperationFailedException {
         for (AttributeDefinition attr : ATTRIBUTES) {
             attr.validateAndSet(operation, model);
         }
     }
 
     @Override
-    protected boolean requiresRuntimeForAdd(OperationContext context) {
+    public boolean requiresRuntimeForAdd(OperationContext context) {
         return false;
     }
 
     @Override
-    protected boolean requiresRuntimeForRemove(OperationContext context) {
+    public boolean requiresRuntimeForRemove(OperationContext context) {
         return false;
     }
 

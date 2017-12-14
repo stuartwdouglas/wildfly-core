@@ -22,12 +22,14 @@
 
 package org.jboss.as.threads;
 
+import org.jboss.as.controller.AddHandlerResourceDefinition;
 import org.jboss.as.controller.AttributeDefinition;
 import org.jboss.as.controller.OperationContext;
 import org.jboss.as.controller.OperationFailedException;
 import org.jboss.as.controller.PathElement;
 import org.jboss.as.controller.PersistentResourceDefinition;
 import org.jboss.as.controller.ReadResourceNameOperationStepHandler;
+import org.jboss.as.controller.RemoveHandlerResourceDefinition;
 import org.jboss.as.controller.registry.ManagementResourceRegistration;
 import org.jboss.dmr.ModelNode;
 import org.jboss.msc.service.ServiceName;
@@ -40,7 +42,7 @@ import java.util.Collection;
  *
  * @author Brian Stansberry (c) 2011 Red Hat Inc.
  */
-public class ScheduledThreadPoolResourceDefinition extends PersistentResourceDefinition {
+public class ScheduledThreadPoolResourceDefinition extends PersistentResourceDefinition implements AddHandlerResourceDefinition, RemoveHandlerResourceDefinition {
 
     static final AttributeDefinition[] ATTRIBUTES = new AttributeDefinition[] {PoolAttributeDefinitions.KEEPALIVE_TIME,
             PoolAttributeDefinitions.MAX_THREADS, PoolAttributeDefinitions.THREAD_FACTORY};
@@ -67,9 +69,7 @@ public class ScheduledThreadPoolResourceDefinition extends PersistentResourceDef
                                                   ServiceName serviceNameBase, boolean registerRuntimeOnly, ThreadFactoryResolver threadFactoryResolver) {
         super(new Parameters(PathElement.pathElement(type),
                 new ThreadPoolResourceDescriptionResolver(CommonAttributes.SCHEDULED_THREAD_POOL, ThreadsExtension.RESOURCE_NAME,
-                        ThreadsExtension.class.getClassLoader()))
-                .useDefinitionAdd()
-                .useDefinitionRemove());
+                        ThreadsExtension.class.getClassLoader())));
         this.registerRuntimeOnly = registerRuntimeOnly;
         this.writeAttributeHandler = new ScheduledThreadPoolWriteAttributeHandler(serviceNameBase);
         this.metricsHandler = new ScheduledThreadPoolMetricsHandler(serviceNameBase);
@@ -92,7 +92,7 @@ public class ScheduledThreadPoolResourceDefinition extends PersistentResourceDef
     }
 
     @Override
-    protected void performRuntimeForAdd(final OperationContext context, final ModelNode operation, final ModelNode model) throws OperationFailedException {
+    public void performRuntimeForAdd(final OperationContext context, final ModelNode operation, final ModelNode model) throws OperationFailedException {
 
         final ThreadPoolManagementUtils.BaseThreadPoolParameters params = ThreadPoolManagementUtils.parseScheduledThreadPoolParameters(context, operation, model);
 
@@ -104,7 +104,7 @@ public class ScheduledThreadPoolResourceDefinition extends PersistentResourceDef
     }
 
     @Override
-    protected void performRuntimeForRemove(OperationContext context, ModelNode operation, ModelNode model) throws OperationFailedException {
+    public void performRuntimeForRemove(OperationContext context, ModelNode operation, ModelNode model) throws OperationFailedException {
 
         final ThreadPoolManagementUtils.BaseThreadPoolParameters params =
                 ThreadPoolManagementUtils.parseScheduledThreadPoolParameters(context, operation, model);
@@ -113,7 +113,7 @@ public class ScheduledThreadPoolResourceDefinition extends PersistentResourceDef
                 context);
     }
 
-    protected void recoverServicesForRemove(OperationContext context, ModelNode operation, ModelNode model) throws OperationFailedException {
+    public void recoverServicesForRemove(OperationContext context, ModelNode operation, ModelNode model) throws OperationFailedException {
         performRuntimeForAdd(context, operation, model);
     }
 }

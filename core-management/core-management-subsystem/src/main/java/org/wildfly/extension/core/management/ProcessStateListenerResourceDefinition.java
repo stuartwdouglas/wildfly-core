@@ -33,6 +33,7 @@ import java.util.Collection;
 import java.util.Map;
 
 import org.jboss.as.controller.AbstractRemoveStepHandler;
+import org.jboss.as.controller.AddHandlerResourceDefinition;
 import org.jboss.as.controller.AttributeDefinition;
 import org.jboss.as.controller.OperationContext;
 import org.jboss.as.controller.OperationFailedException;
@@ -53,7 +54,7 @@ import org.wildfly.extension.core.management.logging.CoreManagementLogger;
 /**
  * @author <a href="http://jmesnil.net/">Jeff Mesnil</a> (c) 2016 Red Hat inc.
  */
-public class ProcessStateListenerResourceDefinition extends PersistentResourceDefinition {
+public class ProcessStateListenerResourceDefinition extends PersistentResourceDefinition implements AddHandlerResourceDefinition {
     private static final String CLASS = "class";
     private static final String PROCESS_STATE_LISTENER_CAPABILITY_NAME = "org.wildfly.extension.core-management.process-state";
     static final RuntimeCapability<Void> PROCESS_STATE_LISTENER_CAPABILITY =
@@ -93,7 +94,6 @@ public class ProcessStateListenerResourceDefinition extends PersistentResourceDe
         super(new Parameters(PROCESS_STATE_LISTENER_PATH, CoreManagementExtension.getResourceDescriptionResolver("process-state-listener"))
                 .setOrderedChild()
                 .setCapabilities(PROCESS_STATE_LISTENER_CAPABILITY)
-                .useDefinitionAdd()
                 .setRemoveHandler(new ProcessStateListenerResourceDefinition.ProcessStateListenerRemoveHandler()));
     }
 
@@ -103,7 +103,7 @@ public class ProcessStateListenerResourceDefinition extends PersistentResourceDe
     }
 
     @Override
-    protected void performRuntimeForAdd(OperationContext context, ModelNode operation, ModelNode model) throws OperationFailedException {
+    public void performRuntimeForAdd(OperationContext context, ModelNode operation, ModelNode model) throws OperationFailedException {
         String className = LISTENER_CLASS.resolveModelAttribute(context, model).asString();
         String moduleIdentifier = LISTENER_MODULE.resolveModelAttribute(context, model).asString();
         ProcessStateListener listener = newInstance(className, moduleIdentifier);
@@ -118,8 +118,8 @@ public class ProcessStateListenerResourceDefinition extends PersistentResourceDe
     }
 
     @Override
-    protected boolean requiresRuntimeForAdd(OperationContext context) {
-        return super.requiresRuntimeForAdd(context) || context.getProcessType().isServer();
+    public boolean requiresRuntimeForAdd(OperationContext context) {
+        return context.isDefaultRequiresRuntime() || context.getProcessType().isServer();
     }
 
     private static ProcessStateListener newInstance(String className, String moduleIdentifier) throws OperationFailedException {

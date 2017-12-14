@@ -29,6 +29,7 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
 
+import org.jboss.as.controller.AddHandlerResourceDefinition;
 import org.jboss.as.controller.AttributeDefinition;
 import org.jboss.as.controller.OperationContext;
 import org.jboss.as.controller.OperationFailedException;
@@ -49,7 +50,7 @@ import org.xnio.Pool;
 /**
  * @author <a href="mailto:tomaz.cerar@redhat.com">Tomaz Cerar</a> (c) 2013 Red Hat Inc.
  */
-class BufferPoolResourceDefinition extends PersistentResourceDefinition {
+class BufferPoolResourceDefinition extends PersistentResourceDefinition implements AddHandlerResourceDefinition {
 
     static final RuntimeCapability<Void> IO_POOL_RUNTIME_CAPABILITY =
             RuntimeCapability.Builder.of(IOServices.BUFFER_POOL_CAPABILITY_NAME, true, Pool.class).build();
@@ -111,7 +112,6 @@ class BufferPoolResourceDefinition extends PersistentResourceDefinition {
     private BufferPoolResourceDefinition() {
         super(new Parameters(IOExtension.BUFFER_POOL_PATH,
                 IOExtension.getResolver(Constants.BUFFER_POOL))
-                .useDefinitionAdd()
                 .setRemoveHandler(ReloadRequiredRemoveStepHandler.INSTANCE)
         );
     }
@@ -128,7 +128,7 @@ class BufferPoolResourceDefinition extends PersistentResourceDefinition {
     }
 
     @Override
-    protected void performRuntimeForAdd(OperationContext context, ModelNode operation, ModelNode model) throws OperationFailedException {
+    public void performRuntimeForAdd(OperationContext context, ModelNode operation, ModelNode model) throws OperationFailedException {
         final PathAddress address = PathAddress.pathAddress(operation.get(OP_ADDR));
         final String name = address.getLastElement().getValue();
         final ModelNode bufferSizeModel = BUFFER_SIZE.resolveModelAttribute(context, model);

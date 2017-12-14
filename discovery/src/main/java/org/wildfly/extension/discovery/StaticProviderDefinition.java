@@ -30,6 +30,7 @@ import org.jboss.as.controller.AttributeParser;
 import org.jboss.as.controller.ObjectListAttributeDefinition;
 import org.jboss.as.controller.ObjectTypeAttributeDefinition;
 import org.jboss.as.controller.PathElement;
+import org.jboss.as.controller.RemoveHandlerResourceDefinition;
 import org.jboss.as.controller.ResourceDefinition;
 import org.jboss.as.controller.SimpleAttributeDefinition;
 import org.jboss.as.controller.SimpleAttributeDefinitionBuilder;
@@ -40,7 +41,7 @@ import org.jboss.dmr.ModelType;
 /**
  * @author <a href="mailto:david.lloyd@redhat.com">David M. Lloyd</a>
  */
-final class StaticProviderDefinition extends SimpleResourceDefinition {
+final class StaticProviderDefinition extends SimpleResourceDefinition implements RemoveHandlerResourceDefinition {
 
     static final SimpleAttributeDefinition ABSTRACT_TYPE = new SimpleAttributeDefinitionBuilder(DiscoveryExtension.ABSTRACT_TYPE, ModelType.STRING, true).setAllowExpression(true).build();
     static final SimpleAttributeDefinition ABSTRACT_TYPE_AUTHORITY = new SimpleAttributeDefinitionBuilder(DiscoveryExtension.ABSTRACT_TYPE_AUTHORITY, ModelType.STRING, true).setAllowExpression(true).build();
@@ -72,7 +73,6 @@ final class StaticProviderDefinition extends SimpleResourceDefinition {
     StaticProviderDefinition() {
         super(new Parameters(PathElement.pathElement(STATIC_PROVIDER), DiscoveryExtension.getResourceDescriptionResolver(STATIC_PROVIDER))
             .setAddHandler(StaticProviderAddHandler.getInstance())
-            .useDefinitionRemove()
             .setCapabilities(DISCOVERY_PROVIDER_RUNTIME_CAPABILITY));
     }
 

@@ -119,18 +119,6 @@ public abstract class PersistentResourceDefinition extends SimpleResourceDefinit
             return this;
         }
 
-        @Override
-        public Parameters useDefinitionAdd() {
-            super.useDefinitionAdd();
-            return this;
-        }
-
-        @Override
-        public Parameters useDefinitionRemove() {
-            super.useDefinitionRemove();
-            return this;
-        }
-
         public Parameters setAddRestartLevel(Flag addRestartLevel) {
             super.setAddRestartLevel(addRestartLevel);
 

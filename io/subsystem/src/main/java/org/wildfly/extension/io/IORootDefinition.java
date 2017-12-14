@@ -29,6 +29,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 
+import org.jboss.as.controller.AddHandlerResourceDefinition;
 import org.jboss.as.controller.AttributeDefinition;
 import org.jboss.as.controller.OperationContext;
 import org.jboss.as.controller.OperationFailedException;
@@ -46,7 +47,7 @@ import org.jboss.msc.service.ServiceName;
 /**
  * @author <a href="mailto:tomaz.cerar@redhat.com">Tomaz Cerar</a> (c) 2013 Red Hat Inc.
  */
-class IORootDefinition extends PersistentResourceDefinition {
+class IORootDefinition extends PersistentResourceDefinition implements AddHandlerResourceDefinition {
     static final String IO_MAX_THREADS_RUNTIME_CAPABILITY_NAME = "org.wildfly.io.max-threads";
 
     static final RuntimeCapability<Void> IO_MAX_THREADS_RUNTIME_CAPABILITY =
@@ -62,7 +63,6 @@ class IORootDefinition extends PersistentResourceDefinition {
 
     private IORootDefinition() {
         super(new Parameters(IOExtension.SUBSYSTEM_PATH, IOExtension.getResolver())
-                .useDefinitionAdd()
                 .setRemoveHandler(ReloadRequiredRemoveStepHandler.INSTANCE)
                 .setAddRestartLevel(OperationEntry.Flag.RESTART_NONE)
                 .setRemoveRestartLevel(OperationEntry.Flag.RESTART_ALL_SERVICES));
@@ -85,7 +85,7 @@ class IORootDefinition extends PersistentResourceDefinition {
 
 
     @Override
-    protected void performRuntimeForAdd(OperationContext context, ModelNode operation, Resource resource) throws OperationFailedException {
+    public void performRuntimeForAdd(OperationContext context, ModelNode operation, Resource resource) throws OperationFailedException {
         ModelNode workers = Resource.Tools.readModel(resource).get(IOExtension.WORKER_PATH.getKey());
         WorkerResourceDefinition.checkWorkerConfiguration(context, workers);
 

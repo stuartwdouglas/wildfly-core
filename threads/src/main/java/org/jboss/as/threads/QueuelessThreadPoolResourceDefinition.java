@@ -22,12 +22,14 @@
 
 package org.jboss.as.threads;
 
+import org.jboss.as.controller.AddHandlerResourceDefinition;
 import org.jboss.as.controller.AttributeDefinition;
 import org.jboss.as.controller.OperationContext;
 import org.jboss.as.controller.OperationFailedException;
 import org.jboss.as.controller.PathElement;
 import org.jboss.as.controller.PersistentResourceDefinition;
 import org.jboss.as.controller.ReadResourceNameOperationStepHandler;
+import org.jboss.as.controller.RemoveHandlerResourceDefinition;
 import org.jboss.as.controller.registry.ManagementResourceRegistration;
 import org.jboss.dmr.ModelNode;
 import org.jboss.msc.service.ServiceName;
@@ -41,7 +43,7 @@ import java.util.Collection;
  * @author Brian Stansberry (c) 2011 Red Hat Inc.
  * @author Tomaz Cerar (c) 2015 Red Hat Inc.
  */
-public class QueuelessThreadPoolResourceDefinition extends PersistentResourceDefinition {
+public class QueuelessThreadPoolResourceDefinition extends PersistentResourceDefinition implements AddHandlerResourceDefinition, RemoveHandlerResourceDefinition {
 
 
     static final AttributeDefinition[] BLOCKING_ATTRIBUTES = new AttributeDefinition[] {PoolAttributeDefinitions.KEEPALIVE_TIME,
@@ -100,9 +102,7 @@ public class QueuelessThreadPoolResourceDefinition extends PersistentResourceDef
                                                   ThreadFactoryResolver threadFactoryResolver,
                                                   HandoffExecutorResolver handoffExecutorResolver) {
         super(new Parameters(PathElement.pathElement(type),
-                new ThreadPoolResourceDescriptionResolver(resolverPrefix, ThreadsExtension.RESOURCE_NAME, ThreadsExtension.class.getClassLoader()))
-                .useDefinitionAdd()
-                .useDefinitionRemove());
+                new ThreadPoolResourceDescriptionResolver(resolverPrefix, ThreadsExtension.RESOURCE_NAME, ThreadsExtension.class.getClassLoader())));
         this.registerRuntimeOnly = registerRuntimeOnly;
         this.blocking = blocking;
         writeHandler = new QueuelessThreadPoolWriteAttributeHandler(blocking, serviceNameBase);
@@ -132,7 +132,7 @@ public class QueuelessThreadPoolResourceDefinition extends PersistentResourceDef
     }
 
     @Override
-    protected void performRuntimeForAdd(final OperationContext context, final ModelNode operation, final ModelNode model) throws OperationFailedException {
+    public void performRuntimeForAdd(final OperationContext context, final ModelNode operation, final ModelNode model) throws OperationFailedException {
 
         final ThreadPoolManagementUtils.QueuelessThreadPoolParameters params = ThreadPoolManagementUtils.parseQueuelessThreadPoolParameters(context, operation, model, blocking);
 
@@ -145,7 +145,7 @@ public class QueuelessThreadPoolResourceDefinition extends PersistentResourceDef
     }
 
     @Override
-    protected void performRuntimeForRemove(OperationContext context, ModelNode operation, ModelNode model) throws OperationFailedException {
+    public void performRuntimeForRemove(OperationContext context, ModelNode operation, ModelNode model) throws OperationFailedException {
         final ThreadPoolManagementUtils.QueuelessThreadPoolParameters params =
                 ThreadPoolManagementUtils.parseQueuelessThreadPoolParameters(context, operation, model, blocking);
         ThreadPoolManagementUtils.removeThreadPoolService(params.getName(), serviceNameBase,
@@ -155,7 +155,7 @@ public class QueuelessThreadPoolResourceDefinition extends PersistentResourceDef
     }
 
     @Override
-    protected void recoverServicesForRemove(OperationContext context, ModelNode operation, ModelNode model) throws OperationFailedException {
+    public void recoverServicesForRemove(OperationContext context, ModelNode operation, ModelNode model) throws OperationFailedException {
         performRuntimeForAdd(context, operation, model);
     }
 }

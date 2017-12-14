@@ -31,11 +31,13 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 
+import org.jboss.as.controller.AddHandlerResourceDefinition;
 import org.jboss.as.controller.AttributeDefinition;
 import org.jboss.as.controller.OperationContext;
 import org.jboss.as.controller.OperationFailedException;
 import org.jboss.as.controller.PathElement;
 import org.jboss.as.controller.PersistentResourceDefinition;
+import org.jboss.as.controller.RemoveHandlerResourceDefinition;
 import org.jboss.as.controller.SimpleAttributeDefinition;
 import org.jboss.as.controller.SimpleAttributeDefinitionBuilder;
 import org.jboss.as.controller.operations.validation.InetAddressValidator;
@@ -52,7 +54,7 @@ import org.wildfly.extension.io.logging.IOLogger;
 /**
  * @author <a href="mailto:david.lloyd@redhat.com">David M. Lloyd</a>
  */
-public class OutboundBindAddressResourceDefinition extends PersistentResourceDefinition {
+public class OutboundBindAddressResourceDefinition extends PersistentResourceDefinition implements AddHandlerResourceDefinition, RemoveHandlerResourceDefinition{
     static final SimpleAttributeDefinition MATCH = new SimpleAttributeDefinitionBuilder("match", ModelType.STRING)
         .setRequired(true)
         .setAllowExpression(true)
@@ -82,10 +84,7 @@ public class OutboundBindAddressResourceDefinition extends PersistentResourceDef
     static final OutboundBindAddressResourceDefinition INSTANCE = new OutboundBindAddressResourceDefinition();
 
     private OutboundBindAddressResourceDefinition() {
-        super(new Parameters(PathElement.pathElement(RESOURCE_NAME), IOExtension.getResolver(RESOURCE_NAME))
-            .useDefinitionAdd()
-            .useDefinitionRemove()
-        );
+        super(new Parameters(PathElement.pathElement(RESOURCE_NAME), IOExtension.getResolver(RESOURCE_NAME)));
     }
 
     @Override
@@ -98,7 +97,7 @@ public class OutboundBindAddressResourceDefinition extends PersistentResourceDef
     }
 
 
-    protected void performRuntimeForAdd(final OperationContext context, final ModelNode operation, final Resource resource) throws OperationFailedException {
+    public void performRuntimeForAdd(final OperationContext context, final ModelNode operation, final Resource resource) throws OperationFailedException {
         final CidrAddressTable<InetSocketAddress> bindingsTable = getWorkerService(context).getBindingsTable();
         if (bindingsTable != null) {
             final CidrAddress cidrAddress = getCidrAddress(operation, context);
@@ -110,7 +109,7 @@ public class OutboundBindAddressResourceDefinition extends PersistentResourceDef
         }
     }
 
-    protected void rollbackRuntimeForAdd(final OperationContext context, final ModelNode operation, final Resource resource) {
+    public void rollbackRuntimeForAdd(final OperationContext context, final ModelNode operation, final Resource resource) {
         getWorkerService(context).getBindingsTable().removeExact(
                 Inet.parseCidrAddress(operation.require("match").asString()),
                 new InetSocketAddress(
@@ -120,7 +119,7 @@ public class OutboundBindAddressResourceDefinition extends PersistentResourceDef
         );
     }
 
-    protected void performRuntimeForRemove(final OperationContext context, final ModelNode operation, final ModelNode model) throws OperationFailedException {
+    public void performRuntimeForRemove(final OperationContext context, final ModelNode operation, final ModelNode model) throws OperationFailedException {
         final CidrAddressTable<InetSocketAddress> bindingsTable = getWorkerService(context).getBindingsTable();
         if (bindingsTable != null) {
             final CidrAddress cidrAddress = getCidrAddress(model, context);

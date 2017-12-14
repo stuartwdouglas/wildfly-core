@@ -29,6 +29,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 
+import org.jboss.as.controller.AddHandlerResourceDefinition;
 import org.jboss.as.controller.AttributeDefinition;
 import org.jboss.as.controller.OperationContext;
 import org.jboss.as.controller.OperationFailedException;
@@ -50,7 +51,7 @@ import org.jboss.dmr.ModelType;
 /**
  * @author Stuart Douglas
  */
-class RequestControllerRootDefinition extends PersistentResourceDefinition {
+class RequestControllerRootDefinition extends PersistentResourceDefinition implements AddHandlerResourceDefinition {
 
     static final String REQUEST_CONTROLLER_CAPABILITY_NAME = "org.wildfly.request-controller";
 
@@ -80,7 +81,6 @@ class RequestControllerRootDefinition extends PersistentResourceDefinition {
     RequestControllerRootDefinition(boolean registerRuntimeOnly) {
         super(new Parameters(RequestControllerExtension.SUBSYSTEM_PATH,
                 RequestControllerExtension.getResolver())
-                .useDefinitionAdd()
                 .setRemoveHandler(ReloadRequiredRemoveStepHandler.INSTANCE));
         this.registerRuntimeOnly = registerRuntimeOnly;
     }

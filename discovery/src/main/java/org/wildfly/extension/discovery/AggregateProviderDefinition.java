@@ -26,6 +26,7 @@ import static org.wildfly.extension.discovery.DiscoveryExtension.AGGREGATE_PROVI
 import static org.wildfly.extension.discovery.DiscoveryExtension.DISCOVERY_PROVIDER_RUNTIME_CAPABILITY;
 
 import org.jboss.as.controller.PathElement;
+import org.jboss.as.controller.RemoveHandlerResourceDefinition;
 import org.jboss.as.controller.ResourceDefinition;
 import org.jboss.as.controller.SimpleResourceDefinition;
 import org.jboss.as.controller.StringListAttributeDefinition;
@@ -34,7 +35,7 @@ import org.jboss.as.controller.registry.ManagementResourceRegistration;
 /**
  * @author <a href="mailto:david.lloyd@redhat.com">David M. Lloyd</a>
  */
-final class AggregateProviderDefinition extends SimpleResourceDefinition {
+final class AggregateProviderDefinition extends SimpleResourceDefinition implements RemoveHandlerResourceDefinition {
 
     static final StringListAttributeDefinition PROVIDER_NAMES = new StringListAttributeDefinition.Builder(DiscoveryExtension.PROVIDERS)
         .setCapabilityReference(DiscoveryExtension.DISCOVERY_PROVIDER_CAPABILITY)
@@ -43,7 +44,6 @@ final class AggregateProviderDefinition extends SimpleResourceDefinition {
     AggregateProviderDefinition() {
         super(new Parameters(PathElement.pathElement(AGGREGATE_PROVIDER), DiscoveryExtension.getResourceDescriptionResolver(AGGREGATE_PROVIDER))
             .setAddHandler(AggregateProviderAddHandler.getInstance())
-            .useDefinitionRemove()
             .setCapabilities(DISCOVERY_PROVIDER_RUNTIME_CAPABILITY));
     }
 

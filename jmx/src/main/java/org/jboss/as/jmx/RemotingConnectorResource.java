@@ -28,6 +28,7 @@ import static org.jboss.as.jmx.JMXSubsystemAdd.getDomainName;
 import java.util.Collection;
 import java.util.Collections;
 
+import org.jboss.as.controller.AddHandlerResourceDefinition;
 import org.jboss.as.controller.AttributeDefinition;
 import org.jboss.as.controller.OperationContext;
 import org.jboss.as.controller.OperationFailedException;
@@ -36,6 +37,7 @@ import org.jboss.as.controller.PathAddress;
 import org.jboss.as.controller.PathElement;
 import org.jboss.as.controller.ProcessType;
 import org.jboss.as.controller.ReloadRequiredWriteAttributeHandler;
+import org.jboss.as.controller.RemoveHandlerResourceDefinition;
 import org.jboss.as.controller.SimpleAttributeDefinition;
 import org.jboss.as.controller.SimpleAttributeDefinitionBuilder;
 import org.jboss.as.controller.SimpleResourceDefinition;
@@ -53,7 +55,7 @@ import org.jboss.remoting3.Endpoint;
  *
  * @author Stuart Douglas
  */
-public class RemotingConnectorResource extends SimpleResourceDefinition {
+public class RemotingConnectorResource extends SimpleResourceDefinition implements AddHandlerResourceDefinition, RemoveHandlerResourceDefinition {
 
     static final PathElement REMOTE_CONNECTOR_CONFIG_PATH = PathElement.pathElement(REMOTING_CONNECTOR, JMX);
     static final SimpleAttributeDefinition USE_MANAGEMENT_ENDPOINT
@@ -72,8 +74,6 @@ public class RemotingConnectorResource extends SimpleResourceDefinition {
     private RemotingConnectorResource() {
         super(new Parameters(REMOTE_CONNECTOR_CONFIG_PATH,
                 JMXExtension.getResourceDescriptionResolver(CommonAttributes.REMOTING_CONNECTOR))
-                .useDefinitionAdd()
-                .useDefinitionRemove()
                 .addCapabilities(REMOTE_JMX_CAPABILITY));
     }
     @Override
@@ -115,7 +115,7 @@ public class RemotingConnectorResource extends SimpleResourceDefinition {
     }
 
     @Override
-    protected Collection<AttributeDefinition> getAttributes() {
+    public Collection<AttributeDefinition> getAttributes() {
         return Collections.singleton(USE_MANAGEMENT_ENDPOINT);
     }
 
@@ -125,12 +125,12 @@ public class RemotingConnectorResource extends SimpleResourceDefinition {
     }
 
     @Override
-    protected boolean requiresRuntimeForAdd(OperationContext context) {
+    public boolean requiresRuntimeForAdd(OperationContext context) {
         return context.isDefaultRequiresRuntime() && (context.getProcessType() != ProcessType.EMBEDDED_HOST_CONTROLLER);
     }
 
     @Override
-    protected void performRuntimeForAdd(OperationContext context, ModelNode operation, ModelNode model)
+    public void performRuntimeForAdd(OperationContext context, ModelNode operation, ModelNode model)
             throws OperationFailedException {
 
         boolean useManagementEndpoint = RemotingConnectorResource.USE_MANAGEMENT_ENDPOINT.resolveModelAttribute(context, model).asBoolean();
@@ -160,11 +160,11 @@ public class RemotingConnectorResource extends SimpleResourceDefinition {
     }
 
 
-    protected void performRuntimeForRemove(OperationContext context, ModelNode operation, ModelNode model) {
+    public void performRuntimeForRemove(OperationContext context, ModelNode operation, ModelNode model) {
         context.removeService(RemotingConnectorService.SERVICE_NAME);
     }
 
-    protected void recoverServicesForRemove(OperationContext context, ModelNode operation, ModelNode model) throws OperationFailedException {
+    public void recoverServicesForRemove(OperationContext context, ModelNode operation, ModelNode model) throws OperationFailedException {
         performRuntimeForAdd(context, operation, model);
     }
 }

@@ -40,6 +40,7 @@ import javax.management.MBeanServerConnection;
 import javax.management.ObjectName;
 
 import org.jboss.as.controller.AbstractWriteAttributeHandler;
+import org.jboss.as.controller.AddHandlerResourceDefinition;
 import org.jboss.as.controller.AttributeDefinition;
 import org.jboss.as.controller.OperationContext;
 import org.jboss.as.controller.OperationFailedException;
@@ -78,7 +79,7 @@ import org.xnio.management.XnioWorkerMXBean;
 /**
  * @author <a href="mailto:tomaz.cerar@redhat.com">Tomaz Cerar</a> (c) 2012 Red Hat Inc.
  */
-class WorkerResourceDefinition extends PersistentResourceDefinition {
+class WorkerResourceDefinition extends PersistentResourceDefinition implements AddHandlerResourceDefinition {
 
     static final RuntimeCapability<Void> IO_WORKER_RUNTIME_CAPABILITY =
             RuntimeCapability.Builder.of(IOServices.IO_WORKER_CAPABILITY_NAME, true, XnioWorker.class).build();
@@ -144,7 +145,6 @@ class WorkerResourceDefinition extends PersistentResourceDefinition {
     private WorkerResourceDefinition() {
         super(new Parameters(IOExtension.WORKER_PATH,
                 IOExtension.getResolver(Constants.WORKER))
-                .useDefinitionAdd()
                 .setRemoveHandler(ReloadRequiredRemoveStepHandler.INSTANCE)
         );
     }
@@ -504,7 +504,7 @@ class WorkerResourceDefinition extends PersistentResourceDefinition {
     }
 
     @Override
-    protected Resource createResourceForAdd(OperationContext context) {
+    public Resource createResourceForAdd(OperationContext context) {
         Resource r = new WorkerResourceDefinition.WorkerResource(context);
         context.addResource(PathAddress.EMPTY_ADDRESS, r);
         return r;
@@ -512,7 +512,7 @@ class WorkerResourceDefinition extends PersistentResourceDefinition {
 
     @Override
     @SuppressWarnings("unchecked")
-    protected void performRuntimeForAdd(OperationContext context, ModelNode operation, ModelNode model) throws OperationFailedException {
+    public void performRuntimeForAdd(OperationContext context, ModelNode operation, ModelNode model) throws OperationFailedException {
         final PathAddress address = PathAddress.pathAddress(operation.get(OP_ADDR));
         Resource resource = context.readResourceFromRoot(address.subAddress(0, address.size() - 1));
         ModelNode workers = Resource.Tools.readModel(resource).get(IOExtension.WORKER_PATH.getKey());

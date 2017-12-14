@@ -22,6 +22,8 @@
 
 package org.wildfly.extension.discovery;
 
+import org.jboss.as.controller.AddHandlerResourceDefinition;
+import org.jboss.as.controller.RemoveHandlerResourceDefinition;
 import org.jboss.as.controller.ResourceDefinition;
 import org.jboss.as.controller.SimpleResourceDefinition;
 import org.jboss.as.controller.registry.ManagementResourceRegistration;
@@ -29,14 +31,11 @@ import org.jboss.as.controller.registry.ManagementResourceRegistration;
 /**
  * @author <a href="mailto:david.lloyd@redhat.com">David M. Lloyd</a>
  */
-final class DiscoverySubsystemDefinition extends SimpleResourceDefinition {
+final class DiscoverySubsystemDefinition extends SimpleResourceDefinition implements AddHandlerResourceDefinition, RemoveHandlerResourceDefinition {
     private static final ResourceDefinition INSTANCE = new DiscoverySubsystemDefinition();
 
     private DiscoverySubsystemDefinition() {
-        super(new Parameters(DiscoveryExtension.SUBSYSTEM_PATH, DiscoveryExtension.getResourceDescriptionResolver())
-            .useDefinitionAdd()
-            .useDefinitionRemove()
-        );
+        super(new Parameters(DiscoveryExtension.SUBSYSTEM_PATH, DiscoveryExtension.getResourceDescriptionResolver()));
     }
 
     static ResourceDefinition getInstance() {
