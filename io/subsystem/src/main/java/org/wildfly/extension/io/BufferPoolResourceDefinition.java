@@ -25,6 +25,7 @@ package org.wildfly.extension.io;
 
 import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.OP_ADDR;
 
+import java.nio.ByteBuffer;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
@@ -42,9 +43,14 @@ import org.jboss.as.controller.capability.RuntimeCapability;
 import org.jboss.as.controller.operations.validation.IntRangeValidator;
 import org.jboss.as.controller.registry.AttributeAccess;
 import org.jboss.as.controller.registry.ManagementResourceRegistration;
+import org.jboss.as.controller.registry.Resource;
 import org.jboss.dmr.ModelNode;
 import org.jboss.dmr.ModelType;
 import org.jboss.msc.service.ServiceController;
+import org.jboss.msc.service.ValueService;
+import org.jboss.msc.value.ImmediateValue;
+import org.xnio.BufferAllocator;
+import org.xnio.ByteBufferSlicePool;
 import org.xnio.Pool;
 
 /**
@@ -128,18 +134,18 @@ class BufferPoolResourceDefinition extends PersistentResourceDefinition implemen
     }
 
     @Override
-    public void performRuntimeForAdd(OperationContext context, ModelNode operation, ModelNode model) throws OperationFailedException {
+    public void performRuntimeForAdd(OperationContext context, ModelNode operation, Resource resource) throws OperationFailedException {
         final PathAddress address = PathAddress.pathAddress(operation.get(OP_ADDR));
         final String name = address.getLastElement().getValue();
-        final ModelNode bufferSizeModel = BUFFER_SIZE.resolveModelAttribute(context, model);
-        final ModelNode bufferPerSliceModel = BUFFER_PER_SLICE.resolveModelAttribute(context, model);
-        final ModelNode directModel = DIRECT_BUFFERS.resolveModelAttribute(context, model);
+        final ModelNode bufferSizeModel = BUFFER_SIZE.resolveModelAttribute(context, resource.getModel());
+        final ModelNode bufferPerSliceModel = BUFFER_PER_SLICE.resolveModelAttribute(context, resource.getModel());
+        final ModelNode directModel = DIRECT_BUFFERS.resolveModelAttribute(context, resource.getModel());
 
         final int bufferSize = bufferSizeModel.isDefined() ? bufferSizeModel.asInt() : defaultBufferSize;
         final int bufferPerSlice = bufferPerSliceModel.isDefined() ? bufferPerSliceModel.asInt() : defaultBuffersPerRegion;
         final boolean direct = directModel.isDefined() ? directModel.asBoolean() : defaultDirectBuffers;
 
-        final BufferPoolService service = new BufferPoolService(bufferSize, bufferPerSlice, direct);
+        final ValueService<Pool<ByteBuffer>> service = new ValueService<>(new ImmediateValue<>(new ByteBufferSlicePool(direct ? BufferAllocator.DIRECT_BYTE_BUFFER_ALLOCATOR : BufferAllocator.BYTE_BUFFER_ALLOCATOR, bufferSize, bufferPerSlice * bufferSize)));
         context.getCapabilityServiceTarget().addCapability(IO_POOL_RUNTIME_CAPABILITY, service)
                 .setInitialMode(ServiceController.Mode.ACTIVE)
                 .install();

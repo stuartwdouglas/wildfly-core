@@ -130,10 +130,10 @@ public class RemotingConnectorResource extends SimpleResourceDefinition implemen
     }
 
     @Override
-    public void performRuntimeForAdd(OperationContext context, ModelNode operation, ModelNode model)
+    public void performRuntimeForAdd(OperationContext context, ModelNode operation, Resource resource)
             throws OperationFailedException {
 
-        boolean useManagementEndpoint = RemotingConnectorResource.USE_MANAGEMENT_ENDPOINT.resolveModelAttribute(context, model).asBoolean();
+        boolean useManagementEndpoint = RemotingConnectorResource.USE_MANAGEMENT_ENDPOINT.resolveModelAttribute(context, resource.getModel()).asBoolean();
 
         ServiceName remotingCapability;
         if (!useManagementEndpoint) {
@@ -159,12 +159,13 @@ public class RemotingConnectorResource extends SimpleResourceDefinition implemen
         RemotingConnectorService.addService(context.getServiceTarget(), remotingCapability, resolvedDomain, expressionsDomain);
     }
 
-
+    @Override
     public void performRuntimeForRemove(OperationContext context, ModelNode operation, ModelNode model) {
         context.removeService(RemotingConnectorService.SERVICE_NAME);
     }
 
+    @Override
     public void recoverServicesForRemove(OperationContext context, ModelNode operation, ModelNode model) throws OperationFailedException {
-        performRuntimeForAdd(context, operation, model);
+        performRuntimeForAdd(context, operation, context.createResource(PathAddress.EMPTY_ADDRESS));
     }
 }

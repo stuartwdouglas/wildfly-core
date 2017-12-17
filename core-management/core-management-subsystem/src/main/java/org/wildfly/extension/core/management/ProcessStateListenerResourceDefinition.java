@@ -44,6 +44,7 @@ import org.jboss.as.controller.capability.RuntimeCapability;
 import org.jboss.as.controller.client.helpers.MeasurementUnit;
 import org.jboss.as.controller.descriptions.ModelDescriptionConstants;
 import org.jboss.as.controller.registry.ManagementResourceRegistration;
+import org.jboss.as.controller.registry.Resource;
 import org.jboss.dmr.ModelNode;
 import org.jboss.dmr.ModelType;
 import org.jboss.modules.Module;
@@ -103,7 +104,8 @@ public class ProcessStateListenerResourceDefinition extends PersistentResourceDe
     }
 
     @Override
-    public void performRuntimeForAdd(OperationContext context, ModelNode operation, ModelNode model) throws OperationFailedException {
+    public void performRuntimeForAdd(OperationContext context, ModelNode operation, Resource resource) throws OperationFailedException {
+        ModelNode model = resource.getModel();
         String className = LISTENER_CLASS.resolveModelAttribute(context, model).asString();
         String moduleIdentifier = LISTENER_MODULE.resolveModelAttribute(context, model).asString();
         ProcessStateListener listener = newInstance(className, moduleIdentifier);

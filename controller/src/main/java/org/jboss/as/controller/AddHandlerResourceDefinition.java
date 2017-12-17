@@ -8,22 +8,12 @@ import org.jboss.dmr.ModelNode;
 
 public interface AddHandlerResourceDefinition {
     default void performRuntimeForAdd(OperationContext context, ModelNode operation, Resource resource) throws OperationFailedException {
-        performRuntimeForAdd(context, operation, resource.getModel());
-    }
 
-    default void performRuntimeForAdd(OperationContext context, ModelNode operation, ModelNode model) throws OperationFailedException {}
+    }
 
     default void populateModelForAdd(OperationContext context, ModelNode operation, Resource resource) throws OperationFailedException {
-        populateModelForAdd(context, operation, resource.getModel());
-    }
-
-    default void populateModelForAdd(OperationContext context, ModelNode operation, ModelNode model) throws OperationFailedException {
-        populateModelForAdd(operation, model);
-    }
-
-    default void populateModelForAdd(ModelNode operation, ModelNode model) throws OperationFailedException {
         for (AttributeDefinition attr : getAttributes()) {
-            attr.validateAndSet(operation, model);
+            attr.validateAndSet(operation, resource.getModel());
         }
     }
 

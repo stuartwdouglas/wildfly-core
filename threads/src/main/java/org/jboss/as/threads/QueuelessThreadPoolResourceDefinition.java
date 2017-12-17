@@ -26,11 +26,13 @@ import org.jboss.as.controller.AddHandlerResourceDefinition;
 import org.jboss.as.controller.AttributeDefinition;
 import org.jboss.as.controller.OperationContext;
 import org.jboss.as.controller.OperationFailedException;
+import org.jboss.as.controller.PathAddress;
 import org.jboss.as.controller.PathElement;
 import org.jboss.as.controller.PersistentResourceDefinition;
 import org.jboss.as.controller.ReadResourceNameOperationStepHandler;
 import org.jboss.as.controller.RemoveHandlerResourceDefinition;
 import org.jboss.as.controller.registry.ManagementResourceRegistration;
+import org.jboss.as.controller.registry.Resource;
 import org.jboss.dmr.ModelNode;
 import org.jboss.msc.service.ServiceName;
 
@@ -132,9 +134,9 @@ public class QueuelessThreadPoolResourceDefinition extends PersistentResourceDef
     }
 
     @Override
-    public void performRuntimeForAdd(final OperationContext context, final ModelNode operation, final ModelNode model) throws OperationFailedException {
+    public void performRuntimeForAdd(final OperationContext context, final ModelNode operation, final Resource resource) throws OperationFailedException {
 
-        final ThreadPoolManagementUtils.QueuelessThreadPoolParameters params = ThreadPoolManagementUtils.parseQueuelessThreadPoolParameters(context, operation, model, blocking);
+        final ThreadPoolManagementUtils.QueuelessThreadPoolParameters params = ThreadPoolManagementUtils.parseQueuelessThreadPoolParameters(context, operation, resource.getModel(), blocking);
 
         final QueuelessThreadPoolService service = new QueuelessThreadPoolService(params.getMaxThreads(), blocking, params.getKeepAliveTime());
 
@@ -156,6 +158,6 @@ public class QueuelessThreadPoolResourceDefinition extends PersistentResourceDef
 
     @Override
     public void recoverServicesForRemove(OperationContext context, ModelNode operation, ModelNode model) throws OperationFailedException {
-        performRuntimeForAdd(context, operation, model);
+        performRuntimeForAdd(context, operation, context.createResource(PathAddress.EMPTY_ADDRESS));
     }
 }

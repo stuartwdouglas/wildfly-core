@@ -77,7 +77,7 @@ public class AuditLogHandlerReferenceResourceDefinition extends SimpleResourceDe
     }
 
     @Override
-    public void performRuntimeForAdd(OperationContext context, ModelNode operation, ModelNode model)
+    public void performRuntimeForAdd(OperationContext context, ModelNode operation, Resource resource)
             throws OperationFailedException {
         auditLogger.getUpdater().addHandlerReference(PathAddress.pathAddress(operation.require(OP_ADDR)));
     }

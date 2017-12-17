@@ -74,11 +74,15 @@ public abstract class PersistentResourceDefinition extends SimpleResourceDefinit
         super.registerAttributes(resourceRegistration);
         ReloadRequiredWriteAttributeHandler handler = new ReloadRequiredWriteAttributeHandler(getAttributes());
         for (AttributeDefinition attr : getAttributes()) {
-            if(!attr.getImmutableFlags().contains(AttributeAccess.Flag.RESTART_ALL_SERVICES)) {
-                throw ControllerLogger.ROOT_LOGGER.attributeWasNotMarkedAsReloadRequired(attr.getName(), resourceRegistration.getPathAddress());
-            }
-            resourceRegistration.registerReadWriteAttribute(attr, null, handler);
+            registerAttribute(attr, resourceRegistration, handler);
         }
+    }
+
+    protected void registerAttribute(AttributeDefinition attr, ManagementResourceRegistration resourceRegistration, OperationStepHandler defaultWriteHandler) {
+        if(!attr.getImmutableFlags().contains(AttributeAccess.Flag.RESTART_ALL_SERVICES)) {
+            throw ControllerLogger.ROOT_LOGGER.attributeWasNotMarkedAsReloadRequired(attr.getName(), resourceRegistration.getPathAddress());
+        }
+        resourceRegistration.registerReadWriteAttribute(attr, null, defaultWriteHandler);
     }
 
 

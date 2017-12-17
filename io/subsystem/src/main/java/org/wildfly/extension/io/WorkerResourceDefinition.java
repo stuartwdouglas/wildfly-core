@@ -512,7 +512,8 @@ class WorkerResourceDefinition extends PersistentResourceDefinition implements A
 
     @Override
     @SuppressWarnings("unchecked")
-    public void performRuntimeForAdd(OperationContext context, ModelNode operation, ModelNode model) throws OperationFailedException {
+    public void performRuntimeForAdd(OperationContext context, ModelNode operation, Resource currentResource) throws OperationFailedException {
+        ModelNode model = currentResource.getModel();
         final PathAddress address = PathAddress.pathAddress(operation.get(OP_ADDR));
         Resource resource = context.readResourceFromRoot(address.subAddress(0, address.size() - 1));
         ModelNode workers = Resource.Tools.readModel(resource).get(IOExtension.WORKER_PATH.getKey());

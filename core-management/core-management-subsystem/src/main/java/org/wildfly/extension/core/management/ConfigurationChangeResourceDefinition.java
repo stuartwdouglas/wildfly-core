@@ -33,18 +33,19 @@ import java.util.EnumSet;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
-import org.jboss.as.controller.AbstractAddStepHandler;
-import org.jboss.as.controller.AbstractRemoveStepHandler;
 import org.jboss.as.controller.AbstractRuntimeOnlyHandler;
 import org.jboss.as.controller.AbstractWriteAttributeHandler;
+import org.jboss.as.controller.AddHandlerResourceDefinition;
 import org.jboss.as.controller.AttributeDefinition;
 import org.jboss.as.controller.ConfigurationChangesCollector;
 import org.jboss.as.controller.OperationContext;
 import org.jboss.as.controller.OperationDefinition;
 import org.jboss.as.controller.OperationFailedException;
+import org.jboss.as.controller.OperationStepHandler;
 import org.jboss.as.controller.PathAddress;
 import org.jboss.as.controller.PathElement;
 import org.jboss.as.controller.PersistentResourceDefinition;
+import org.jboss.as.controller.RemoveHandlerResourceDefinition;
 import org.jboss.as.controller.SimpleAttributeDefinition;
 import org.jboss.as.controller.SimpleAttributeDefinitionBuilder;
 import org.jboss.as.controller.SimpleOperationDefinitionBuilder;
@@ -65,7 +66,7 @@ import org.jboss.msc.service.AbstractService;
  *
  * @author <a href="mailto:ehugonne@redhat.com">Emmanuel Hugonnet</a> (c) 2015 Red Hat, inc.
  */
-public class ConfigurationChangeResourceDefinition extends PersistentResourceDefinition {
+public class ConfigurationChangeResourceDefinition extends PersistentResourceDefinition implements AddHandlerResourceDefinition, RemoveHandlerResourceDefinition{
 
     public static final SimpleAttributeDefinition MAX_HISTORY = SimpleAttributeDefinitionBuilder.create(
             ModelDescriptionConstants.MAX_HISTORY, ModelType.INT, true)
@@ -82,9 +83,7 @@ public class ConfigurationChangeResourceDefinition extends PersistentResourceDef
 
     private ConfigurationChangeResourceDefinition() {
         super(new PersistentResourceDefinition.Parameters(PATH, CoreManagementExtension.getResourceDescriptionResolver(CONFIGURATION_CHANGES))
-                .setCapabilities(CONFIGURATION_CHANGES_CAPABILITY)
-                .setAddHandler(new ConfigurationChangeResourceAddHandler())
-                .setRemoveHandler(new ConfigurationChangeResourceRemoveHandler()));
+                .setCapabilities(CONFIGURATION_CHANGES_CAPABILITY));
     }
 
     @Override
@@ -94,53 +93,31 @@ public class ConfigurationChangeResourceDefinition extends PersistentResourceDef
     }
 
     @Override
-    public void registerAttributes(ManagementResourceRegistration resourceRegistration) {
-        super.registerAttributes(resourceRegistration);
-        resourceRegistration.registerReadWriteAttribute(MAX_HISTORY, null, new MaxHistoryWriteHandler(ConfigurationChangesCollector.INSTANCE));
+    protected void registerAttribute(AttributeDefinition attr, ManagementResourceRegistration resourceRegistration, OperationStepHandler defaultWriteHandler) {
+        if(attr == MAX_HISTORY) {
+            resourceRegistration.registerReadWriteAttribute(attr, null, new MaxHistoryWriteHandler(ConfigurationChangesCollector.INSTANCE));
+        } else {
+            super.registerAttribute(attr, resourceRegistration, defaultWriteHandler);
+        }
     }
 
     @Override
     public Collection<AttributeDefinition> getAttributes() {
-        return Collections.emptyList();
+        return Collections.singletonList(MAX_HISTORY);
     }
 
 
-    private static class ConfigurationChangeResourceAddHandler extends AbstractAddStepHandler {
-        private ConfigurationChangeResourceAddHandler() {
-            super(MAX_HISTORY);
-        }
-
-        @Override
-        protected void performRuntime(OperationContext context, ModelNode operation, Resource resource) throws OperationFailedException {
-            super.performRuntime(context, operation, resource);
-            context.getServiceTarget().addService(CONFIGURATION_CHANGES_CAPABILITY.getCapabilityServiceName(), new AbstractService<Void>() {}).install();
-            ModelNode maxHistory = MAX_HISTORY.resolveModelAttribute(context, operation);
-            ConfigurationChangesCollector.INSTANCE.setMaxHistory(maxHistory.asInt());
-        }
-
-        @Override
-        protected boolean requiresRuntime(OperationContext context) {
-            return context.isDefaultRequiresRuntime();
-        }
+    @Override
+    public void performRuntimeForAdd(OperationContext context, ModelNode operation, Resource resource) throws OperationFailedException {
+        context.getServiceTarget().addService(CONFIGURATION_CHANGES_CAPABILITY.getCapabilityServiceName(), new AbstractService<Void>() {}).install();
+        ModelNode maxHistory = MAX_HISTORY.resolveModelAttribute(context, operation);
+        ConfigurationChangesCollector.INSTANCE.setMaxHistory(maxHistory.asInt());
     }
 
-    private static class ConfigurationChangeResourceRemoveHandler extends AbstractRemoveStepHandler {
-
-        private ConfigurationChangeResourceRemoveHandler() {
-            super();
-        }
-
-        @Override
-        protected boolean requiresRuntime(OperationContext context) {
-            return context.isDefaultRequiresRuntime();
-        }
-
-        @Override
-        protected void performRuntime(OperationContext context, ModelNode operation, ModelNode model) throws OperationFailedException {
-            super.performRuntime(context, operation, model);
-            ConfigurationChangesCollector.INSTANCE.deactivate();
-            context.removeService(CONFIGURATION_CHANGES_CAPABILITY.getCapabilityServiceName());
-        }
+    @Override
+    public void performRuntimeForRemove(OperationContext context, ModelNode operation, ModelNode model) throws OperationFailedException {
+        ConfigurationChangesCollector.INSTANCE.deactivate();
+        context.removeService(CONFIGURATION_CHANGES_CAPABILITY.getCapabilityServiceName());
     }
 
     private static class MaxHistoryWriteHandler extends AbstractWriteAttributeHandler<Integer> {

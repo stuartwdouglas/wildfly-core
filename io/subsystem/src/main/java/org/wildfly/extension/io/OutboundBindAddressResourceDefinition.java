@@ -119,6 +119,7 @@ public class OutboundBindAddressResourceDefinition extends PersistentResourceDef
         );
     }
 
+    @Override
     public void performRuntimeForRemove(final OperationContext context, final ModelNode operation, final ModelNode model) throws OperationFailedException {
         final CidrAddressTable<InetSocketAddress> bindingsTable = getWorkerService(context).getBindingsTable();
         if (bindingsTable != null) {

@@ -38,6 +38,7 @@ import org.jboss.as.controller.access.management.AccessConstraintDefinition;
 import org.jboss.as.controller.access.management.SensitiveTargetAccessConstraintDefinition;
 import org.jboss.as.controller.descriptions.ModelDescriptionConstants;
 import org.jboss.as.controller.registry.ManagementResourceRegistration;
+import org.jboss.as.controller.registry.Resource;
 import org.jboss.as.host.controller.descriptions.HostResolver;
 import org.jboss.dmr.ModelNode;
 import org.jboss.dmr.ModelType;
@@ -102,9 +103,9 @@ public class SslLoopbackResourceDefinition extends SimpleResourceDefinition impl
     }
 
     @Override
-    public void populateModelForAdd(ModelNode operation, ModelNode model) throws OperationFailedException {
+    public void populateModelForAdd(OperationContext context, ModelNode operation, Resource resource) throws OperationFailedException {
         for (AttributeDefinition attr : ATTRIBUTES) {
-            attr.validateAndSet(operation, model);
+            attr.validateAndSet(operation, resource.getModel());
         }
     }
 
