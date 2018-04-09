@@ -29,6 +29,7 @@ import java.util.jar.Manifest;
 
 import org.jboss.as.controller.capability.CapabilityServiceSupport;
 import org.jboss.as.controller.services.path.PathManager;
+import org.jboss.as.server.classchange.DeploymentClassChangeSupport;
 import org.jboss.as.server.deployment.annotation.CompositeIndex;
 import org.jboss.as.server.deployment.module.AdditionalModuleSpecification;
 import org.jboss.as.server.deployment.module.ExtensionInfo;
@@ -207,6 +208,12 @@ public final class Attachments {
      * to handle undeployment.
      */
     public static final AttachmentKey<ServiceTarget> EXTERNAL_SERVICE_TARGET = AttachmentKey.create(ServiceTarget.class);
+
+    /**
+     * Hot replacement support. This will only be available if the server has been started with hot replacement enabled.
+     */
+    public static final AttachmentKey<DeploymentClassChangeSupport> DEPLOYMENT_CLASS_CHANGE_SUPPORT = AttachmentKey.create(DeploymentClassChangeSupport.class);
+
 
     //
     // VALIDATE

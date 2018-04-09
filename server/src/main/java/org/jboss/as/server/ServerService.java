@@ -79,6 +79,8 @@ import org.jboss.as.platform.mbean.RootPlatformMBeanResource;
 import org.jboss.as.remoting.HttpListenerRegistryService;
 import org.jboss.as.remoting.management.ManagementRemotingServices;
 import org.jboss.as.repository.ContentRepository;
+import org.jboss.as.server.classchange.ChangableClassDeploymentUnitProcessor;
+import org.jboss.as.server.classchange.ClassChangeDeploymentUnitProcessor;
 import org.jboss.as.server.controller.resources.ServerRootResourceDefinition;
 import org.jboss.as.server.controller.resources.VersionModelInitializer;
 import org.jboss.as.server.deployment.Attachments;
@@ -358,6 +360,20 @@ public final class ServerService extends AbstractControllerService {
             DeployerChainAddHandler.addDeploymentProcessor(SERVER_NAME, Phase.INSTALL, Phase.INSTALL_DEPLOYMENT_COMPLETE_SERVICE, new DeploymentCompleteServiceProcessor());
             DeployerChainAddHandler.addDeploymentProcessor(SERVER_NAME, Phase.CLEANUP, Phase.CLEANUP_REFLECTION_INDEX, new CleanupReflectionIndexProcessor());
             DeployerChainAddHandler.addDeploymentProcessor(SERVER_NAME, Phase.CLEANUP, Phase.CLEANUP_ANNOTATION_INDEX, new CleanupAnnotationIndexProcessor());
+
+
+            //we only add hot deployment processor if Fakereplace is installed
+
+            try {
+                ClassLoader.getSystemClassLoader().loadClass("org.fakereplace.core.Fakereplace");
+                DeployerChainAddHandler.addDeploymentProcessor(SERVER_NAME, Phase.STRUCTURE, Phase.STRUCTURE_CLASS_CHANGE, new ClassChangeDeploymentUnitProcessor());
+                DeployerChainAddHandler.addDeploymentProcessor(SERVER_NAME, Phase.FIRST_MODULE_USE, Phase.FIRST_MODULE_USE_CLASS_CHANGE, new ChangableClassDeploymentUnitProcessor());
+
+            } catch (Throwable e) {
+                //ignore
+                ServerLogger.AS_ROOT_LOGGER.trace("Not installing hot deployment support as Fakereplace is not present", e);
+            }
+
 
             // Ext integration deployers
 

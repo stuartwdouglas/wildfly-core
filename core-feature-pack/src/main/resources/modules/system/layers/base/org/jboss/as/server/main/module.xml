@@ -96,5 +96,10 @@
         <module name="org.wildfly.common"/>
         <module name="org.wildfly.extension.core-management-client" />
         <module name="sun.jdk" services="export" export="true"/>
+        <system>
+            <paths>
+                <path name="org/fakereplace/core" />
+            </paths>
+        </system>
     </dependencies>
 </module>

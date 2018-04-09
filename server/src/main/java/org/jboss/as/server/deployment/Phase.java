@@ -183,6 +183,7 @@ public enum Phase {
     }
 
     // STRUCTURE
+    public static final int STRUCTURE_CLASS_CHANGE                      = 0x0080;
     public static final int STRUCTURE_EXPLODED_MOUNT                    = 0x0100;
     public static final int STRUCTURE_MOUNT                             = 0x0200;
     public static final int STRUCTURE_DEPLOYMENT_OVERLAY                = 0x0280;
@@ -403,6 +404,7 @@ public enum Phase {
     public static final int CONFIGURE_AUTHENTICATION_CONTEXT            = 0x0500;
 
     // FIRST_MODULE_USE
+    public static final int FIRST_MODULE_USE_CLASS_CHANGE               = 0x0080;
     public static final int FIRST_MODULE_USE_PERSISTENCE_CLASS_FILE_TRANSFORMER = 0x0100; // need to be before POST_MODULE_REFLECTION_INDEX
                                                                                          // and anything that could load class definitions
     public static final int FIRST_MODULE_USE_INTERCEPTORS               = 0x0200;

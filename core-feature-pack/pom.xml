@@ -142,6 +142,11 @@
         </dependency>
 
         <dependency>
+            <groupId>org.fakereplace</groupId>
+            <artifactId>fakereplace-dist</artifactId>
+        </dependency>
+
+        <dependency>
             <groupId>org.jboss.invocation</groupId>
             <artifactId>jboss-invocation</artifactId>
         </dependency>
