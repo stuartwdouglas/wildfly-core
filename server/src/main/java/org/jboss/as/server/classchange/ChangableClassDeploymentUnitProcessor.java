@@ -34,7 +34,8 @@ public class ChangableClassDeploymentUnitProcessor implements DeploymentUnitProc
 
     @Override
     public void deploy(DeploymentPhaseContext phaseContext) throws DeploymentUnitProcessingException {
-        if (phaseContext.getDeploymentUnit().getAttachment(Attachments.DEPLOYMENT_CLASS_CHANGE_SUPPORT) != null) {
+        DeploymentClassChangeSupportImpl deploymentClassChangeSupport = (DeploymentClassChangeSupportImpl)phaseContext.getDeploymentUnit().getAttachment(Attachments.DEPLOYMENT_CLASS_CHANGE_SUPPORT);
+        if (deploymentClassChangeSupport != null) {
             final Module module = phaseContext.getDeploymentUnit().getAttachment(Attachments.MODULE);
             ReplaceableClassSelector replaceableClassSelector = new ReplaceableClassSelector() {
                 @Override
@@ -42,6 +43,7 @@ public class ChangableClassDeploymentUnitProcessor implements DeploymentUnitProc
                     return classLoader == module.getClassLoader();
                 }
             };
+            deploymentClassChangeSupport.addClassLoader(module.getClassLoader());
             phaseContext.getDeploymentUnit().putAttachment(SELECTOR, replaceableClassSelector);
             Fakereplace.addReplaceableClassSelector(replaceableClassSelector);
         }

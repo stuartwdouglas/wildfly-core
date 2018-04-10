@@ -143,6 +143,11 @@
 
         <dependency>
             <groupId>org.fakereplace</groupId>
+            <artifactId>fakereplace</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>org.fakereplace</groupId>
             <artifactId>fakereplace-dist</artifactId>
         </dependency>
 

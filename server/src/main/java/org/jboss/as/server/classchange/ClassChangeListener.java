@@ -19,11 +19,45 @@
 package org.jboss.as.server.classchange;
 
 
+import java.util.List;
+
+import org.jboss.jandex.ClassInfo;
+
 /**
  * A listener that gets notified when classes from a deployment are replaced
  */
 public interface ClassChangeListener {
 
-    void classesReplaced(Class<?>[] replacedClasses, String[] addedClasses);
+    void classesReplaced(List<Class<?>> replacedClasses, List<NewClassDefinition> changedClassDefinitions);
 
+    class NewClassDefinition {
+
+        private final String name;
+        private final ClassLoader classLoader;
+        private final byte[] data;
+        private final ClassInfo classInfo;
+
+        public NewClassDefinition(String name, ClassLoader classLoader, byte[] data, ClassInfo classInfo) {
+            this.name = name;
+            this.classLoader = classLoader;
+            this.data = data;
+            this.classInfo = classInfo;
+        }
+
+        public String getName() {
+            return name;
+        }
+
+        public ClassLoader getClassLoader() {
+            return classLoader;
+        }
+
+        public byte[] getData() {
+            return data;
+        }
+
+        public ClassInfo getClassInfo() {
+            return classInfo;
+        }
+    }
 }

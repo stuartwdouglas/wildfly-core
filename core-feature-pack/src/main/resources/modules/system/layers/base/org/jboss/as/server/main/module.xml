@@ -98,7 +98,7 @@
         <module name="sun.jdk" services="export" export="true"/>
         <system>
             <paths>
-                <path name="org/fakereplace/core" />
+                <path name="org/fakereplace/**" />
             </paths>
         </system>
     </dependencies>
