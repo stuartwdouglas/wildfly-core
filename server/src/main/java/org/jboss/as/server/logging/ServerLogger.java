@@ -1277,6 +1277,9 @@ public interface ServerLogger extends BasicLogger {
     @Message(id = 266, value = "Server home is set to '%s', but server real home is '%s' - unpredictable results may occur.")
     void serverHomeMismatch(Path passed, Path real);
 
+    @LogMessage(level = ERROR)
+    @Message(id = 267, value = "Failed to write class file %s after file change")
+    void failedToReplaceClassFile(String name, @Cause IOException e);
     ////////////////////////////////////////////////
     //Messages without IDs
 
@@ -1285,4 +1288,5 @@ public interface ServerLogger extends BasicLogger {
 
     @Message(id = Message.NONE, value = "The attribute '%s' has changed from '%s' to '%s'")
     String jmxAttributeChange(String name, String oldState, String stateString);
+
 }

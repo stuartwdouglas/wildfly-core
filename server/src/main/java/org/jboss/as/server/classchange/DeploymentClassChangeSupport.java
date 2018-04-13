@@ -26,18 +26,37 @@ import java.lang.instrument.ClassDefinition;
  */
 public interface DeploymentClassChangeSupport {
 
+    /**
+     * Adds a listener that can react to change change events
+     *
+     * @param listener The listener
+     */
     void addListener(ClassChangeListener listener);
 
+    /**
+     * Notifies the container that some classes have been changed and/or added
+     *
+     * @param changedClasses The changed classes
+     * @param newClasses The added classes
+     */
     void notifyChangedClasses(ClassDefinition[] changedClasses, NewClass[] newClasses);
+
+    /**
+     * Asks the container to scan for changes to an exploded deployment
+     *
+     */
+    void scanForChangedClasses();
 
     class NewClass {
 
         private final String name;
         private final byte[] data;
+        private final ClassLoader classLoader;
 
-        public NewClass(String name, byte[] data) {
+        public NewClass(String name, byte[] data, ClassLoader classLoader) {
             this.name = name;
             this.data = data;
+            this.classLoader = classLoader;
         }
 
         public String getName() {
@@ -46,6 +65,10 @@ public interface DeploymentClassChangeSupport {
 
         public byte[] getData() {
             return data;
+        }
+
+        public ClassLoader getClassLoader() {
+            return classLoader;
         }
     }
 }

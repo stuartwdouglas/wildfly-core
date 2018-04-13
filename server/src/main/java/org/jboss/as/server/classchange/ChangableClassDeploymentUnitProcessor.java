@@ -18,6 +18,9 @@
  */
 package org.jboss.as.server.classchange;
 
+import java.util.HashSet;
+import java.util.Set;
+
 import org.fakereplace.ReplaceableClassSelector;
 import org.fakereplace.core.Fakereplace;
 import org.jboss.as.server.deployment.AttachmentKey;
@@ -26,7 +29,10 @@ import org.jboss.as.server.deployment.DeploymentPhaseContext;
 import org.jboss.as.server.deployment.DeploymentUnit;
 import org.jboss.as.server.deployment.DeploymentUnitProcessingException;
 import org.jboss.as.server.deployment.DeploymentUnitProcessor;
+import org.jboss.as.server.deployment.module.ModuleRootMarker;
+import org.jboss.as.server.deployment.module.ResourceRoot;
 import org.jboss.modules.Module;
+import org.jboss.vfs.VirtualFile;
 
 public class ChangableClassDeploymentUnitProcessor implements DeploymentUnitProcessor {
 
@@ -34,17 +40,30 @@ public class ChangableClassDeploymentUnitProcessor implements DeploymentUnitProc
 
     @Override
     public void deploy(DeploymentPhaseContext phaseContext) throws DeploymentUnitProcessingException {
-        DeploymentClassChangeSupportImpl deploymentClassChangeSupport = (DeploymentClassChangeSupportImpl)phaseContext.getDeploymentUnit().getAttachment(Attachments.DEPLOYMENT_CLASS_CHANGE_SUPPORT);
+        DeploymentUnit du = phaseContext.getDeploymentUnit();
+        DeploymentClassChangeSupportImpl deploymentClassChangeSupport = (DeploymentClassChangeSupportImpl) du.getAttachment(Attachments.DEPLOYMENT_CLASS_CHANGE_SUPPORT);
         if (deploymentClassChangeSupport != null) {
-            final Module module = phaseContext.getDeploymentUnit().getAttachment(Attachments.MODULE);
+            deploymentClassChangeSupport.doInitialScan();
+            final Module module = du.getAttachment(Attachments.MODULE);
             ReplaceableClassSelector replaceableClassSelector = new ReplaceableClassSelector() {
                 @Override
                 public boolean isClassReplaceable(String s, ClassLoader classLoader) {
                     return classLoader == module.getClassLoader();
                 }
             };
-            deploymentClassChangeSupport.addClassLoader(module.getClassLoader());
-            phaseContext.getDeploymentUnit().putAttachment(SELECTOR, replaceableClassSelector);
+            Set<VirtualFile> roots = new HashSet<>();
+            ResourceRoot rr = du.getAttachment(Attachments.DEPLOYMENT_ROOT);
+            if(ModuleRootMarker.isModuleRoot(rr)) {
+                roots.add(rr.getRoot());
+            }
+            for(ResourceRoot r : du.getAttachmentList(Attachments.RESOURCE_ROOTS)) {
+                if(ModuleRootMarker.isModuleRoot(r)) {
+                    roots.add(r.getRoot());
+                }
+            }
+
+            deploymentClassChangeSupport.addClassLoader(module.getClassLoader(), roots);
+            du.putAttachment(SELECTOR, replaceableClassSelector);
             Fakereplace.addReplaceableClassSelector(replaceableClassSelector);
         }
     }

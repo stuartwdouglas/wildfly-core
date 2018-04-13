@@ -343,7 +343,7 @@
             </dependency>
             <dependency>
                 <groupId>org.fakereplace</groupId>
-                <artifactId>fakereplace-dist</artifactId>
+                <artifactId>fakereplace-partial-dist</artifactId>
                 <version>${version.org.fakereplace}</version>
             </dependency>
             <dependency>

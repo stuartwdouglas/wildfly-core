@@ -148,7 +148,7 @@
 
         <dependency>
             <groupId>org.fakereplace</groupId>
-            <artifactId>fakereplace-dist</artifactId>
+            <artifactId>fakereplace-partial-dist</artifactId>
         </dependency>
 
         <dependency>
